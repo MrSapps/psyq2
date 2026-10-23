@@ -42,7 +42,7 @@ void DoNoise(struct CREATURE *Cre, struct VECT *Location, int type);
 void GenerateBulletBlood(struct VECT *Location, int Area);
 void GenerateBulletGfx(struct VECT *Location, int Area);
 
-/* GTE macros in the PSY-Q inline_c.h style, one asm statement per instruction (see calib/misc.c) */
+/* GTE macros in the PSY-Q inline_c.h style, one asm statement per instruction (see misc.c) */
 #define gte_mvr(reg, r0) __asm__ volatile("move $" #reg ",%0" : : "r"(r0) : "$" #reg, "memory")
 #define gte_op(s) __asm__ volatile(s)
 #define gte_st(s) __asm__ volatile(s : : : "memory")

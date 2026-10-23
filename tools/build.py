@@ -57,7 +57,7 @@ def newer(target, deps):
     return any(os.path.getmtime(d) > t for d in deps)
 
 
-HEADERS = glob.glob(f'{R}/src/include/*.h') + glob.glob(f'{R}/include/*.h')
+HEADERS = glob.glob(f'{R}/src/include/*.h')
 
 
 def compile_c(name):
@@ -69,7 +69,7 @@ def compile_c(name):
     m = re.search(r'calib-flags: *([^*]*[^ *]) *\*/', text)
     flags = m.group(1).split() if m else FLAGS
     i, s = f'{OBJ}/{name}.i', f'{OBJ}/{name}.s'
-    rc, out = run(['gcc', '-E', '-P', '-I', f'{R}/src/include', '-I', f'{R}/include', src, '-o', i])
+    rc, out = run(['gcc', '-E', '-P', '-I', f'{R}/src/include', src, '-o', i])
     if rc:
         return name, rc, out
     rc, out = run(['wine', f'{PSYQ}/bin/cc1psx.exe', '-quiet'] + flags + [i, '-o', s])

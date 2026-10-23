@@ -1,67 +1,62 @@
 # Quake II (PS1, USA) decompilation
 
 Target: `SLUS_007.57` (PS-X EXE, loaded at `0x80018000`, entry `0x800861a4`).
-Success = `make` rebuilds the executable and its SHA-1 matches `config/SLUS_007.57.sha1`.
+`make` builds it from the C in `src/` with the original PSY-Q toolchain and the PSY-Q libraries, and
+checks that its SHA-1 matches `config/SLUS_007.57.sha1`. **It does: the build is byte-identical.**
+All 1037 game functions are C; the only assembly is what the original had as assembly (`src/hand_asm.s`)
+and four libsn modules from a release we don't have (`src/libsn/`).
 
 ## Build
 
-Needs mipsel binutils (`apt install binutils-mipsel-linux-gnu`, or `tools/build-binutils.sh`
-which installs to `~/.local/mipsel`). No original files are required:
+Needs wine, a host `gcc` (only its preprocessor) and Python 3. The SDKs are those of
+[FoxdieTeam/psyq_sdk](https://github.com/FoxdieTeam/psyq_sdk), as for mgs_reversing, cloned next to this repo:
 
-    export PATH=$HOME/.local/mipsel/bin:$PATH   # if built from source
-    make                                        # assembles asm/, links, checks the SHA-1
+    git clone https://github.com/FoxdieTeam/psyq_sdk ../psyq_sdk
+    make                    # tools/build.py: compile, link, cpe2exe, SHA-1
+    make check              # per-object code and data comparison with baserom/SLUS_007.57
 
-The original executable is not in the repo. To regenerate `asm/` you need it, plus `MAIN.SYM`,
-in `baserom/` (both ignored by git), extracted from the disc with `tools/isoextract.py`.
+`tools/build.py --only NAME...` compiles just those `src/NAME.c`; `--link-only` relinks. `PSYQ`, `PSYQ_LIB`
+and `ASPSX` override the SDK paths. `make check` and the tools below need the original executable in
+`baserom/SLUS_007.57` (ignored by git; `tools/isoextract.py` gets it and `MAIN.SYM` from the disc).
+
+The pipeline, per object of the original link (`config/link_order.txt`):
+
+    src/<obj>.c        gcc -E -> CC1PSX 4.4 (-O3 -G8 -g) -> ASPSX 2.81    -> build/obj/<obj>.obj
+    src/hand_asm.s, src/libsn/*.s, src/libbss/*.s       ASPSX 2.81       -> build/obj/...
+    PSY-Q 4.5 libraries                                 PSYLIB /x        -> build/lib/<lib>/*.OBJ
+    config/SLUS_007.lnk                                 PSYLINK          -> build/SLUS_007.cpe
+                                                        CPE2EXE          -> build/SLUS_007.57
 
 ## Layout
 
-- `asm/`            disassembly, one file per source file (`asm/main.s` is `MAIN.C`); `lib_*` is library code without debug info
-- `asm/data/`       data, rodata, sdata, and the zeroed start of sbss that sits inside the image; bss is a size-only segment
-- `asm/hand_asm.s`  hand-written assembly linked after sdata (`0x800aefa0`)
-- `src/`            decoded debug info from `MAIN.SYM`: `include/types.h`, `include/globals.h`, `functions.json`, ...
-- `src/src/*.C`     per-source-file skeletons with original signatures, locals, line ranges
-- `config/`         splat config, linker script, `symbol_addrs.txt`, expected hash
-- `include/`        assembler macros (`macro.inc`, `gte.inc` for PS1 GTE opcodes)
-- `tools/`          `symdump.py` (MAIN.SYM decoder), `gen_splat.py`, `mkheader.py`, `gen_undefined.py`, ...
+- `src/<obj>.c`     one file per object of the original link: `event.c` is EVENT.C and QEVENT.C (QEVENT is
+                    included into it), `models.c` is QUATANIM.C and MODELS.C. Data-only objects (`qlevifce`,
+                    `dbuffer`, `weapons`, `window`, `skybox`, `endgroup`) are C files with just their data.
+- `src/include/`    `types.h` and `globals.h` (decoded from `MAIN.SYM`), `bss.h`
+- `src/hand_asm.s`  the original's hand-written assembly (section `CODE`)
+- `src/libsn/`      SNMAIN, `__sn_cpp_structors`, PCread and PCwrite, rebuilt from the original
+- `src/libbss/`     the library variables (commons) the original link placed between library modules
+- `src/*.json`, `src/symbols.txt`, `src/symbol_addrs.txt`   debug info decoded by `tools/symdump.py`
+- `config/`         `SLUS_007.lnk` (psylink command file), `link_order.txt`, `symbol_addrs.txt`, the hash
+- `tools/`          `build.py`, and the comparison tools below
 
-## Regenerating
+## Comparing with the original
 
-    python3 tools/symdump.py baserom/MAIN.SYM src     # decode debug info
-    python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-    make split                                        # config + asm via splat
+- `tools/objcmp.py EXE OBJ...` compares each object's code with its place in the executable, ignoring
+  the fields the linker patches. It is the authority for code: all 80 objects match.
+- `tools/tudata.py EXE OBJ...` checks one object's .data/.rdata/.sdata bytes and the layout of its
+  .sbss/.bss variables, so a data or bss problem shows in the object that has it, not as a shift of
+  everything after it. Known false reports: `event` (two `Sound_Explosion`s), `models`/`loadlev` (commons
+  of QLevIfce's variables), `cdaudio` (`Trax`, see below), `qmpower` (anchor).
+- `tools/datacmp.py EXE config/link_order.txt build/obj` compares the data sections cumulatively in link order.
+- `tools/exediff.py` diffs a build with the original by section and lists where symbols first move.
 
-Notes: the PS-X header is generated by `tools/mkheader.py`. Symbols no object defines (bss,
-unlabelled data) become linker assignments via `tools/gen_undefined.py`. `src/symbols.txt` lists
-every label; `src/functions.json` has per-function line tables for matching.
+## Toolchain
 
-## Decompiling a function
-
-Compiler: PSY-Q `cc1psx.exe` under wine, from an SDK directory (`PSYQ=~/dev/psyq_sdk/psyq_4.4` by default),
-then `tools/maspsx` (submodule: `git submodule update --init`) and GNU as. Flags: **`-O3 -G8 -g`** (the default).
-
-    tools/cc-psx.sh work.c work.o [-O3 -G8 -g]          # C -> object (headers: src/include/types.h, globals.h)
-    python3 tools/cmpfunc.py asm/main.s FuncName work.o   # side-by-side diff against the original, exit 0 = match
-
-`work.o` may hold other functions too; `cmpfunc.py` only compares `FuncName`. `src/src/*.C` has the original
-signature, locals (with registers/frame offsets) and line range for every function; `src/functions.json` has
-the address-to-line table, which helps ordering statements.
-
-Getting the SDKs: the `psyq-binaries` release of `mkst/esa` on GitHub (`psyq4.4.tar.gz` etc., as used by
-decomp.me) holds the `bin/` of each SDK. Unpack into `~/dev/psyq_sdk/psyq_<ver>/bin` and add lowercase
-symlinks (`cc1psx.exe -> CC1PSX.EXE`). 4.0 and 4.1 need `tools/patch-cc1psx-tmp.py` to run under wine.
-
-## Compiler and flags
-
-The game was built with the **`cc1psx` of PSY-Q 4.4 (gcc 2.8.1 SN32 build 4.0.0010), `-O3 -G8 -g`, assembled
-by an ASPSX of version 2.80 or later** (2.81 ships with PSY-Q 4.5), not the 2.79 that comes with 4.4: a
-mixed toolchain. SNRELMOD.OBJ (SN's relocation stub) alone was built at `-O0`. `cc-psx.sh` defaults to all
-of that.
-
-`calib/` holds matched functions, one file per original source file; `tools/calibrate.sh [flags]`
-recompiles them and diffs each against `asm/` (`ASPSX_VERSION=` changes maspsx's assembler model, and a
-file whose original used other flags says so in a `/* calib-flags: ... */` comment). **All 1037
-game functions match, 100% of the game's code (every source file complete).**
+The game was built with the **`cc1psx` of PSY-Q 4.4 (gcc 2.8.1 SN32 build 4.0.0010), `-O3 -G8 -g`,
+assembled by an ASPSX of version 2.80 or later** (2.81, from PSY-Q 4.5), and linked with the **PSY-Q 4.5
+libraries**, `libc` (not `libc2`). SNRELMOD.OBJ alone was built at `-O0`; a file built with other flags
+names them in a `/* calib-flags: ... */` comment.
 
 | cc1psx                  | -O1 | -O2     | -O3     | -O3 -G0 | -O3 -G4 |
 |-------------------------|-----|---------|---------|---------|---------|
@@ -71,87 +66,72 @@ game functions match, 100% of the game's code (every source file complete).**
 | 4.5 (egcs 1.1.2)        | 4/8 | 4/8     | 4/8     | 3/8     | 4/8     |
 | 4.6 (gcc 2.95.2)        | 2/8 | 2/8     | 2/8     | 1/8     | 2/8     |
 
-The x/8 columns are from the first 8 calibration functions, the x/959 ones from the set as it stood at
-959 matches. What settles it:
+- **4.4, not 4.3.** 74 functions match only with 4.4. All of them pass a byte-aligned struct by value (a
+  12-byte `IDENTITYNAME`, a 4-byte `COLOUR`), whose temporaries 4.3 allocates and schedules differently.
+- **`-O3`.** 122 functions need a function defined earlier in the file inlined into them, without `inline`.
+  `-O3` also sets the function order: gcc 2.8 emits every inline candidate (insn limit `8 * (8 + nparams)`)
+  at the end of the file, in the order of first declaration. So each file has its functions in line
+  order, then the small ones in prototype order, which is what the prototype block at the top of each
+  file reproduces (implicit declarations don't count).
+- **`-g`** moves where CSE flushes its table (`InitialisePlayerSounds` only matches with it).
+- **`-G8`**, and `$gp` only for variables the file defines: no ASPSX makes an extern `$gp`-relative. A
+  variable is defined in the file that SYM says owns it (`obj` in `src/globals.json`) and `extern`
+  elsewhere, except where the original reached another object's variable through `$gp`: then the file
+  has a tentative definition, a small common.
+- **ASPSX >= 2.80** gives `addiu $a0,$gp,%gp_rel(X)` for the address of a small variable (2.77/2.79
+  give `lui`/`addiu`). It also adds the divide-by-zero and overflow checks to every divide.
 
-- **4.4, not 4.3.** 74 functions match with 4.4 and not with 4.3, none the other way. All of them pass a
-  byte-aligned struct by value (a 12-byte `IDENTITYNAME`, a 4-byte `COLOUR`), which gcc builds from
-  `lbu`/`sll`/`or`; 4.3 allocates and schedules those temporaries differently (e.g. `ActivateCreatureBatch`,
-  `AnyoneFireBFG`, `PSXSIMBUTTON`). Fuzzing also found 4.3 loading `?:` constants of `unsigned char`/
-  `unsigned short` with the top bit set sign-extended (`li $2,-56` plus an `andi`); the game never does.
-- **`-O3`, not `-O2`.** 122 functions match only at `-O3`: they need a function defined earlier in the file,
-  not declared `inline` and often public, inlined into them (`ReReadToc` inlines `MyGetCDStatus`,
-  `GetFireLocSpace` is inlined into three callers). The function order agrees: `-O3` makes every small
-  function an inline candidate, and gcc 2.8 defers those to the end of the file, even public ones, in the
-  order they were first declared (prototype order). That is the layout of the game: each file's large
-  functions come first in line order, then the small ones out of order (522 of 1037 functions sit in such
-  a tail, see `src/functions.json`). A small function can still be called rather than inlined when its
-  source is long: `ProcessPortalWibble` compiles to 3 instructions but has 170 lines of dead code after a
-  `return`. Inlining only reaches functions defined *earlier* in the file, so in a calib file put callers
-  before callees unless the original inlined them.
-- **`-g`.** The game shipped with debug info, and `-g` changes code here: it moves where CSE flushes its
-  table, which decides which register holds a reused constant (`InitialisePlayerSounds` only matches with
-  it). Every other calib function matches either way.
-- **`-G8`.** 8-byte objects (`ScreenDisplay[2]`, `MissionRect`, `WaterMoves[2]`, `lightorder[4]`) are
-  `$gp`-relative, nothing larger is, and 8 is ccpsx's default. `-G0` loses every `$gp` access.
-- **`$gp` only for symbols defined in the same file.** No ASPSX (2.77 to 2.86, checked under wine) makes an
-  extern `$gp`-relative, whatever size gcc gives it in `.extern`. `Paused` is defined in Quake.obj, so
-  `GameIsPaused` uses `$gp`; `currdb`/`olddb` are defined in dbuffer.obj (a data-only file), so every file
-  uses `%hi/%lo` for them. `cc-psx.sh` therefore gives `-G` to maspsx (which `$gp`s the file's own
-  symbols) and runs GNU as with `-G0`. When decompiling, define a variable in the file that SYM says owns
-  it (`obj` in `src/globals.json`) and declare the rest `extern`. Extern arrays need incomplete types
-  (`extern unsigned char TbFrame[];`) to get the original addressing. Small constant structs reached with
-  `%hi/%lo` are compound literals (`*&(struct SCRPNT){0, 0}`), not statics.
-- **ASPSX >= 2.80.** The game takes the address of its own small variables as `addiu $a0,$gp,%gp_rel(X)`
-  (about 77 times, `LinkCastLists`, `FreeEdictTList`, ...). Assembling the same compiler output with the
-  real ASPSX 2.77 (4.3) or 2.79 (4.4) gives `lui`/`addiu`; 2.81 (4.5) and 2.86 (4.6) give the `$gp` form.
-  maspsx models this from `--aspsx-version=2.80`. Every divide (144) carries ASPSX's divide-by-zero and
-  overflow checks, so `cc-psx.sh` passes `--expand-div`.
+`char` is unsigned. Some SYM types are wrong where the code says otherwise (fields loaded with `lb` are
+signed char, some `int`s are `short`); the source casts or redeclares around them.
 
-`cmpfunc.py` compares what C can control: relocations against unnamed data (string literals, switch
-tables, numbered function-local statics) compare as `<anon>`, and references to known globals and
-functions compare by the address they reach, since splat names an address after whichever symbol it falls
-in (`LastObjective` for `&FlyPicks[4]`, `D_800B2C4C` for `gDarkBoxRect.w`). `--strict` compares names.
+## Data
 
-`char` is unsigned in every cc1psx version (`ccpsx` also defines `__CHAR_UNSIGNED__`). Some SYM types are
-wrong where the asm says otherwise (fields loaded with `lb` are signed char, some `int` parameters and
-locals are `short`); the calib files cast or redeclare around them.
+- `x[] = {...}` goes to `.data`, `x[N] = {...}` of 8 bytes or less to `.sdata`, as do strings of up to 8
+  bytes. Constant `IDENTITYNAME`s are compound literals, `(struct IDENTITYNAME){"Default"}`: 12 bytes of
+  `.rdata`, merged when equal.
+- The original has data that no surviving code uses: literals and constants of functions compiled out
+  or lost. A never-called `static __inline__` function emits its literals, constants and statics but no
+  code, so such stand-ins, each commented, supply them where the original has them.
+- **bss** (`src/include/bss.h`). The original link laid out each object's uninitialised variables in
+  definition order, word-aligned. psylink 2.73 allocates commons in hash order, and after a common of 8
+  bytes or more it 8-aligns every later bss piece. So the variables each object owns are defined into
+  `.sbss`/`.bss` with section attributes (`SBSS`, `BSS`), and there are no commons of 8 bytes or more:
+  the library's ones are defined in `src/libbss/`. gcc drops the attribute from a definition that follows
+  a declaration, and an `.lcomm` static next to attributed variables lands at offset 0 in ASPSX. Tightly
+  packed variables (`qfr_sing`'s `Time*`, `cdaudio`'s `actcdvol`) use `section` without `aligned`.
+- The original objects' `.data` and `.bss` were whole words long (SNMAIN's `__datalen`/`__bsslen` are
+  the sums of the pieces), so `tools/build.py` pads them.
 
-## Permuter
+## Libraries
 
-For register-allocation and scheduling near misses, [decomp-permuter](https://github.com/simonlindholm/decomp-permuter)
-randomises the source and keeps what scores closer:
+psylink resolves one library at a time, so `config/SLUS_007.lnk` includes every library module
+explicitly, in the original order, with the data-only modules where the original had them (CSTBL before
+RATAN, SQRTBL before SPU, S_M before S_N2P, S_RMP0/S_RMP2/ZEROBUF after PADIF); `inclib` lines stay as a
+fallback. The original's libsn was a release that is in none of the SDKs (its `__main` calls
+`__sn_cpp_structors` instead of running the constructors itself), so SNMAIN, `__sn_cpp_structors`,
+PCread and PCwrite are rebuilt in `src/libsn/`. `/gp .sdata` makes psylink put `__SN_GP_BASE` at the
+start of `.sdata`.
 
-    tools/permute-setup.py asm/sort.s GenerateSortOrder near.c perm/GenerateSortOrder
-    python3 ~/decomp-permuter/permuter.py perm/GenerateSortOrder -j 4 --stop-on-zero
-
-`near.c` is a whole calib-style file (so inlining is right); only the named function is scored and edited.
-Its scoring ignores symbol names, so confirm a zero with `tools/cmpfunc.py`. Keep wine's server resident
-(`wineserver -p`) or every compile pays wine's start-up. `CC1=` makes `cc-psx.sh` run a native cc1
-instead (decompals' old-gcc 2.8.1 build matches cc1psx 4.4 on all but 2 calib functions), but use cc1psx
-for anything you keep.
+ASPSX wants CRLF, numeric registers, GTE instructions as `.word`s (it pads `cop2` with nops), `b` as
+`beq $0,$0` and two-operand `divu`. psylink 2.82 reads the `PSYLINK` environment variable as options.
 
 ## Matching techniques
-
-Found while matching `calib/`; the files show each in use.
 
 - **Inline helpers.** SYM shows an inlined callee only as a nested `{ }` block of its locals. Recreate it
   as a small `static` function defined before its callers; larger ones need `static __inline__`.
 - **Loops.** `while (1) { if (!x) break; ... }` keeps an exit test at the top (`for (;;)` and `while (x)`
   get rotated). A count-down loop is often gcc's reversal of `for (i = 0; i < n; i++)`.
-- **Constant structs.** `(struct IDENTITYNAME){"Default"}` and `*&(struct COLOUR){..}` give the original's
-  anonymous constants (identical ones are merged); `(struct X){0}` as a return value gives its `memset`.
+- **Constant structs.** `*&(struct COLOUR){..}` gives the original's anonymous constants; `(struct X){0}`
+  as a return value gives its `memset`.
 - **Register allocation.** Declaration order sets the operand order of commutative operations. Try
   statement order, a temporary, nested `if`s instead of `&&`, a narrower or signed type, or `volatile` where
   the original reloads.
-- **GTE.** PSY-Q `inline_c.h`-style macros with one `asm` statement per instruction (see `calib/misc.c`),
+- **GTE.** PSY-Q `inline_c.h`-style macros with one `asm` statement per instruction (see `misc.c`),
   with a `"memory"` clobber where the original reloads between them.
-- **Names splat gives differently.** Write the natural C (`&Array[N]`, `gDarkBoxRect.w`); cmpfunc
-  compares addresses. A file's own variable that splat suffixed (`Sound_Explosion_800B2A68`) has to be
-  named that way.
+- **Switches.** `objcmp.py` ignores relocated fields, so a switch with its case labels on the wrong bodies
+  still matches there when the bodies have the same shape; the jump table in `.rdata` shows it (`DoMix`).
 
-Two matches use contrived forms, commented in place: `GameCheckPaused` (an asm-label alias of `Paused`, the
-only way found to stop gcc cross-jumping two returns the original keeps apart) and `GameInitStuff` (nested
-`do { } while (0)` to raise one value's allocation weight). The last one, `ProcessWaterEffect`, needed two
-constant locals for its loop steps (`StepX = 13; StepY = 20;`): their set insns are extra "birthing" insns that
-change sched1's pick order, and reload deletes them (a pseudo that never gets a register has no SYM entry).
+Three matches use contrived forms, commented in place: `GameCheckPaused` (an asm-label alias of `Paused`,
+the only way found to stop gcc cross-jumping two returns the original keeps apart), `GameInitStuff`
+(nested `do { } while (0)` to raise one value's allocation weight) and `ProcessWaterEffect` (two constant
+locals for its loop steps, whose set insns change sched1's pick order before reload deletes them).
