@@ -329,7 +329,6 @@ struct VECTOR *ObjTranVect;
 extern struct DUMMYGPU *LastDummyGpu;
 extern struct DUMMYGPU *NextDummyGpu;
 extern long *primlistarray[];
-extern short rcossin_tbl[];
 void GetAnimFramesForAnim(struct ANIMFRAMEHDRHDR *FrameHdrHdr, struct ANIMFRAMEHDRHDR *NextKeyFrameHdrHdr, int ToDo300FPSUnClipped, int NumSubMods);
 void MulMatrix0(struct MATRIX *m0, struct MATRIX *m1, struct MATRIX *m2);
 void SetColorMatrix(struct MATRIX *m);
@@ -632,7 +631,9 @@ void FilterInOpaquePolys(struct MODWIN *WinData, int Opaque)
 
     Green = Opaque * 129 / 4096;
     Blue = Opaque * 133 / 4096;
-    Colour = 0x2e000000 + (Blue << 16) + (Green << 8) + Blue;
+    /* multiplies, not shifts: the extra pre-optimisation insns keep this function out of the
+       inline candidates, so it is emitted here (not at the end) and not inlined into DrawModels */
+    Colour = 0x2e000000 + Blue * 0x10000 + Green * 0x100 + Blue;
     for (a = 0; a < WinData->Pols[0]; a++) {
         ShadowTable[0][a] = currdb->modpolsg4 + WinData->Pols[a + 1];
         ShadowTable[1][a] = currdb->modpolsg4 + WinData->OpaquePols[a + 1];
