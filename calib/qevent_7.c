@@ -140,3 +140,26 @@ void PSXONKEYDO(struct PSXSUBEVENT *subevent)
         return;
     }
 }
+
+struct PSXSUBEVENT *PSXPLATFORMEVENT(struct PSXSUBEVENT *subevent)
+{
+    struct PSXEVUSRFUNC_PLATFORM *ev;
+
+    if (subevent->evsize != sizeof(struct PSXEVUSRFUNC_PLATFORM))
+        return subevent;
+    ev = (struct PSXEVUSRFUNC_PLATFORM *)subevent;
+    if (ev->crossobj[0] >= 0) {
+        MoveBuf = &BrushMoveBufs[ev->crossobj[0]];
+        MoveBuf->Triggered = 1;
+        if (MoveBuf->OpenFlag == 0) {
+            MoveBuf->StartDelay = ev->StartDelay;
+            if (ev->EndDelay == 255)
+                MoveBuf->Time = 0xffff;
+            else
+                MoveBuf->Time = ev->EndDelay * 300;
+        }
+    }
+    /* assigning back to subevent keeps ev in its own register ($a2) */
+    subevent = (struct PSXSUBEVENT *)(ev + 1);
+    return subevent;
+}

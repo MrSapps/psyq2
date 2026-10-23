@@ -52,3 +52,34 @@ char *GetNextGlobalMemory(int Size)
     dprintf(GameWindows, "GameEFP=%8x, GameEFL=%8x\n", GameEveryFramePntr, GameEveryFrameLast);
     return 0;
 }
+
+struct MISSIONEVENT *MissionEvents;
+extern struct QENGINELEVINTERFACE Engine;
+char *PrintIdentityName(struct IDENTITYNAME Name);
+void *FindIdentNameInList(struct IDENTITYNAME *Name, void *VPntr, int NumBytes);
+
+void MissionEvent(struct IDENTITYNAME Name)
+{
+    struct MISSIONEVENT *Event;
+    struct MISSIONEVENT *List;
+    int a;
+
+    for (a = 0; a < 2; a++) {
+        if (a == 0)
+            List = MissionEvents;
+        if (a == 1)
+            List = Engine.LevelEvents;
+        if (List) {
+            Event = FindIdentNameInList(&Name, List, sizeof(struct MISSIONEVENT));
+            if (Event) {
+                dprintf(GameWindows, "Found %s\n", PrintIdentityName(Name));
+                if (Event->Routine)
+                    Event->Routine();
+                else
+                    dprintf(GameWindows, "No Routine for%s\n", PrintIdentityName(Name));
+            } else if (a == 1) {
+                dprintf(GameWindows, "Cant find %s\n", PrintIdentityName(Name));
+            }
+        }
+    }
+}

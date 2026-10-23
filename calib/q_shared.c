@@ -1,5 +1,35 @@
 #include "types.h"
 
+extern short MaxEdictT;
+extern struct edict_s *EdictTList;
+extern struct COLLHEADER CollMap;
+void UpdateEntity(struct edict_s *ent, int flags);
+int Find3dSpaceGivenSecondary(struct VECT *Location, struct VECT *MoveLoc, int MoveSpace);
+int Visable3d(struct COLLHEADER *Map, struct VECT *Start, struct VECT *End, int S0);
+
+/* defined before UpdateEntity so that it is called, not inlined */
+int visible(struct edict_s *self, struct edict_s *other)
+{
+    struct CREATURE *CSelf;
+    struct CREATURE *COther;
+    struct VECT PointA;
+    struct VECT PointB;
+
+    CSelf = (struct CREATURE *)self->Extra.Creature;
+    COther = (struct CREATURE *)other->Extra.Creature;
+    if (self >= EdictTList && self <= &EdictTList[MaxEdictT - 1] && CSelf)
+        UpdateEntity(self, 5);
+    if (other >= EdictTList && other <= &EdictTList[MaxEdictT - 1] && COther)
+        UpdateEntity(other, 5);
+    PointA = self->sorigin;
+    if (self >= EdictTList && self <= &EdictTList[MaxEdictT - 1])
+        PointA.vy += self->viewheight;
+    PointB = other->sorigin;
+    if (other >= EdictTList && other <= &EdictTList[MaxEdictT - 1])
+        PointB.vy += other->viewheight;
+    return Visable3d(&CollMap, &PointA, &PointB, Find3dSpaceGivenSecondary(&PointA, &CSelf->Box.Location, CSelf->Box.MoveSpace));
+}
+
 int getminsvx(struct edict_s *ent)
 {
     if (ent->classname == 0x72 || !ent->Extra.Creature)
@@ -199,4 +229,155 @@ long VectorNormalize(struct VECT *v)
         v->vz = v->vz * ilength / 64;
     }
     return length;
+}
+
+extern short rcossin_tbl[][2];
+
+void AngleVectors(struct SVECT *angles, struct VECT *forward, struct VECT *right, struct VECT *up)
+{
+    long angle;
+    long sr;
+    long sp;
+    long sy;
+    long cr;
+    long cp;
+    long cy;
+
+    angle = angles->vz & 0xfff;
+    sy = rcossin_tbl[angle][1];
+    cy = rcossin_tbl[angle][0];
+    angle = angles->vx & 0xfff;
+    sp = rcossin_tbl[angle][0];
+    cp = rcossin_tbl[angle][1];
+    angle = angles->vy & 0xfff;
+    sr = rcossin_tbl[angle][0];
+    cr = rcossin_tbl[angle][1];
+    if (forward) {
+        forward->vx = cp * cy / 4096;
+        forward->vz = cp * sy / 4096;
+        forward->vy = sp;
+    }
+    if (right) {
+        right->vx = sr * -sp / 4096 * cy / 4096 + cr * sy / 4096;
+        right->vz = sr * -sp / 4096 * sy / 4096 + cr * -cy / 4096;
+        right->vy = -(sr * -cp / 4096);
+    }
+    if (up) {
+        up->vx = cr * sp / 4096 * cy / 4096 + -sr * -sy / 4096;
+        up->vz = cr * sp / 4096 * sy / 4096 + -sr * cy / 4096;
+        up->vy = -(cr * cp / 4096);
+    }
+}
+
+/* defined in this file (q_shared.obj) */
+struct trace_t *traceptr;
+extern struct VECT vec3_origin;
+extern struct COLLHEADER MoveCollMap;
+extern struct CREATURE **ThisBumpList;
+extern struct CREATURE **ThisBumpListEnd;
+int GetPrimarySpaceFromSecondary(int Indx, struct VECT *Location);
+int VisableSolidBoxMove(struct VECT *P, struct VECT *Q, struct VECT *Stop, short Flags);
+int VisableSolidBoxLine(struct VECT *P, struct VECT *Q, struct VECT *Stop);
+struct CREATURE *LineIntersectCreCylinder(struct VECT *P, struct VECT *Q, struct CREATURE *CreIgnore, struct VECT *I, struct CREATURE **BumpStart, struct CREATURE **BumpStop);
+
+static int VectorCompare(struct VECT *v1, struct VECT *v2)
+{
+    if (v1->vx != v2->vx || v1->vy != v2->vy || v1->vz != v2->vz)
+        return 0;
+    return 1;
+}
+
+/* the fraction of the move done, along its largest axis (the original repeats this code three times) */
+#define TRACE_FRACTION()                                                        \
+    traceptr->endpos.vx = StopPos.vx;                                           \
+    traceptr->endpos.vy = StopPos.vy;                                           \
+    traceptr->endpos.vz = StopPos.vz;                                           \
+    traceptr->startsolid = 0;                                                   \
+    traceptr->allsolid = 0;                                                     \
+    totalvec.vx = end->vx - start->vx;                                          \
+    totalvec.vy = end->vy - start->vy;                                          \
+    totalvec.vz = end->vz - start->vz;                                          \
+    StopPos.vx = traceptr->endpos.vx - start->vx;                               \
+    StopPos.vy = traceptr->endpos.vy - start->vy;                               \
+    StopPos.vz = traceptr->endpos.vz - start->vz;                               \
+    largestindex = 0;                                                           \
+    if (abs(totalvec.vy) > abs(totalvec.vx))                                    \
+        largestindex = 1;                                                       \
+    if (abs(totalvec.vz) > abs(totalvec.vy) && abs(totalvec.vz) > abs(totalvec.vx)) \
+        largestindex = 2;                                                       \
+    switch (largestindex) {                                                     \
+    case 0:                                                                     \
+        traceptr->fraction = (StopPos.vx << 12) / totalvec.vx;                  \
+        break;                                                                  \
+    case 1:                                                                     \
+        traceptr->fraction = (StopPos.vy << 12) / totalvec.vy;                  \
+        break;                                                                  \
+    case 2:                                                                     \
+        traceptr->fraction = (StopPos.vz << 12) / totalvec.vz;                  \
+        break;                                                                  \
+    }
+
+void gitrace(struct VECT *start, struct VECT *mins, struct VECT *maxs, struct VECT *end, struct edict_s *passent, int contentmask, int start_space)
+{
+    int largestindex;
+    static struct VECT totalvec;
+    static struct VECT StopPos;
+    struct CREATURE *hitcre;
+    struct CREATURE *passcre;
+    struct COLLBOX3D *Box;
+    int gotthere;
+
+    passcre = 0;
+    hitcre = 0;
+    gotthere = 0;
+    Box = 0;
+    traceptr->ent = 0;
+    traceptr->cre = 0;
+    if (passent)
+        passcre = (struct CREATURE *)passent->Extra.Creature;
+    if (mins && maxs && !(VectorCompare(mins, &vec3_origin) && VectorCompare(maxs, &vec3_origin)) && passcre)
+        Box = &passcre->Box;
+    if (Box) {
+        gotthere = Visable3d(&MoveCollMap, start, end, start_space);
+        StopPos = MoveCollMap.AreaIntersectLast->Intersect;
+        if (!VisableSolidBoxMove(start, &StopPos, &StopPos, 0x810))
+            gotthere = 0;
+    } else if (passcre) {
+        gotthere = Visable3d(&CollMap, start, end, GetPrimarySpaceFromSecondary(start_space, &passcre->Box.Location));
+        StopPos = CollMap.AreaIntersectLast->Intersect;
+        if (!VisableSolidBoxLine(start, &StopPos, &StopPos))
+            gotthere = 0;
+    }
+    if (gotthere) {
+        if (contentmask & 0x2000000)
+            hitcre = LineIntersectCreCylinder(start, &StopPos, passcre, &StopPos, ThisBumpList, ThisBumpListEnd);
+        if (hitcre) {
+            traceptr->ent = hitcre->EdictT;
+            traceptr->cre = hitcre;
+            TRACE_FRACTION();
+        } else {
+            traceptr->endpos.vx = StopPos.vx;
+            traceptr->endpos.vy = StopPos.vy;
+            traceptr->endpos.vz = StopPos.vz;
+            traceptr->startsolid = 0;
+            traceptr->allsolid = 0;
+            traceptr->fraction = 0x1000;
+        }
+    } else if (VectorCompare(&StopPos, start)) {
+        traceptr->endpos.vx = StopPos.vx;
+        traceptr->endpos.vy = StopPos.vy;
+        traceptr->endpos.vz = StopPos.vz;
+        traceptr->startsolid = 1;
+        traceptr->fraction = 0;
+    } else {
+        if (contentmask & 0x2000000)
+            hitcre = LineIntersectCreCylinder(start, &StopPos, passcre, &StopPos, ThisBumpList, ThisBumpListEnd);
+        if (hitcre) {
+            traceptr->ent = hitcre->EdictT;
+            traceptr->cre = hitcre;
+            TRACE_FRACTION();
+        } else {
+            TRACE_FRACTION();
+        }
+    }
 }

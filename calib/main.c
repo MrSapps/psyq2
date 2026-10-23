@@ -75,6 +75,184 @@ void PrintLevelInterMission(void);
 int MainInterMissionLoop(void);
 void ClearLevelIntermission(void);
 
+extern int GameRunningMode;
+extern int DoIntro;
+extern int DoExtro;
+extern int DoLogos;
+extern int DoLogos2;
+extern int NewVcounts;
+extern short FrameCompOn;
+extern unsigned int LevelTicks;
+extern int FrameCount;
+extern int RealVCounts;
+extern int LastNewVcounts;
+extern int ProcessorStopTime;
+extern short TimebarOn;
+extern int ProcessorStartTime;
+extern void (*EndSpecific)();
+extern int DrawStartTime;
+void CdCheckMusic(void);
+void NewPadRead(void);
+void SwapAllButtons(void);
+void DrawTimeBar(void);
+void ClearOTag(unsigned long *ot, int n);
+void DrawOTag(unsigned long *p);
+int DrawSync(int mode);
+int VSync(int mode);
+struct DISPENV *PutDispEnv(struct DISPENV *env);
+void SetFrontEndStartScreen(int StartScreen);
+void GameInterMission(void);
+extern struct WINDOW GameWindows[];
+int aab;
+short quitgame;
+short levelfade;
+short levelfadespeed;
+int errordetectflag;
+extern int JustLoaded;
+extern unsigned int OldLevelTicks;
+extern short targetcdvol;
+extern void (*MainLoop)();
+extern short ScreenShotOn;
+extern int UseCdData;
+int GameIsPaused(void);
+int GetsMusic(void);
+void SaveBMP(void);
+void GameNewGame(void);
+void GameDemoExit(void);
+void GameSelfPlay(void);
+void GameMagDemoLevel(void);
+void GameMPlayerExit(void);
+void GameReRunMPLevel(void);
+void RestartLevel(int a);
+void GameQuitGame(void);
+void killallsounds(void);
+void freeallmallocs(void);
+int CdControlB(unsigned char com, unsigned char *param, unsigned char *result);
+
+/* The function-local static ScrShot is unnamed (D_800AE890) in the original. */
+int MainGameLoop(void)
+{
+    static int ScrShot;
+
+    LevelComplete = 0;
+    quitgame = 0;
+    if (GameRunningMode == 1 && !aab) {
+        aab = 1;
+        LevelComplete = 10;
+    }
+    DbFrame[0] = 0;
+    DbFrame[1] = 1;
+    TbFrame[0] = 0;
+    TbFrame[1] = 1;
+    TbFrame[2] = 2;
+    levelfade = 255;
+    levelfadespeed = -16;
+    LastNewVcounts = 0;
+    NewVcounts = 0;
+    while (!LevelComplete) {
+        CdCheckMusic();
+        NewPadRead();
+        DoubleTrebleBuffer();
+        ClearOTag(currdb->InitOt, 217);
+        LevelTicks = VBLevelTicks;
+        FrameCount = VBFrameCount;
+        RealVCounts = VBFrameCount;
+        if (!GameIsPaused()) {
+            if (JustLoaded) {
+                JustLoaded = 0;
+                NewVcounts = PalNtscRate * 2;
+                LevelTicks = OldLevelTicks = VBLevelTicks + NewVcounts;
+                targetcdvol = GetsMusic() * 2;
+            } else {
+                LastNewVcounts = NewVcounts;
+                if (!FrameCompOn)
+                    NewVcounts = PalNtscRate * 2;
+                else
+                    NewVcounts = FrameCount;
+            }
+        } else {
+            LastNewVcounts = NewVcounts;
+            NewVcounts = 0;
+        }
+        if (NewVcounts > 30)
+            NewVcounts = 30;
+        VBFrameCount = 0;
+        FrameCount = 0;
+        SwapAllButtons();
+        if (MainLoop)
+            MainLoop();
+        ProcessorStopTime = GetRCnt(0xf2000001);
+        DrawSync(0);
+        VSync(2);
+        if (ScreenShotOn && (GameWindows[0].Input.Original & 8)) {
+            if (!ScrShot) {
+                SaveBMP();
+                ScrShot = 1;
+            }
+        } else {
+            ScrShot = 0;
+        }
+        if (TimebarOn)
+            DrawTimeBar();
+        ProcessorStartTime = GetRCnt(0xf2000001);
+        PutDispEnv(&currdb->DispEnv);
+        DrawOTag(currdb->InitOt);
+        DrawStartTime = GetRCnt(0xf2000001);
+        GpuTimerEnable = 1;
+        if (EndSpecific)
+            EndSpecific();
+    }
+    VBLevelTicks = 0;
+    VBFrameCount = 0;
+    if (LevelComplete == 7)
+        GameInterMission();
+    if (LevelComplete == 12)
+        DoIntro = 1;
+    if (LevelComplete == 13)
+        DoExtro = 1;
+    if (LevelComplete == 15)
+        DoLogos2 = 1;
+    else if (LevelComplete == 14)
+        DoLogos = 1;
+    if (LevelComplete == 5)
+        GameNewGame();
+    if (LevelComplete == 8)
+        GameDemoExit();
+    if (LevelComplete == 10)
+        GameSelfPlay();
+    if (LevelComplete == 1 && GameRunningMode == 2)
+        GameMagDemoLevel();
+    if (LevelComplete == 11)
+        GameMPlayerExit();
+    if (LevelComplete == 19)
+        GameReRunMPLevel();
+    if (LevelComplete == 20)
+        RestartLevel(1);
+    if (LevelComplete == 21)
+        RestartLevel(0);
+    if (LevelComplete == 16)
+        GameQuitGame();
+    if (LevelComplete == 6)
+        SetFrontEndStartScreen(0);
+    if (LevelComplete == 18) {
+        SetFrontEndStartScreen(2);
+        LevelComplete = 6;
+    }
+    if (LevelComplete == 17) {
+        SetFrontEndStartScreen(1);
+        LevelComplete = 6;
+    }
+    GpuTimerEnable = 0;
+    errordetectflag = 0;
+    killallsounds();
+    freeallmallocs();
+    if (UseCdData) {
+        while (!CdControlB(8, 0, 0))
+            ;
+    }
+    return LevelComplete;
+}
+
 #define IDNAME(s) ((struct IDENTITYNAME){s})
 
 void GameInterMission(void)
@@ -259,4 +437,71 @@ int main(void)
     dprintf(0, "Begin Game");
     ProcessGame();
     return 0;
+}
+
+int LastLevelComplete;
+extern int GameRunningMode;
+extern int DoIntro;
+extern int DoExtro;
+extern int LevelChange;
+void SetFrontEndStartScreen(int StartScreen);
+void DeleteAllMatchingMemory(short Mask);
+void ClearLots(void);
+void GameLogos2(void);
+void GameLogos(void);
+void GameIntro(void);
+void GameExtro(void);
+void GameTitle(void);
+void GameNewMission(void);
+void srand(unsigned int seed);
+int GetLevelData(struct IDENTITYNAME NewLevelName);
+void TestIt(char *Name);
+void LoadLevel(void);
+int MainGameLoop(void);
+
+void ProcessGame(void)
+{
+    SetFrontEndStartScreen(0);
+    while (1) {
+        DeleteAllMatchingMemory(3);
+        ClearLots();
+        if (GameRunningMode) {
+            DoIntro = 0;
+            DoExtro = 0;
+        }
+        if (DoLogos2 && GameRunningMode != 1) {
+            GameLogos2();
+            DoLogos2 = 0;
+        } else if (DoLogos && GameRunningMode != 1) {
+            GameLogos();
+            DoLogos = 0;
+        } else if (DoIntro) {
+            GameIntro();
+            DoIntro = 0;
+        } else if (DoExtro) {
+            GameExtro();
+            DoExtro = 0;
+        } else {
+            DoLogos = 0;
+            DoLogos2 = 0;
+            GameTitle();
+        }
+        LastLevelComplete = 5;
+        LevelComplete = 0;
+        while (!DoLogos && !DoLogos2 && !DoIntro && !DoExtro) {
+            GameNewMission();
+            srand(13);
+            LevelChange++;
+            GetLevelData(NextLevelName);
+            LastLevelComplete = LevelComplete;
+            TestIt("Hassle.Psx");
+            LoadLevel();
+            VBlankSpecific = 0;
+            TitleLoad = 0;
+            if (MainGameLoop() == 9)
+                return;
+            if (LevelComplete == 6)
+                break;
+        }
+    }
 }

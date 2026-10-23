@@ -379,3 +379,74 @@ int monster_start(struct edict_s *self)
     }
     return 1;
 }
+
+void M_MoveFrame(struct edict_s *self)
+{
+    struct mmove_t *move;
+    int index;
+
+    move = self->monsterinfo.currentmove;
+    self->nextthink = level.time + 1;
+    if (self->monsterinfo.nextframe && self->monsterinfo.nextframe >= move->firstframe && self->monsterinfo.nextframe <= move->lastframe) {
+        self->s.frame = self->monsterinfo.nextframe;
+        self->monsterinfo.nextframe = 0;
+    } else {
+        if (self->s.frame == move->lastframe) {
+            if (move->endfunc) {
+                move->endfunc(self);
+                move = self->monsterinfo.currentmove;
+                if (self->svflags & 2)
+                    return;
+            }
+        }
+        if (self->s.frame < move->firstframe || self->s.frame > move->lastframe) {
+            self->monsterinfo.aiflags &= ~0x80;
+            self->s.frame = move->firstframe;
+        } else {
+            if (!(self->monsterinfo.aiflags & 0x80)) {
+                self->s.frame++;
+                if (self->s.frame > move->lastframe)
+                    self->s.frame = move->firstframe;
+            }
+        }
+    }
+    index = self->s.frame - move->firstframe;
+    /* volatile: the original reloads the byte after this test */
+    if (((volatile struct mframe_t *)move->frame)[index].aifunc_global_index & 0x80) {
+        if (ai_local_tables[self->classname].table[(move->frame[index].aifunc_global_index & 0x7F) + 26].thinkfunc)
+            ai_local_tables[self->classname].table[(move->frame[index].aifunc_global_index & 0x7F) + 26].thinkfunc(self);
+    } else if (ai_global_table[move->frame[index].aifunc_global_index].aifunc) {
+        if (!(self->monsterinfo.aiflags & 0x80))
+            ai_global_table[move->frame[index].aifunc_global_index].aifunc(self, (signed char)move->frame[index].dist * self->monsterinfo.scale * 12 / 10);
+        else
+            ai_global_table[move->frame[index].aifunc_global_index].aifunc(self, 0);
+    }
+    if (ai_local_tables[self->classname].table[move->frame[index].aifunc_local_index].thinkfunc)
+        ai_local_tables[self->classname].table[move->frame[index].aifunc_local_index].thinkfunc(self);
+}
+
+void vectoangles(struct VECT *value1, struct SVECT *angles);
+void AngleVectors(struct SVECT *angles, struct VECT *forward, struct VECT *right, struct VECT *up);
+void VectorMA(struct VECT *veca, long scale, struct VECT *vecb, struct VECT *vecc);
+int GetSoundNum(struct IDENTITYNAME Name);
+int AnyoneFireGrenadeL(struct CREATURE *Aggressor, struct VECT *Start, struct SVECT *Dir, int Damage, int Life);
+
+void monster_fire_grenade(struct edict_s *Self, struct VECT *Start, struct VECT *AimDir, int Damage, int Speed, int FlashType)
+{
+    struct CREATURE *SelfCre;
+    struct SVECT Dir;
+    struct VECT f;
+    struct VECT r;
+    struct VECT u;
+
+    SelfCre = Self->Extra.Creature;
+    vectoangles(AimDir, &Dir);
+    AngleVectors(&Dir, &f, &r, &u);
+    VectorMA(AimDir, (((rand() - 0x4000) * 10 / 32767 + 200) * 4096) / Speed, &u, AimDir);
+    VectorMA(AimDir, (((rand() - 0x4000) * 10 / 32767) * 4096) / Speed, &r, AimDir);
+    Dir.vx = AimDir->vx * 3 / 2;
+    Dir.vy = AimDir->vy * 3 / 2;
+    Dir.vz = AimDir->vz * 3 / 2;
+    SoundByCreature(GetSoundNum((struct IDENTITYNAME){"wep_grenlf1a"}), SelfCre);
+    AnyoneFireGrenadeL(SelfCre, Start, &Dir, Damage, 600);
+}
