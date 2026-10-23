@@ -289,3 +289,103 @@ void DoAddCentredSpriText(struct WINDOW *Window)
         strcpy(MikeStringBuffer + 16, "...");
     }
 }
+
+struct SPRT *SpriteAnySize;
+struct SPRT *LastSpriteAnySize;
+extern struct UVWH WordSprites[15];
+extern short palette[80];
+#define setlen(p, _len) (*(((unsigned char *)(p)) + 3) = (unsigned char)(_len))
+#define setcode(p, _code) (*(((unsigned char *)(p)) + 7) = (unsigned char)(_code))
+#define setSprt(p) setlen(p, 4), setcode(p, 0x64)
+#define setXY0(p, _x0, _y0) (p)->x0 = (_x0), (p)->y0 = (_y0)
+#define setUV0(p, _u0, _v0) (p)->u0 = (_u0), (p)->v0 = (_v0)
+#define setWH(p, _w, _h) (p)->w = _w, (p)->h = _h
+#define setRGB0(p, _r0, _g0, _b0) (p)->r0 = _r0, (p)->g0 = _g0, (p)->b0 = _b0
+
+char *SpriteWord(struct WINDOW *Window, char *CharInString, long *Ot)
+{
+    char Token;
+    int Count;
+    char Word[2];
+    char *AWord;
+
+    Token = *CharInString++;
+    Count = 1;
+    AWord = Word;
+    if (SpriteAnySize < LastSpriteAnySize)
+    {
+        switch (Token)
+        {
+        case 'P': Word[0] = 0; break;
+        case 'H':
+            Word[0] = 1;
+            break;
+        case 'B':
+            Word[0] = 2;
+            break;
+        case 'U':
+            Word[0] = 3;
+            break;
+        case 'S':
+            Word[0] = 4;
+            break;
+        case 'G':
+            Word[0] = 5;
+            break;
+        case 'M':
+            Word[0] = 6;
+            Word[1] = 5;
+            Count = 2;
+            break;
+        case 'C':
+            Word[0] = 7;
+            Word[1] = 5;
+            Count = 2;
+            break;
+        case 'E':
+            Word[0] = 8;
+            break;
+        case 'D':
+            Word[0] = 9;
+            break;
+        case 'L':
+            Word[0] = 10;
+            break;
+        case 'A':
+            Word[0] = 11;
+            Word[1] = 5;
+            Count = 2;
+            break;
+        case 'R':
+            Word[0] = 12;
+            break;
+        case 'F':
+            Word[0] = 13;
+            break;
+        case 'W':
+            Word[0] = 14;
+            break;
+        case 'O':
+            Word[0] = 12;
+            Word[1] = 10;
+            Count = 2;
+            break;
+        default:
+            Count = 0;
+            break;
+        }
+        while (Count--)
+        {
+            setSprt(SpriteAnySize);
+            setXY0(SpriteAnySize, CharX, CharY);
+            setUV0(SpriteAnySize, WordSprites[*AWord].u, WordSprites[*AWord].v);
+            setWH(SpriteAnySize, WordSprites[*AWord].w, WordSprites[*AWord].h);
+            SpriteAnySize->clut = palette[SpritextPal];
+            setRGB0(SpriteAnySize, Window->Messages.TextColour.r, Window->Messages.TextColour.g, Window->Messages.TextColour.b);
+            AddPrim_(Ot, SpriteAnySize++);
+            CharX += WordSprites[*AWord].w;
+            AWord++;
+        }
+    }
+    return CharInString;
+}

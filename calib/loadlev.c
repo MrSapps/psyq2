@@ -248,6 +248,45 @@ char *PrintIdentityName(struct IDENTITYNAME Name);
 
 #define IDNAME(s) ((struct IDENTITYNAME){s})
 
+struct LEVELDATA *ThisLevelData;
+extern struct STARTPOSITION *MainPlayerStart;
+extern int MusicCheck;
+extern int cdtime;
+void *MY_malloc_namehb(int s, char *name);
+void PlayTrackList(char *list);
+struct STARTPOSITION *FindStartPosition(struct IDENTITYNAME Name);
+void ReadCommonFiles(char *Path);
+void ReadZoneFiles(char *Path, struct IDENTITYNAME ThisZoneName);
+void killallsounds(void);
+
+void LoadLevelData(struct IDENTITYNAME StartName)
+{
+    struct IDENTITYNAME ThisZoneName;
+    char *Reserved;
+
+    ThisZoneName = (struct IDENTITYNAME){"Zone"};
+    Reserved = MY_malloc_namehb(0x22c, "Reserved");
+    ReadCommonFiles(levelpath);
+    MyFreeRep((void **)&Reserved, "Reserved");
+    MainPlayerStart = FindStartPosition(StartName);
+    if (LevelIsMultiPlayer)
+    {
+        if (Engine.GameConfig.sNumPlayers >= 3)
+            ThisZoneName.Name[4] = '1';
+        else
+            ThisZoneName.Name[4] = '0';
+    }
+    else
+        ThisZoneName.Name[4] = MainPlayerStart->Zone + '0';
+    PlayTrackList(ThisLevelData->tracklist);
+    MusicCheck = 0;
+    killallsounds();
+    PrintIdentityName(ThisZoneName);
+    ReadZoneFiles(levelpath, ThisZoneName);
+    MusicCheck = 1;
+    cdtime = 0;
+}
+
 void SetCurrentZoneData(void)
 {
     ThisZoneData = ZoneData;
@@ -433,4 +472,64 @@ void ReloadLevelData(struct IDENTITYNAME ThisZoneName)
     PolsToFreeListPntr = PolsToFreeList;
     ObjSortIndx = 0;
     SubToFreeListPntr = SubToFreeList;
+}
+
+void (*LevelPreInitFunc)();
+extern int UseCdData;
+char *strcat();
+
+int GetLevelData(struct IDENTITYNAME NewLevelName)
+{
+    int Finished;
+
+    Finished = 0;
+    ThisLevelData = GlobalLevelData;
+    while (!Finished)
+    {
+        switch (ModNameCmp(&NewLevelName, &ThisLevelData->Name))
+        {
+        case 0:
+            ThisLevelData++;
+            break;
+        case 1:
+            Finished = 1;
+            break;
+        case 2:
+            PrintIdentityName(NewLevelName);
+            while (1)
+                ;
+        }
+    }
+    if (Finished == 1)
+    {
+        ThisLevelName = ThisLevelData->Name;
+        if (UseCdData)
+            strcpy(LevelPath, "\\Q2DATA\\");
+        else
+            strcpy(LevelPath, "c:\\PsxData\\Q2Data\\");
+        if (ThisLevelData->MaxPlayers == 0)
+        {
+            strcat(LevelPath, "LEVELS\\");
+            LevelIsMultiPlayer = 0;
+        }
+        else if (ThisLevelData->MaxPlayers == 1)
+        {
+            strcat(LevelPath, "LEVELS\\");
+            LevelIsMultiPlayer = 0;
+        }
+        else
+        {
+            strcat(LevelPath, "LEVELS\\");
+            LevelIsMultiPlayer = 1;
+        }
+        strcat(LevelPath, ThisLevelData->Path);
+        strcat(LevelPath, "\\");
+        LevelInitFunc = ThisLevelData->LevelInitFunc;
+        LevelPreInitFunc = ThisLevelData->LevelPreInitFunc;
+        return 1;
+    }
+    LevelInitFunc = NoLevelFunc;
+    LevelPreInitFunc = NoLevelFunc;
+    ThisLevelData = 0;
+    return 0;
 }
