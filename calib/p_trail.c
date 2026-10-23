@@ -13,6 +13,38 @@ int trail_active;
 void *memset(void *s, int c, unsigned int n);
 int visible(struct edict_s *self, struct edict_s *other);
 
+extern struct level_locals_t level;
+int SnapPointToBoxFace(struct VECT *point, struct VECTBOX *Box, struct VECT *snapped_point, int space);
+struct VECTBOX *PointInCreatureBlocker(struct VECT *point, int space);
+long vectoyaw(struct VECT *vec);
+
+void PlayerTrail_Add(struct VECT spot, int space)
+{
+    struct VECT temp;
+    struct VECT corrected;
+    struct VECTBOX *cbbox;
+
+    if (!trail_active)
+        return;
+    cbbox = PointInCreatureBlocker(&spot, space);
+    if (cbbox)
+        SnapPointToBoxFace(&spot, cbbox, &corrected, space);
+    else {
+        corrected.vx = spot.vx;
+        corrected.vy = spot.vy;
+        corrected.vz = spot.vz;
+    }
+    trail[trail_head]->sorigin.vx = corrected.vx;
+    trail[trail_head]->sorigin.vy = corrected.vy;
+    trail[trail_head]->sorigin.vz = corrected.vz;
+    trail[trail_head]->timestamp = level.time;
+    temp.vx = corrected.vx - trail[PREV(trail_head)]->sorigin.vx;
+    temp.vy = corrected.vy - trail[PREV(trail_head)]->sorigin.vy;
+    temp.vz = corrected.vz - trail[PREV(trail_head)]->sorigin.vz;
+    trail[trail_head]->sangles.vx = vectoyaw(&temp);
+    trail_head = NEXT(trail_head);
+}
+
 struct edict_s *PlayerTrail_PickFirst(struct edict_s *self)
 {
     int marker;
@@ -71,3 +103,32 @@ struct edict_s *PlayerTrail_LastSpot(void)
 {
     return trail[PREV(trail_head)];
 }
+
+extern struct COLLHEADER TrigBoundCollMap;
+int InVectBox3D(struct VECTBOX *VectBox, struct VECT *Vect);
+void ExpandVectBox(struct VECTBOX *PQBox, struct VECTBOX *PQExp, short Width, struct SHORTPAIR MinMaxY);
+
+/* Same code except one thing C can't reach here: the original addresses the small
+   initialised static MinMaxY with lui/addiu %hi/%lo, maspsx with $gp:
+     lui v0,%hi(MinMaxY); addiu s4,v0,%lo(MinMaxY); lhu s3,%lo(MinMaxY)(v0)
+   vs addiu s4,gp,%gp_rel(MinMaxY); lhu s3,%gp_rel(MinMaxY)(gp) */
+#ifdef CALIB_TOOLCHAIN_GAPS
+/* static in p_trail.obj; non-static here so the reloc keeps its name */
+struct VECTBOX PICB_Box;
+
+struct VECTBOX *PointInCreatureBlocker(struct VECT *point, int space)
+{
+    static const struct SHORTPAIR MinMaxY = {-571, 573};
+    struct COLL3DSPACE *trigger;
+
+    for (trigger = TrigBoundCollMap.Coll3dSpace;
+         trigger < TrigBoundCollMap.Coll3dSpace + TrigBoundCollMap.TotalNumSpaces; trigger++) {
+        if (trigger->u.trigflags & 0x10) {
+            ExpandVectBox(&trigger->MinMax, &PICB_Box, 573, MinMaxY);
+            if (InVectBox3D(&PICB_Box, point))
+                return &PICB_Box;
+        }
+    }
+    return 0;
+}
+#endif
