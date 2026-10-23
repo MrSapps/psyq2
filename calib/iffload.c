@@ -14,6 +14,135 @@ int LoadTpageInternal(char *name, int tpx, int tpy, int palx, int paly, int palf
 void InitCDFS(void);
 void GetToc(void);
 
+char *strcpy();
+char *strcat();
+char *strupr(char *s);
+long GetFLen(char *name);
+long LoadFile(char *name, char *buffer);
+void *MYrealloc(void *p, int s, int HiFlag);
+void *MY_malloc_name(int s, char *name);
+void *MY_malloc_namehb(int s, char *name);
+int MYPCopen(char *name);
+int MYPCclose(int h);
+int MYPClseek(int h, int offset, int mode);
+
+/* inline helpers: SYM shows them as nested blocks of Read_File_Alloc2 (no out-of-line copies exist) */
+static int CdFileLen(char *name)
+{
+    char name2[100];
+
+    strcpy(name2, name);
+    strcat(name2, ";1");
+    strupr(name2);
+    return GetFLen(name2);
+}
+
+static int PcSeekEnd(int h)
+{
+    return PClseek(h, 0, 2);
+}
+
+static int PcSeekStart(int h)
+{
+    return PClseek(h, 0, 0);
+}
+
+static int PcClose(int h)
+{
+    return PCclose(h);
+}
+
+static int PcFileLen(char *name)
+{
+    int h;
+    char name2[100];
+    int len;
+
+    strcpy(name2, name);
+    h = PCopen(name2, 0, 0);
+    if (h >= 0) {
+        len = PcSeekEnd(h);
+        PcSeekStart(h);
+        PcClose(h);
+        return len;
+    }
+    return 0;
+}
+
+static int FileLen(char *Name)
+{
+    if (UseCdData)
+        return CdFileLen(Name);
+    return PcFileLen(Name);
+}
+
+static void CdLoad(char *buffer, char *name)
+{
+    char name2[100];
+
+    strcpy(name2, name);
+    strcat(name2, ";1");
+    strupr(name2);
+    LoadFile(name2, buffer);
+}
+
+static void PcReadAll(int h, char *dest, int len)
+{
+    int pos;
+    int lr;
+
+    lr = -1;
+    pos = PClseek(h, 0, 1);
+    while (lr != len) {
+        PClseek(h, pos, 0);
+        lr = PCread(h, dest, len);
+    }
+}
+
+static void PcLoad(char *buffer, char *name)
+{
+    int h;
+    int len;
+
+    h = MYPCopen(name);
+    len = MYPClseek(h, 0, 2);
+    MYPClseek(h, 0, 0);
+    PcReadAll(h, buffer, len);
+    MYPCclose(h);
+}
+
+static void LoadToBuffer(char *Name, char *Buffer)
+{
+    if (UseCdData)
+        CdLoad(Buffer, Name);
+    else
+        PcLoad(Buffer, Name);
+}
+
+int Read_File_Alloc2(char *path, char *name2, void **Pntr, int hiflag)
+{
+    int c;
+    char name[100];
+    short *store2;
+
+    strcpy(name, path);
+    strcat(name, name2);
+    c = FileLen(name);
+    if (c) {
+        if (hiflag)
+            store2 = MY_malloc_namehb((c + 2047) & ~2047, name2);
+        else
+            store2 = MY_malloc_name((c + 2047) & ~2047, name2);
+        if (store2) {
+            LoadToBuffer(name, (char *)store2);
+            store2 = MYrealloc(store2, c, hiflag);
+            *Pntr = store2;
+        } else
+            c = 0;
+    }
+    return c;
+}
+
 int MYPCopen(char *name)
 {
     char name2[100];
