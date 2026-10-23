@@ -33,3 +33,51 @@ void GenTangentialAxis(struct VECT *R, struct VECT *A, struct VECT *B)
         B->vz = R->vz * R->vy / 4096;
     }
 }
+void OnePixel(struct SVECT *A, struct SVECT *B)
+{
+    int a;
+    int b;
+
+    a = A->vx;
+    b = 0;
+    if (a < -A->vx) {
+        a = -A->vx;
+        b = 1;
+    }
+    if (a < A->vy) {
+        a = A->vy;
+        b = 2;
+    }
+    if (a < -A->vy) {
+        a = -A->vy;
+        b = 3;
+    }
+    if (a < A->vz) {
+        a = A->vz;
+        b = 4;
+    }
+    if (a < -A->vz) {
+        a = -A->vz;
+        b = 5;
+    }
+    switch (b) {
+    case 0:
+        *B = (struct SVECT){1, 0, 0};
+        break;
+    case 1:
+        *B = (struct SVECT){-1, 0, 0};
+        break;
+    case 2:
+        *B = (struct SVECT){0, 1, 0};
+        break;
+    case 3:
+        *B = (struct SVECT){0, -1, 0};
+        break;
+    case 4:
+        *B = (struct SVECT){0, 0, 1};
+        break;
+    case 5:
+        *B = (struct SVECT){0, 0, -1};
+        break;
+    }
+}

@@ -138,6 +138,61 @@ struct PICKUPDESC *FindPickupData(int Ident)
     return 0;
 }
 
+int rand(void);
+void GetFireLocSpace(struct CREATURE *Cre, struct VECT *FirePosition, short *FireSpace);
+struct CREATURE *GenerateQuakeBodyPart(struct CREATURE *Parent, int Angle, struct SVECT *Force, struct VECT *Location, int Space, int Life, struct IDENTITYNAME Name);
+void GenerateQuakeBodyPart2(struct CREATURE *Parent, int Angle, struct SVECT *Force, struct VECT *Location, short Space, short Life, struct IDENTITYNAME Name);
+void GenBloodyBody(struct CREATURE *Cre);
+
+void QuakeBlowMeUp(struct CREATURE *Cre, int NumBits, struct SVECT *Force, struct IDENTITYNAME *BigBitName)
+{
+    int a;
+    int Angle;
+    int AngleStep;
+    struct VECT Position;
+    short Space;
+
+    Angle = rand();
+    AngleStep = 4096 / NumBits;
+    GenBloodyBody(Cre);
+    for (a = 0; a < NumBits; a++) {
+        Position.vx = Cre->Box.Location.vx + (rand() - 0x4000) * 286 / 16384;
+        Position.vy = Cre->Box.Location.vy + (rand() - 0x4000) * 286 / 16384;
+        Position.vz = Cre->Box.Location.vz + (rand() - 0x4000) * 286 / 16384;
+        GetFireLocSpace(Cre, &Position, &Space);
+        GenerateQuakeBodyPart(Cre, Angle, Force, &Position, Space, 0x200, (struct IDENTITYNAME){"Gib meat"});
+        Angle += AngleStep;
+    }
+    if (BigBitName)
+        GenerateQuakeBodyPart(Cre, Angle, Force, &Cre->Draw.Location, Space, 0xa00, *BigBitName);
+}
+
+void QuakeBlowMeUpMetal(struct CREATURE *Cre, int NumBits, struct SVECT *Force, struct IDENTITYNAME *BigBitName, int iNumberIndex, int iStart, int iEnd)
+{
+    int a;
+    int Angle;
+    int AngleStep;
+    int num;
+    struct VECT Position;
+    short Space;
+
+    num = iStart;
+    Angle = rand();
+    AngleStep = 4096 / NumBits;
+    for (a = 0; a < NumBits; a++) {
+        Position.vx = Cre->Box.Location.vx + (rand() - 0x4000) * 286 / 16384;
+        Position.vy = Cre->Box.Location.vy + (rand() - 0x4000) * 286 / 16384;
+        Position.vz = Cre->Box.Location.vz + (rand() - 0x4000) * 286 / 16384;
+        GetFireLocSpace(Cre, &Position, &Space);
+        BigBitName->Name[iNumberIndex] = num + '1';
+        num++;
+        if (num > iEnd)
+            num = iStart;
+        GenerateQuakeBodyPart2(Cre, Angle, Force, &Position, Space, 0x200, *BigBitName);
+        Angle += AngleStep;
+    }
+}
+
 void GenBloodyBody(struct CREATURE *Cre)
 {
     GenModShape(Cre, &ParticleColours_BloodRed, &ParticleColours_DarkBloodRed, 0x1800, 1);
@@ -179,6 +234,31 @@ void PreInitExplosion(struct GLOBMODHDR *Hdr)
 
 struct CREATURE *InitSimpleModel(struct SIMSTART *SimStart, struct IDENTITYNAME *Name, int Main, int Drop);
 int PrimaryQuakePickup(struct CREATURE *Cre);
+
+struct CRESAVE *LoadStoreQuakePickup(void *CreV, int Store, struct CRESAVE *CreSave)
+{
+    if (Store) {
+        if (((struct CREATURE *)CreV)->Params[0] & 4)
+            return CreSave;
+        CreSave = QuakeStoreInanimate(CreV, CreSave);
+    } else {
+        /* the Ident store is written in both branches: the call after the join stays unscheduled */
+        struct PICKUPENTRY PickupEntry;
+        if (CreSave->u.Packed.Packed) {
+            PickupEntry.SimStart.Location.vx = CreSave->u.Packed.Location.vx;
+            PickupEntry.SimStart.Location.vy = CreSave->u.Packed.Location.vy;
+            PickupEntry.SimStart.Location.vz = CreSave->u.Packed.Location.vz;
+            PickupEntry.SimStart.AngY = CreSave->u.Packed.Ang << 6;
+            PickupEntry.SimStart.Ident = CreSave->u.Packed.Target;
+        } else {
+            PickupEntry.SimStart.AngY = CreSave->u.UnPacked.Ang << 6;
+            PickupEntry.SimStart.Location = CreSave->u.UnPacked.Location;
+            PickupEntry.SimStart.Ident = CreSave->u.UnPacked.Target;
+        }
+        InitialiseQuakePickup(&PickupEntry);
+    }
+    return CreSave;
+}
 
 struct CREATURE *InitialiseQuakePickup(struct PICKUPENTRY *PickupEntry)
 {
@@ -325,41 +405,6 @@ static inline void UsePowerCells(struct PLAYER *Player, int Save, int Ratio)
     Player->Extras.AmmoCount[4] -= Save / Ratio;
 }
 
-static inline void UsePowerCells(struct PLAYER *Player, int Save, int Ratio)
-{
-    Player->Extras.AmmoCount[4] -= Save / Ratio;
-}
-
-static inline void UsePowerCells(struct PLAYER *Player, int Save, int Ratio)
-{
-    Player->Extras.AmmoCount[4] -= Save / Ratio;
-}
-
-static inline void UsePowerCells(struct PLAYER *Player, int Save, int Ratio)
-{
-    Player->Extras.AmmoCount[4] -= Save / Ratio;
-}
-
-static inline void UsePowerCells(struct PLAYER *Player, int Save, int Ratio)
-{
-    Player->Extras.AmmoCount[4] -= Save / Ratio;
-}
-
-static inline void UsePowerCells(struct PLAYER *Player, int Save, int Ratio)
-{
-    Player->Extras.AmmoCount[4] -= Save / Ratio;
-}
-
-static inline void UsePowerCells(struct PLAYER *Player, int Save, int Ratio)
-{
-    Player->Extras.AmmoCount[4] -= Save / Ratio;
-}
-
-static inline void UsePowerCells(struct PLAYER *Player, int Save, int Ratio)
-{
-    Player->Extras.AmmoCount[4] -= Save / Ratio;
-}
-
 
 int IsEnergyWeapon(int DamageType)
 {
@@ -376,4 +421,269 @@ int IsEnergyWeapon(int DamageType)
         return 1;
     }
     return 0;
+}
+
+void GenModShape(struct CREATURE *Cre, struct PARTCOLOURS *PColoursA, struct PARTCOLOURS *PColoursB, int Size, int Blood)
+{
+    int NumVerts;
+    int NumPackets;
+    int a;
+    int VertexNum;
+    short Life; /* int in SYM; short gives the original's register allocation */
+    struct VECT Pos[15];
+    struct SVECT Vel[15];
+    struct PARTICLE *Particle;
+
+    VertexNum = 0;
+    NumVerts = GetNumberVertices(Cre->ModelHdr);
+    NumPackets = NumVerts / 15;
+    if (Blood) {
+        Life = 10;
+        for (a = 0; a < 15; a++) {
+            Vel[a].vx = (rand() - 0x4000) >> 10;
+            Vel[a].vy = (rand() - 0x4000) >> 10;
+            Vel[a].vz = (rand() - 0x4000) >> 10;
+        }
+    } else {
+        Life = 32;
+        for (a = 0; a < 15; a++) {
+            Vel[a].vx = (rand() - 0x4000) * 3 / 16384;
+            Vel[a].vy = (rand() - 0x4000) * 3 / 16384;
+            Vel[a].vz = (rand() - 0x4000) * 3 / 16384;
+        }
+    }
+    while (NumPackets--) {
+        for (a = 0; a < 15; a++)
+            GetAbsoluteModelVert(Cre, VertexNum++, &Pos[a]);
+        Particle = AddParticles(Pos, Vel, PColoursA, PColoursB, 15, Life, Size, Cre->Box.Area);
+        if (Blood && Particle)
+            Particle->Drift.vy = 3;
+    }
+}
+
+struct CREATURE *GetNextCre(int UseExpendable);
+struct GLOBMODHDR *GetModelHdr(struct IDENTITYNAME Name);
+int GetFloorOffset(struct CREATURE *Cre);
+int SetupBoxDrop(struct COLLBOX3D *Box, struct VECT *Location, struct SCRPNT CollSize, struct SHORTPAIR MainSpaceDrop, struct SHORTPAIR HitSize);
+void KillModel(struct CREATURE *Cre);
+struct MATRIX *RotMatrixYXZ(struct SVECTOR *r, struct MATRIX *m);
+
+struct CREATURE *InitSimpleModel(struct SIMSTART *SimStart, struct IDENTITYNAME *Name, int Main, int Drop)
+{
+    struct CREATURE *Cre;
+
+    Cre = GetNextCre(1);
+    if (Cre) {
+        Cre->Control = 0x8000001;
+        Cre->Primary = 0;
+        Cre->ModelHdr = GetModelHdr(*Name);
+        if (!Cre->ModelHdr)
+            return 0;
+        Cre->HeightOffset = GetFloorOffset(Cre);
+        if (!SetupBoxDrop(&Cre->Box, &SimStart->Location, (struct SCRPNT){0x11e, 0x23c}, (struct SHORTPAIR){-1, Drop}, (struct SHORTPAIR){0x80, 0x80})) {
+            KillModel(Cre);
+            return 0;
+        }
+        Cre->Draw.Location = Cre->Box.Location;
+        Cre->Draw.Location.vy += 0x11e;
+        Cre->Draw.Location.vy -= Cre->HeightOffset;
+        Cre->ShadowPos = Cre->Box.Location;
+        Cre->ShadowPos.vy = Cre->Box.Location.vy + 0x11e;
+        Cre->Ang.vy = SimStart->AngY;
+        Cre->Ambience = *&(struct COLOUR){0x30, 0x30, 0x30, 0};
+        Cre->DefaultAmbience = *&(struct COLOUR){0x30, 0x30, 0x30, 0};
+        RotMatrixYXZ((struct SVECTOR *)&Cre->Ang, &Cre->Matrix);
+    }
+    return Cre;
+}
+
+char *PrintIdentityName(struct IDENTITYNAME Name);
+char *PrintBool(int Bool);
+int FindAnimSequenceNumFromFrame(struct ANIMFRAMEHDRHDR *FrameHdrHdr, int FrameNum);
+
+/* the original compares with xori: the test goes through a value, as from an inline helper */
+static int IsDebugType(struct CREATURE *Cre)
+{
+    return Cre->TypeIdent == 0x2f;
+}
+
+struct CRESAVE *QuakeStoreInanimate(struct CREATURE *Cre, struct CRESAVE *CreSave)
+{
+    int Packed;
+    int Param0;
+    int Param1;
+
+    Packed = 0;
+    if (!((Cre->Box.Location.vx + 0x8000) & 0xffff0000))
+        if (!((Cre->Box.Location.vy + 0x8000) & 0xffff0000))
+            if (!((Cre->Box.Location.vz + 0x8000) & 0xffff0000))
+                if (!((Cre->Health / 4 + 0x80) & 0xff00))
+                    Packed = 1;
+    if (IsDebugType(Cre)) {
+        Param0 = FindAnimSequenceNumFromFrame(Cre->ModelHdr->AnimData, Cre->AnimFrame);
+        PrintIdentityName(Cre->ModelHdr->ModelName);
+        PrintBool(Packed);
+    }
+    CreSave->u.Packed.Packed = Packed;
+    if (Packed) {
+        CreSave->u.Packed.Location.vx = Cre->Box.Location.vx;
+        CreSave->u.Packed.Location.vy = Cre->Box.Location.vy + 0x11e;
+        CreSave->u.Packed.Location.vz = Cre->Box.Location.vz;
+        CreSave->u.Packed.Ang = (Cre->Ang.vy & 0xfff) >> 6;
+        CreSave->u.Packed.Target = Cre->IdealYaw;
+        CreSave->u.Packed.TypeIdent = Cre->TypeIdent;
+        CreSave->u.Packed.Health = Cre->Health / 4;
+        CreSave->u.Packed.Param = Param0;
+    } else {
+        CreSave->u.UnPacked.Location.vx = Cre->Box.Location.vx;
+        CreSave->u.UnPacked.Location.vy = Cre->Box.Location.vy + 0x11e;
+        CreSave->u.UnPacked.Location.vz = Cre->Box.Location.vz;
+        CreSave->u.UnPacked.Ang = (Cre->Ang.vy & 0xfff) >> 6;
+        CreSave->u.UnPacked.Target = Cre->IdealYaw;
+        CreSave->u.UnPacked.TypeIdent = Cre->TypeIdent;
+        CreSave->u.UnPacked.Health = Cre->Health;
+        CreSave->u.UnPacked.Param0 = Param0;
+        CreSave->u.UnPacked.Param1 = Param1;
+    }
+    {
+        char *Ret = (char *)CreSave;
+        if (Packed)
+            Ret += 12;
+        else
+            Ret += 20;
+        return (struct CRESAVE *)Ret;
+    }
+}
+
+extern struct PARTCOLOURS ParticleColours_BloodRed;
+extern struct PARTCOLOURS ParticleColours_DarkBloodRed;
+int rand(void);
+void *memset(void *s, int c, unsigned int n);
+int Move3d_SpinBounceAbout(struct CREATURE *Cre, struct CREATURE *Thrower, struct CREATURE **pHitCre, struct SHORTPAIR BounceDamage);
+void UpdateBoxStuff(struct COLLBOX3D *Box, int AreaSource);
+struct PARTICLE *AddParticlesSL0(struct VECT *Pos, struct SVECT *Off, struct SVECT *Vel, struct PARTCOLOURS *PColour0, struct PARTCOLOURS *PColour1, int NumToDraw, int Timer, int Size, int Area);
+
+void PrimaryQuakeBodyPartMoving(struct CREATURE *Cre)
+{
+    struct SVECT Vel[15];
+    struct SVECT Off[15];
+    struct SVECT BaseVel;
+    struct SVECT Rel;
+    int a;
+
+    Move3d_SpinBounceAbout(Cre, 0, 0, (struct SHORTPAIR){0x900, 0});
+    if (Cre->Life <= NewVcounts) {
+        Cre->Primary = PrimaryKillFade;
+        Cre->Life = NewVcounts + 1;
+    }
+    Cre->Life -= NewVcounts;
+    Cre->Draw.Location = Cre->Box.Location;
+    if (!Cre->Box.OnFloor) {
+        BaseVel.vx = (Cre->Vel.vx << 2) - 0x2000;
+        BaseVel.vy = (Cre->Vel.vy << 2) - 0x2000;
+        BaseVel.vz = (Cre->Vel.vz << 2) - 0x2000;
+        for (a = 0; a < 15; a++)
+            Vel[a] = (struct SVECT){(rand() + BaseVel.vx) >> 11, (rand() + BaseVel.vy) >> 11, (rand() + BaseVel.vz) >> 11};
+        Rel.vx = Cre->Vel.vx / 15;
+        Rel.vy = Cre->Vel.vy / 15;
+        Rel.vz = Cre->Vel.vz / 15;
+        memset(Off, 0, sizeof(struct SVECT));
+        for (a = 1; a < 15; a++) {
+            Off[a].vx = Off[a - 1].vx + Rel.vx;
+            Off[a].vy = Off[a - 1].vy + Rel.vy;
+            Off[a].vz = Off[a - 1].vz + Rel.vz;
+        }
+        AddParticlesSL0(&Cre->Draw.Location, Off, Vel, &ParticleColours_BloodRed, &ParticleColours_DarkBloodRed, 15, 3, 0x1800, Cre->Box.Area);
+    }
+    UpdateBoxStuff(&Cre->Box, 2);
+}
+
+extern short rcossin_tbl[][2];
+extern struct COLLHEADER CollMap;
+void SetupCollBoxMinMax(struct COLLBOX3D *Box, struct SVECT RadiusXYZ);
+void PrimaryQuakeBodyPartMoving(struct CREATURE *Cre);
+
+/* Space and Life are int in SYM; short gives the original's register allocation */
+void GenerateQuakeBodyPart2(struct CREATURE *Parent, int Angle, struct SVECT *Force, struct VECT *Location, short Space, short Life, struct IDENTITYNAME Name)
+{
+    struct CREATURE *Cre;
+    int Speed;
+
+    Cre = GetNextCre(0);
+    if (Cre) {
+        Cre->TypeIdent = 48;
+        Cre->Primary = PrimaryQuakeBodyPartMoving;
+        Cre->ModelHdr = GetModelHdr(Name);
+        Cre->HeightOffset = GetFloorOffset(Cre);
+        Cre->Control = 0x1800000;
+        Cre->Draw.Location = *Location;
+        Cre->Box.Location = *Location;
+        Cre->DefaultAmbience = *&(struct COLOUR){0x40, 0x40, 0x40, 0};
+        Cre->Ambience = *&(struct COLOUR){0x40, 0x40, 0x40, 0};
+        Speed = rand() / 64 + 0x300;
+        Cre->Vel.vx = rcossin_tbl[Angle & 0xfff][1] * Speed / 4096;
+        Cre->Vel.vy = -rand() * 2000 / 32768 - 3000;
+        Cre->Vel.vz = rcossin_tbl[Angle & 0xfff][0] * Speed / 4096;
+        Cre->Ang = (struct SVECT){rand(), rand(), rand()};
+        Cre->Params[0] = (rand() - 0x4000) >> 6;
+        RotMatrixYXZ((struct SVECTOR *)&Cre->Ang, &Cre->Matrix);
+        Cre->Ambience = Parent->Ambience;
+        Cre->DefaultAmbience = Parent->DefaultAmbience;
+        Cre->Life = Life + rand() / 32;
+        Cre->Box.MoveSpace = -1;
+        Cre->Box.PrimarySpace = Space;
+        Cre->Box.Area = CollMap.Coll3dSpace[Space].Area;
+        SetupCollBoxMinMax(&Cre->Box, (struct SVECT){20, 20, 20});
+    }
+}
+
+void *memset(void *s, int c, unsigned int n);
+void MyScaleMatrix(struct MATRIX *MatrixOut, struct MATRIX *MatrixIn, int Scale);
+void SetShockData(int InputWin, int Ident, int InputScale, struct VECT *Location, struct POWER Power);
+int SoundByCreature(int SFXNumber, struct CREATURE *Cre);
+
+void QuakeGenExplosion(struct VECT *Location, int Area, int Scale, int Type)
+{
+    struct CREATURE *Cre;
+
+    Cre = GetNextCre(1);
+    if (Cre) {
+        switch (Type) {
+        case 0:
+            Cre->ModelHdr = GetModelHdr((struct IDENTITYNAME){"Explosion"});
+            Cre->Primary = PrimaryQuakeExplosion;
+            break;
+        case 1:
+            Cre->ModelHdr = GetModelHdr((struct IDENTITYNAME){"Hexplosion"});
+            Cre->Primary = PrimaryQuakeExplosion;
+            break;
+        }
+        if (Cre->ModelHdr) {
+            Cre->Primary = PrimaryQuakeExplosion;
+            Cre->HeightOffset = GetFloorOffset(Cre);
+            Cre->Draw.Location = *Location;
+            Cre->Box.Location = *Location;
+            Cre->DefaultAmbience = *&(struct COLOUR){0x40, 0x40, 0x40, 0};
+            Cre->Ambience = *&(struct COLOUR){0x40, 0x40, 0x40, 0};
+            Cre->Ang = (struct SVECT){0, rand() & 0xfff, 0};
+            memset(&Cre->Ang, 0, sizeof(struct SVECT));
+            RotMatrixYXZ((struct SVECTOR *)&Cre->Ang, &Cre->Matrix);
+            MyScaleMatrix(&Cre->Matrix, &Cre->Matrix, Scale);
+            Cre->Box.Min = (struct SVECT){-0x100, Cre->HeightOffset - 0x200, -0x100};
+            Cre->Box.Max = (struct SVECT){0x100, Cre->HeightOffset, 0x100};
+            Cre->Box.Radius = 0x80;
+            Cre->Box.VectBox.Min.vx = Cre->Box.Location.vx + Cre->Box.Min.vx;
+            Cre->Box.VectBox.Min.vy = Cre->Box.Location.vy + Cre->Box.Min.vy;
+            Cre->Box.VectBox.Min.vz = Cre->Box.Location.vz + Cre->Box.Min.vz;
+            Cre->Box.VectBox.Max.vx = Cre->Box.Location.vx + Cre->Box.Max.vx;
+            Cre->Box.VectBox.Max.vy = Cre->Box.Location.vy + Cre->Box.Max.vy;
+            Cre->Box.VectBox.Max.vz = Cre->Box.Location.vz + Cre->Box.Max.vz;
+            Cre->Box.MoveSpace = -1;
+            Cre->Box.Area = Area;
+            Cre->Box.PrimarySpace = -1;
+            Cre->TypeIdent = 0x28;
+            SoundByCreature(Sound_Explosion, Cre);
+            SetShockData(4, 13, Scale, Location, (struct POWER){Scale / 2, Scale});
+        }
+    }
 }

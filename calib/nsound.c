@@ -1,5 +1,57 @@
 #include "types.h"
 
+unsigned long Big2Little(unsigned long v);
+long SpuMalloc(long size);
+void SpuSetTransferStartAddr(unsigned long addr);
+unsigned long SpuWrite(unsigned char *addr, unsigned long size);
+long SpuIsTransferCompleted(long flag);
+static struct EffectStruct VAGList[97];
+
+/* before Big2Little, which the original calls rather than inlines */
+long SfxTransEffect(void *pVagPtr, void *pImgPtr)
+{
+    long dwSize;
+    long dwAddr;
+    long dwSrate;
+    long dwMulti;
+    int wSampleId;
+    struct VagHdr *pHeader;
+
+    pHeader = pVagPtr;
+    dwSize = Big2Little(pHeader->size);
+    dwAddr = SpuMalloc(dwSize);
+    if (dwAddr == -1)
+        return -2;
+    wSampleId = 0;
+    while (VAGList[wSampleId].dwSize) {
+        if (++wSampleId == 96)
+            return -3;
+    }
+    dwSrate = Big2Little(pHeader->srate);
+    VAGList[wSampleId].dwAddr = dwAddr;
+    VAGList[wSampleId].dwSize = dwSize;
+    VAGList[wSampleId].dwMulti = (dwSrate << 12) / 44100;
+    SpuSetTransferStartAddr(dwAddr);
+    SpuWrite((unsigned char *)(pHeader + 1), dwSize);
+    SpuIsTransferCompleted(1);
+    if (pImgPtr) {
+        pHeader = pImgPtr;
+        dwSize = Big2Little(pHeader->size);
+        dwAddr = SpuMalloc(dwSize);
+        if (dwAddr == -1)
+            return -2;
+        if (Big2Little(pHeader->srate) != dwSrate)
+            return -4;
+        VAGList[wSampleId].dwImgAddr = dwAddr;
+        VAGList[wSampleId].dwImgSize = dwSize;
+        SpuSetTransferStartAddr(dwAddr);
+        SpuWrite((unsigned char *)(pHeader + 1), dwSize);
+        SpuIsTransferCompleted(1);
+    }
+    return wSampleId;
+}
+
+
 unsigned long Big2Little(unsigned long v)
 {
     return (v >> 24) | ((v >> 8) & 0xff00) | ((v & 0xff00) << 8) | (v << 24);
@@ -19,7 +71,6 @@ int NextFreeSoundNumber;
 int SampleCount;
 unsigned char *chanfreepntr;
 struct SNDVRAM *SndVramFile;
-static struct EffectStruct VAGList[97];
 
 int SoundAtLocation_Vol(int SFXNumber, struct VECT *loc, int vol);
 int SoundByCreature(int SFXNumber, struct CREATURE *Cre);
@@ -88,6 +139,88 @@ int SoundByPlayer(int SFXNumber, struct CREATURE *Cre)
         *(signed char *)&sbuf->type = -7;
         sbuf->mixflag = 1;
         sbuf->currvol = 100;
+    }
+    return Chan;
+}
+
+extern int Paused;
+extern unsigned int LevelTicks;
+extern struct CREATURE Creatures[];
+int GetFreeChannel(void);
+int rand(void);
+
+/* SoundAtLocation_Vol and SoundByCreature share SoundID (same SYM section offset): an inline helper */
+static unsigned short NewSoundID(void)
+{
+    {
+        static unsigned short SoundID = 0;
+        SoundID = (SoundID + 1) & 0x7fff;
+        if (!SoundID)
+            SoundID++;
+        return SoundID;
+    }
+}
+
+int SoundByCreature(int SFXNumber, struct CREATURE *Cre)
+{
+    int Chan;
+    int Range;
+    struct SNDCTRL *sbuf;
+    struct SoundList *ThisSound;
+
+    if (SFXNumber == -1)
+        return -1;
+    if (!SFXNumber)
+        return -1;
+    ThisSound = &SampleInfoTable[SFXNumber];
+    if (!VAGList[ThisSound->SampleNumber].dwAddr)
+        return -2;
+    Chan = GetFreeChannel();
+    if (Chan >= 0) {
+        if (ThisSound->Flags & 1) {
+            Range = ThisSound->MaxPitch - ThisSound->MinPitch;
+            ThisSound->Pitch = ThisSound->MinPitch + rand() % Range;
+        }
+        if (ThisSound->Flags & 2) {
+            Range = ThisSound->MaxVol - ThisSound->MinVol;
+            ThisSound->Volume = ThisSound->MinVol + rand() % Range;
+        }
+        sbuf = &SoundControlBuffers[Chan];
+        sbuf->s_dtype = SFXNumber;
+        sbuf->pos.vx = Cre->Box.Location.vx;
+        sbuf->pos.vy = Cre->Box.Location.vy;
+        sbuf->pos.vz = Cre->Box.Location.vz;
+        *(signed char *)&sbuf->type = -1;
+        sbuf->mixflag = DefaultMix;
+        sbuf->lastvol = sbuf->currvol = sbuf->basevol = ThisSound->Volume;
+        if (LevelIsMultiPlayer) {
+            *(signed char *)&sbuf->type = -7;
+            sbuf->mixflag = 1;
+            if (Paused) {
+                sbuf->currvol = sbuf->basevol = 0xfe;
+                sbuf->mixflag = 2;
+            } else {
+                sbuf->currvol = sbuf->basevol = 0x54;
+            }
+        } else if (Cre <= &Creatures[1]) {
+            *(signed char *)&sbuf->type = -7;
+            sbuf->mixflag = 1;
+            sbuf->currvol = sbuf->basevol = 0x7f;
+        }
+        *(signed char *)&sbuf->chain = -1;
+        sbuf->lastpitch = sbuf->currpitch = sbuf->basepitch = ThisSound->Pitch << 3;
+        sbuf->pitchflag = 0;
+        sbuf->samplenum = ThisSound->SampleNumber;
+        sbuf->statusdelay = 5;
+        sbuf->CreIdent = Cre->Ident;
+        sbuf->pntr = Cre;
+        sbuf->SoundID = NewSoundID();
+        if (!Cre->SoundFrame)
+            sbuf->SoundEndFrame = LevelTicks + 9000;
+        else
+            sbuf->SoundEndFrame = LevelTicks + Cre->SoundFrame;
+        Cre->SoundID = sbuf->SoundID;
+        Cre->SoundChannel = Chan;
     }
     return Chan;
 }
@@ -502,4 +635,33 @@ void CalcSFXCurrDist(struct VECT *loc)
     SFXCurrDist /= MaxWindows;
     if (SFXCurrDist <= 0)
         SFXCurrDist = 1;
+}
+
+int ModNameCmp(struct IDENTITYNAME *Name1, struct IDENTITYNAME *Name2);
+char *PrintIdentityName(struct IDENTITYNAME Name);
+
+int GetSoundNum(struct IDENTITYNAME Name)
+{
+    struct IDENTITYNAME *SoundName;
+    int SFXNumber;
+
+    SoundName = (struct IDENTITYNAME *)SoundNames;
+    SFXNumber = 0;
+    while (1) {
+        switch (ModNameCmp(&Name, SoundName)) {
+        case 0:
+            SoundName++;
+            if (++SFXNumber == SampleCount) {
+                PrintIdentityName(Name);
+                return 0;
+            }
+            break;
+        case 1:
+            PrintIdentityName(Name);
+            return SFXNumber;
+        case 2:
+            PrintIdentityName(Name);
+            return 0;
+        }
+    }
 }
