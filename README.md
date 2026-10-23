@@ -53,43 +53,54 @@ symlinks (`cc1psx.exe -> CC1PSX.EXE`). 4.0 and 4.1 need `tools/patch-cc1psx-tmp.
 
 ## Compiler and flags
 
-The game was built with **PSY-Q 4.4 (`cc1psx` gcc 2.8.1 SN32 build 4.0.0010) or 4.3 (gcc 2.8.0), `-O3 -G8`**,
-assembled by ASPSX 2.79 (`ccpsx` runs `aspsx -q -G8`). `calib/` holds matched functions, one file per
-original source file; `tools/calibrate.sh [flags]` recompiles them and diffs each against `asm/`:
+The game was built with the **`cc1psx` of PSY-Q 4.4 (gcc 2.8.1 SN32 build 4.0.0010) or 4.3 (gcc 2.8.0),
+`-O3 -G8`, assembled by an ASPSX of version 2.80 or later** (2.81 ships with PSY-Q 4.5), not the 2.79 that
+comes with 4.4: a mixed toolchain. `cc-psx.sh` defaults to all of that.
 
-| SDK (cc1psx)          | -O1 | -O2 | -O3 | -O3 -G0 | -O3 -G4 |
-|-----------------------|-----|-----|-----|---------|---------|
-| 4.0 (cygnus 2.7.2)    | 2/8 | 2/8 | 2/8 | 1/8     | 2/8     |
-| 4.1 (cygnus 2.7.2)    | 2/8 | 2/8 | 2/8 | 1/8     | 2/8     |
-| 4.3 (gcc 2.8.0)       | 4/8 | 8/8 | 8/8 | 5/8     | 8/8     |
-| 4.4 (gcc 2.8.1)       | 4/8 | 8/8 | 8/8 | 5/8     | 8/8     |
-| 4.5 (egcs 1.1.2)      | 4/8 | 4/8 | 4/8 | 3/8     | 4/8     |
-| 4.6 (gcc 2.95.2)      | 2/8 | 2/8 | 2/8 | 1/8     | 2/8     |
+`calib/` holds matched functions, one file per original source file; `tools/calibrate.sh [flags]`
+recompiles them and diffs each against `asm/` (`ASPSX_VERSION=` changes maspsx's assembler model):
 
-The functions: `mystrlen`, `SeekL`, `strupr`, `Big2Little`, `ModNameCmp`, `DoubleTrebleBuffer`,
-`GameIsPaused`, `PSXDOOR2SIDE` (99 instructions). What settles the rest:
+| cc1psx                | -O1 | -O2     | -O3     | -O3 -G0 | -O3 -G4 |
+|-----------------------|-----|---------|---------|---------|---------|
+| 4.0, 4.1 (cygnus 2.7.2) | 2/8 | 2/8   | 2/8     | 1/8     | 2/8     |
+| 4.3 (gcc 2.8.0)       | 4/8 | 222/225 | 225/225 | 5/8     | 8/8     |
+| 4.4 (gcc 2.8.1)       | 4/8 | 222/225 | 225/225 | 5/8     | 8/8     |
+| 4.5 (egcs 1.1.2)      | 4/8 | 4/8     | 4/8     | 3/8     | 4/8     |
+| 4.6 (gcc 2.95.2)      | 2/8 | 2/8     | 2/8     | 1/8     | 2/8     |
 
-- **`-O3`, not `-O2`.** Per function they compile the same; the difference is function order. `-O3`
-  (`-finline-functions`) makes every small function an inline candidate, and gcc 2.8 defers those to the
-  end of the file, even public ones, in the order they were first declared (prototype order). That is the
-  layout of the game: each file's large functions come first in line order, then the small ones out of
-  order (see `src/functions.json`: 522 of 1037 functions sit in such a tail). With `-O2` only explicit
-  `inline` functions move. A small function can still be called rather than inlined when its body is long
-  in the source: `ProcessPortalWibble` compiles to 3 instructions but has 170 lines of dead code after a
-  `return`, so it stays in line order and `PortalTestWibble` calls it.
+The x/8 columns are from the first 8 calibration functions; 225 counts two (`PrintIdentityName`,
+`SendPitch`) that match except for the numbered name gcc gives a function-local static. What settles it:
+
+- **`-O3`, not `-O2`.** `ReReadToc`, `PrimaryKillBurnFade` and `PrimaryKillPlasmaFade` only match with a
+  function defined earlier in the file and not declared `inline` (`MyGetCDStatus`,
+  `ProcessQuakeGeneralCreEffects`) inlined into them, which `-O2` doesn't do. The function order agrees:
+  `-O3` makes every small function an inline candidate, and gcc 2.8 defers those to the end of the file,
+  even public ones, in the order they were first declared (prototype order). That is the layout of the
+  game: each file's large functions come first in line order, then the small ones out of order (522 of
+  1037 functions sit in such a tail, see `src/functions.json`). A small function can still be called
+  rather than inlined when its source is long: `ProcessPortalWibble` compiles to 3 instructions but has
+  170 lines of dead code after a `return`. Inlining only reaches functions defined *earlier* in the file,
+  so in a calib file put callers before callees unless the original inlined them.
 - **`-G8`.** 8-byte objects (`ScreenDisplay[2]`, `MissionRect`, `WaterMoves[2]`, `lightorder[4]`) are
   `$gp`-relative, nothing larger is, and 8 is ccpsx's default. `-G0` loses every `$gp` access.
-- **`$gp` only for symbols defined in the same file.** ASPSX 2.79 never makes an extern `$gp`-relative,
-  whatever size gcc gives it in `.extern`. `Paused` is defined in Quake.obj, so `GameIsPaused` uses `$gp`;
-  `currdb`/`olddb` are defined in dbuffer.obj (a data-only file), so every file uses `%hi/%lo` for them.
-  `cc-psx.sh` therefore gives `-G` to maspsx (which `$gp`s the file's own symbols) and runs GNU as with
-  `-G0`. When decompiling, define a variable in the file that SYM says owns it (`obj` in
-  `src/globals.json`) and declare the rest `extern`. Extern arrays need incomplete types
-  (`extern unsigned char TbFrame[];`) to get the original addressing.
-- **4.3 vs 4.4: open, 4.4 assumed.** They share the gcc 2.8 backend; random-program fuzzing found one
-  difference outside `long long`: a `?:` picking between `unsigned char`/`unsigned short` constants with
-  the top bit set (`x ? 200 : 250`). 4.3 loads them sign-extended (`li $2,-56`, plus an `andi` when the
-  value is used as an int), 4.4 loads them as is. No `li -N` followed by `andi 0xff` exists anywhere in the
-  game, which points to 4.4 but doesn't prove it. A matched function with such a `?:` would settle it.
+- **`$gp` only for symbols defined in the same file.** No ASPSX (2.77 to 2.86, checked under wine) makes an
+  extern `$gp`-relative, whatever size gcc gives it in `.extern`. `Paused` is defined in Quake.obj, so
+  `GameIsPaused` uses `$gp`; `currdb`/`olddb` are defined in dbuffer.obj (a data-only file), so every file
+  uses `%hi/%lo` for them. `cc-psx.sh` therefore gives `-G` to maspsx (which `$gp`s the file's own
+  symbols) and runs GNU as with `-G0`. When decompiling, define a variable in the file that SYM says owns
+  it (`obj` in `src/globals.json`) and declare the rest `extern`. Extern arrays need incomplete types
+  (`extern unsigned char TbFrame[];`) to get the original addressing. Exceptions seen so far: `LightBackEnd2`
+  (lights.obj) and initialised function-local statics are `%hi/%lo` even in their own file.
+- **ASPSX >= 2.80.** The game takes the address of its own small variables as `addiu $a0,$gp,%gp_rel(X)`
+  (about 77 times, `LinkCastLists`, `FreeEdictTList`, ...). Assembling the same compiler output with the
+  real ASPSX 2.77 (4.3) or 2.79 (4.4) gives `lui`/`addiu`; 2.81 (4.5) and 2.86 (4.6) give the `$gp` form.
+  maspsx models this from `--aspsx-version=2.80`.
+- **4.3 vs 4.4: open, 4.4 assumed.** They share the gcc 2.8 backend and every calib function matches on
+  both. Random-program fuzzing found one difference outside `long long`: a `?:` picking between `unsigned
+  char`/`unsigned short` constants with the top bit set (`x ? 200 : 250`). 4.3 loads them sign-extended
+  (`li $2,-56`, plus an `andi` when used as an int), 4.4 as is. No `li -N` followed by `andi 0xff` exists
+  anywhere in the game, which points to 4.4 but doesn't prove it.
 
-`char` is unsigned in every cc1psx version (as `ccpsx` also defines `__CHAR_UNSIGNED__`).
+`char` is unsigned in every cc1psx version (`ccpsx` also defines `__CHAR_UNSIGNED__`). Some SYM types are
+wrong where the asm says otherwise: `SNDCTRL.type`/`.chain`, `_MEMCARD_DATA.numCards`/`numFiles`/
+`numMpFiles` and `PICKUPDESC.Ident` are loaded with `lb` (signed char); the calib files cast around them.
