@@ -47,7 +47,6 @@ static struct BLURHDR *NewBlurHdr(void)
     return 0;
 }
 
-extern struct BLURHDR BlurHdrs[];
 extern struct WINDOW GameWindows[];
 extern int ChrisCount;
 extern short DrawCollisionOn;

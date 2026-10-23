@@ -101,7 +101,7 @@ char *strupr(char *s)
 
 unsigned short QuickRand(void)
 {
-    static unsigned short temp;
+    static unsigned short temp SBSS;
 
     temp = (&freepol)[1] + seed2;
     (&freepol)[1] = seed2;

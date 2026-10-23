@@ -15,7 +15,6 @@ struct CREATURE FlyPickCre BSS;
 struct FLYPICK FlyPicks[4] BSS;
 
 
-extern struct FLYPICK FlyPicks[];
 extern struct IDENTITYNAME LastObjective;
 extern int LevelIsMultiPlayer;
 void InitFlyingPickup(struct FLYPICK *FlyPick);
@@ -36,7 +35,6 @@ void KillModel(struct CREATURE *Cre);
 int GetFloorOffset(struct CREATURE *Cre);
 void RotMatrixYXZ(struct SVECT *r, struct MATRIX *m);
 
-extern struct FLYPICK FlyPicks[];
 extern int LevelIsMultiPlayer;
 
 int Q2CreDropItemOnDeath(struct CREATURE *Cre)

@@ -136,7 +136,7 @@ short PrimaryWeaponMovement(struct CREATURE *Gun, struct PLAYERCONTROLS *Control
     struct SVECT Angs;
     struct VECT VectOffset;
     struct MATRIX Mat;
-    static struct SHORTPAIR VCFire;
+    static struct SHORTPAIR VCFire SBSS;
     int ToProcess;
     int ThisPass;
     int LastGunIndx;

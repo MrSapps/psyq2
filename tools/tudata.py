@@ -91,6 +91,21 @@ def check(exe, path):
             lab = max(((off, n) for s, off, n, _ in syms if s == sec and 0 <= off <= d), default=(0, '(start)'))
             out.append(f'{sec:7} DIFF  at {start + d:#x} (+{d:#x}, {lab[1]}+{d - lab[0]:#x}): '
                        f'ours {b[d:d + 12].hex()} original {exe[o + d:o + d + 12].hex()}')
+    # commons psylink allocates itself: in hash order, and one of 8 bytes or more makes it
+    # align every later bss piece to 8 (the original link did neither)
+    big = [n for s, off, n, _ in syms if s in ('.sbss', '.bss') and off < 0 and -off >= 8]
+    if big:
+        out.append(f'.bss    DIFF  commons of 8 bytes or more (define them, see src/include/bss.h): {" ".join(big)}')
+    # a .lcomm static and variables placed with section attributes collide in ASPSX: both are
+    # allocated from offset 0
+    for sec in ('.sbss', '.bss'):
+        offs = {}
+        for s_, off, n, _ in syms:
+            if s_ == sec and off >= 0:
+                offs.setdefault(off, []).append(n)
+        clash = [v for v in offs.values() if len(v) > 1]
+        if clash:
+            out.append(f'{sec:7} DIFF  variables at the same offset (a .lcomm static next to SBSS/BSS ones?): {clash[0]}')
     # bss: statics in section order, then commons in definition order
     for sec in ('.sbss', '.bss'):
         lo, hi = RANGES[sec]

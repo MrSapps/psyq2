@@ -1807,10 +1807,10 @@ void InGame_CHECK_FOR_CONTROLLER(void)
 void InGame_CHECK_FOR_SCREENPOSITION(void)
 {
     short pad;
-    static short TimeLeft;
-    static short TimeRight;
-    static short TimeUp;
-    static short TimeDown;
+    static short TimeLeft SBSS;
+    static short TimeRight SBSS;
+    static short TimeUp SBSS;
+    static short TimeDown SBSS;
 
     pad = Engine.gFrontEndPad[Pauser];
     if (pad & 0x80) {

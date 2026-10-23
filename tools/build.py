@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Build SLUS_007.57 from src/ with the original PSY-Q toolchain (under wine).
 
-usage: tools/build.py [-j N] [--only NAME...]     (--only: just compile those src/NAME.c, no link)
+usage: tools/build.py [-j N] [--only NAME...] [--link-only]
+  --only: just compile those src/NAME.c, no link; --link-only: link what is in build/obj
 
   src/<obj>.c   cpp -> CC1PSX (-O3 -G8 -g) -> ASPSX 2.81 -> build/obj/<obj>.obj
-  src/hand_asm.s, src/libsn/*.s             ASPSX      -> build/obj/...
+  src/hand_asm.s, src/libsn/*.s, src/libbss/*.s   ASPSX -> build/obj/...
   the PSY-Q libraries' modules              PSYLIB /x  -> build/lib/<lib>/<module>.OBJ
   config/SLUS_007.lnk + the PSY-Q libraries -> PSYLINK  -> build/SLUS_007.cpe (+ .map, .sym)
   build/SLUS_007.cpe                        -> CPE2EXE  -> build/SLUS_007.57
@@ -96,6 +97,8 @@ def main():
     if only:
         names = [n for n in names if n in only]
     failed = False
+    if '--link-only' in sys.argv:
+        names = []
     with concurrent.futures.ThreadPoolExecutor(jobs) as ex:
         for name, rc, out in ex.map(compile_c, names):
             if rc:
@@ -103,8 +106,9 @@ def main():
                 failed = True
     if only:
         sys.exit(1 if failed else 0)
-    os.makedirs(f'{OBJ}/libsn', exist_ok=True)
-    for src in [f'{R}/src/hand_asm.s'] + sorted(glob.glob(f'{R}/src/libsn/*.s')):
+    for d in ('libsn', 'libbss'):
+        os.makedirs(f'{OBJ}/{d}', exist_ok=True)
+    for src in [f'{R}/src/hand_asm.s'] + sorted(glob.glob(f'{R}/src/libsn/*.s') + glob.glob(f'{R}/src/libbss/*.s')):
         obj = os.path.join(OBJ, os.path.relpath(src, f'{R}/src'))[:-2] + '.obj'
         rc, out = assemble(src, obj)
         if rc:

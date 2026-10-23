@@ -201,7 +201,7 @@ Done:
 void ProcessPortalWibble(struct PORTALDATA *PortalData, struct SCREENCHANGE *SChange)
 {
     struct SCRPNT Size;
-    static int LastFrame;
+    int LastFrame; /* only in the dead code: the original has no storage for it */
     int y;
 
     return;
@@ -223,7 +223,7 @@ void ProcessPortalWibble(struct PORTALDATA *PortalData, struct SCREENCHANGE *SCh
 
 void PortalTestWibble(struct SCREENCHANGE *SChange, struct SCENE2 *Scene2)
 {
-    static struct PORTALDATA PortalData;
+    static struct PORTALDATA PortalData SBSS;
     int Dist;
     struct VECT Centre;
     struct VECT Rel;

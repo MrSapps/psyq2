@@ -258,7 +258,7 @@ void StopPlayingCD(void)
 
 void PlayThisXA(int XANumber)
 {
-    static char Trax[2];
+    static char Trax[2] SBSS;
     return;
     {
         unsigned char param[4];
