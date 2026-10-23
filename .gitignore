@@ -4,3 +4,4 @@ build/
 assets/
 __pycache__/
 undefined_*_auto.txt
+calib/*.o
