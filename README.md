@@ -46,5 +46,16 @@ the game used is still unknown; start with `-O2 -G0`, and try other SDK versions
 
 `src/src/*.C` has the original signature, locals (with registers/frame offsets) and line range for
 every function; `src/functions.json` has the address-to-line table, which helps ordering statements.
-Status: the pipeline works end to end, but nothing is matched yet. `DoubleTrebleBuffer` (asm/main.s)
-is the first attempt: same instruction count within one, differing in load order and register allocation.
+## Compiler calibration (so far)
+
+Trivial functions (`GameIsPaused`, `anglemod`, `GetSaveMemorySize`, `ReCalcCollBox`) match byte-for-byte with
+**PSY-Q 4.4, `-O2 -G8`** (also with `-G4`, `-O1`, `-O3`). `GameIsPaused` needs `$gp` addressing, so `-G0` is out.
+PSY-Q 4.3 and 4.5 do not reproduce even `anglemod` here, so 4.4 is the working assumption.
+The `-O` level is not yet pinned down.
+
+Open question from `DoubleTrebleBuffer` (asm/main.s): at `-G8`, `TbFrame`/`DbFrame`/`db` get `%hi/%lo`
+addressing like the original when declared as incomplete arrays (`extern unsigned char TbFrame[];`), but
+`currdb`/`olddb` come out `$gp`-relative while the original uses `%hi/%lo`. Something about how those
+two are declared or placed differs; `Paused` and `quitgame` do use `$gp` in the original.
+
+Status: the pipeline works end to end and four trivial functions match; nothing larger is matched yet.
