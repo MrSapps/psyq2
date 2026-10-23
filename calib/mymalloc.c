@@ -1,0 +1,197 @@
+#include "types.h"
+extern unsigned long _stacksize;
+extern long __SN_GP_BASE;
+extern long pdhmallocbase;
+extern int maxmalloc;
+extern struct DB db[];
+long pdhmallocbase2;
+unsigned long BiggestGap;
+int *heapend;
+int *heapstart;
+void *MyMalloc(int Length, int HiFlag);
+void *myrealloc2(void *lastp2, int len2, int HiFlag);
+void printheap(void);
+void FreeScene();
+void freesound();
+void GameTerminateStuff();
+
+static void UnlinkBlock(int *p)
+{
+    int *nextp;
+    int *lastp;
+    lastp = (int *)p[-7];
+    nextp = (int *)p[-6];
+    lastp[1] = (int)nextp;
+    if (nextp)
+        nextp[0] = (int)lastp;
+}
+
+void MyFree(void **Addr)
+{
+    if (*Addr)
+        UnlinkBlock(*Addr);
+    *Addr = 0;
+}
+
+void MyFreeRep(void **Addr, char *Name)
+{
+    if (*Addr)
+        UnlinkBlock(*Addr);
+    *Addr = 0;
+}
+
+void freeallmallocs(void)
+{
+    FreeScene();
+    freesound();
+    GameTerminateStuff();
+    MyFree((void **)&db[0].modpolsg4);
+    MyFree((void **)&db[0].PartFt4);
+}
+
+void *MYrealloc(void *p, int s, int HiFlag)
+{
+    p = myrealloc2(p, s, HiFlag);
+    if (!p)
+        for (;;)
+            ;
+    return p;
+}
+
+void initMYmalloc2(void)
+{
+    heapstart = (int *)&pdhmallocbase;
+    pdhmallocbase2 = (long)&pdhmallocbase;
+    heapstart[1] = 0;
+    heapstart[3] = 0;
+    heapstart[2] = 0;
+    heapend = (int *)((char *)__SN_GP_BASE - (_stacksize + 0x80000000));
+}
+
+struct NAME16 { char c[16]; };
+
+static void *MallocNoName(int s)
+{
+    void *p = MyMalloc(s, 0);
+    if (p)
+        ((int *)p)[-4] = 0;
+    if ((unsigned)maxmalloc < (unsigned)((char *)p + s))
+        maxmalloc = (int)((char *)p + s);
+    return p;
+}
+
+void *MY_malloc_name(int s, char *name)
+{
+    void *p;
+    p = MallocNoName(s);
+    if (p) {
+        ((struct NAME16 *)p)[-1] = *(struct NAME16 *)name;
+        ((char *)p)[-1] = 0;
+        strstr(name, "");
+    } else
+        printheap();
+    return p;
+}
+
+void *MY_malloc_namehb(int s, char *name)
+{
+    void *p = MyMalloc(s, 1);
+    if (p) {
+        ((struct NAME16 *)p)[-1] = *(struct NAME16 *)name;
+        ((char *)p)[-1] = 0;
+    }
+    return p;
+}
+
+void UpdateMallocStart(char *Old, char *New)
+{
+    int *currp;
+    int *NewCurrP;
+    int *lastp;
+    int *nextp;
+    currp = (int *)(Old - 28);
+    lastp = (int *)currp[0];
+    nextp = (int *)currp[1];
+    NewCurrP = (int *)(New - 28);
+    lastp[1] = (int)NewCurrP;
+    nextp[0] = (int)NewCurrP;
+    {
+        int Backup[7];
+        int a;
+        int SizeIncrease;
+        for (a = 0; a < 7; a++)
+            Backup[a] = currp[a];
+        for (a = 0; a < 7; a++)
+            NewCurrP[a] = Backup[a];
+        SizeIncrease = Old - New;
+        NewCurrP[2] += SizeIncrease;
+    }
+}
+
+unsigned long MaxMallocSize(void)
+{
+    MyMalloc(0x1000000, 0);
+    return BiggestGap - 28;
+}
+
+int printf(char *fmt, ...);
+
+void *MyMalloc(int Length, int HiFlag)
+{
+    unsigned long Gap;
+    int *ThisP;
+    int *NewP;
+    int *NextP;
+    int *BestP;
+    int *BestNextP;
+    int *LastAddr;
+    int Required;
+    int Size;
+
+    BestNextP = 0;
+    Required = (Length + 31) & ~3;
+    BestP = 0;
+    ThisP = heapstart;
+    BiggestGap = 0;
+    LastAddr = heapend - _stacksize / sizeof(int);
+    do {
+        NextP = LastAddr;
+        Size = ThisP[2];
+        Size += 31;
+        Size &= ~3;
+        if (ThisP[1])
+            NextP = (int *)ThisP[1];
+        Gap = (char *)NextP - (char *)ThisP - Size;
+        if (BiggestGap < Gap)
+            BiggestGap = Gap;
+        if (Gap >= Required) {
+            BestP = ThisP;
+            BestNextP = NextP;
+            if (!HiFlag)
+                break;
+        }
+        ThisP = NextP;
+    } while (NextP != LastAddr);
+    if (BestP) {
+        if (HiFlag)
+            NewP = (int *)((char *)BestNextP - Required);
+        else
+            NewP = BestP + Size / sizeof(int);
+        NewP[0] = (int)BestP;
+        NewP[1] = BestP[1];
+        NewP[2] = Length;
+        BestP[1] = (int)NewP;
+        NextP = (int *)NewP[1];
+        if (NextP)
+            NextP[0] = (int)NewP;
+        return NewP + 7;
+    }
+    Gap = Length - BiggestGap;
+    Gap /= 104;
+    Gap = (int)Gap / 32;
+    Gap *= 32;
+    if (Length != 0x1000000)
+        printf("\n!!!! WARNING !!!! MALLOC FAILED:  \nRequired %d; Available %d; Diff %d\n(approx. %d too many GT4s)\n",
+               Length, BiggestGap, Length - BiggestGap, Gap);
+    return 0;
+}

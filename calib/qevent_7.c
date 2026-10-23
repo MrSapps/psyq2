@@ -92,3 +92,51 @@ struct PSXSUBEVENT *PSXPISTON(struct PSXSUBEVENT *subevent)
     }
     return (struct PSXSUBEVENT *)((char *)subevent + sizeof(struct PSXEVUSRFUNC_PISTON));
 }
+
+char nomoresubevents;
+extern int GlobalKey;
+void FreeSolidBoxs(struct SOLIDBOX *SolidBox);
+int Event_DoFromSub(int eventhdroffset, struct CREATURE *Cre, struct PSXSUBEVENT *subevent2);
+
+struct PSXSUBEVENT *PSXSHOOTTHEN(struct PSXSUBEVENT *subevent, struct CREATURE *cre, short damage)
+{
+    struct BRUSHMOVEBUF *MoveBuf;
+
+    if (subevent->evsize != 8)
+        return subevent;
+    if (damage == 0)
+        return 0;
+    MoveBuf = &BrushMoveBufs[((short *)subevent)[2]];
+    ((short *)subevent)[3] -= damage;
+    if (((short *)subevent)[3] <= 0) {
+        FreeSolidBoxs(MoveBuf->SolidBox);
+        MoveBuf->SolidBox = 0;
+        Event_GlobalEVOFFSET = MoveBuf->EvHdrOffset;
+        Event_DoFromSub(MoveBuf->EvHdrOffset, 0, subevent);
+    }
+    return 0;
+}
+
+void PSXONKEYDO(struct PSXSUBEVENT *subevent)
+{
+    struct PSXEVUSRFUNC_ONKEYDO *ev;
+    struct VECT Location;
+
+    ev = (struct PSXEVUSRFUNC_ONKEYDO *)subevent;
+    if (ev->KeyAnd && (GlobalKey & ev->KeyAnd) != ev->KeyAnd) {
+        nomoresubevents = 1;
+        return;
+    }
+    if (ev->KeyOr && !(GlobalKey & ev->KeyOr)) {
+        nomoresubevents = 1;
+        return;
+    }
+    if (ev->KeyNotAnd && (~GlobalKey & ev->KeyNotAnd) != ev->KeyNotAnd) {
+        nomoresubevents = 1;
+        return;
+    }
+    if (ev->KeyNotOr && !(~GlobalKey & ev->KeyNotOr)) {
+        nomoresubevents = 1;
+        return;
+    }
+}

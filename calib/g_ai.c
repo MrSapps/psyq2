@@ -81,3 +81,63 @@ void HuntTarget(struct edict_s *self)
     if (!(self->monsterinfo.aiflags & 1))
         AttackFinished(self, 10);
 }
+
+void AngleVectors(struct SVECT *angles, struct VECT *forward, struct VECT *right, struct VECT *up);
+long VectorNormalize(struct VECT *v);
+int visible(struct edict_s *self, struct edict_s *other);
+int M_ChangeYaw(struct edict_s *ent);
+void M_MoveToGoal(struct edict_s *ent, long dist);
+int FindTarget(struct edict_s *self);
+int rand(void);
+
+int infront(struct edict_s *self, struct edict_s *other)
+{
+    struct VECT vec;
+    long dot;
+    struct VECT forward;
+
+    AngleVectors(&self->sangles, &forward, 0, 0);
+    vec.vx = other->sorigin.vx - self->sorigin.vx;
+    vec.vy = other->sorigin.vy - self->sorigin.vy;
+    vec.vz = other->sorigin.vz - self->sorigin.vz;
+    VectorNormalize(&vec);
+    dot = vec.vx * forward.vx / 4096 + vec.vy * forward.vy / 4096 + vec.vz * forward.vz / 4096;
+    if (dot > 1229)
+        return 1;
+    return 0;
+}
+
+void ai_charge(struct edict_s *self, long dist)
+{
+    struct VECT v;
+
+    if (self->monsterinfo.blindfire && visible(self, self->enemy))
+    {
+        self->pos1.vx = self->enemy->sorigin.vx;
+        self->pos1.vy = self->enemy->sorigin.vy;
+        self->pos1.vz = self->enemy->sorigin.vz;
+    }
+    if (!(self->monsterinfo.aiflags & 0x10000)) {
+        v.vx = self->enemy->sorigin.vx - self->sorigin.vx;
+        v.vy = self->enemy->sorigin.vy - self->sorigin.vy;
+        v.vz = self->enemy->sorigin.vz - self->sorigin.vz;
+        self->ideal_yaw = vectoyaw(&v);
+    }
+    M_ChangeYaw(self);
+    if (dist)
+        M_walkmove(self, self->sangles.vz, dist);
+}
+
+void ai_walk(struct edict_s *self, long dist)
+{
+    M_MoveToGoal(self, dist);
+    if (FindTarget(self))
+        return;
+    if (self->monsterinfo.search && level.time > self->monsterinfo.idle_time) {
+        if (self->monsterinfo.idle_time) {
+            self->monsterinfo.search(self);
+            self->monsterinfo.idle_time = level.time + 150 + (rand() & 0x7fff) * 150 / 32767;
+        } else
+            self->monsterinfo.idle_time = level.time + (rand() & 0x7fff) * 150 / 32767;
+    }
+}
