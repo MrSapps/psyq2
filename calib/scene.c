@@ -315,3 +315,153 @@ int AlterScreenClipping(struct SCRPNT Min, struct SCRPNT Max, struct SCRPNT Offs
     }
     return ReturnVal;
 }
+
+/* PolyNum is range-checked but then unused (the original always reads the first poly); the dead check makes the ModelHdr pseudo span two blocks, which gives the original register allocation */
+void GetLimitedPolyData(struct SCENE2 *Scene2, int PolyNum, struct GLOBTEXTDATA *GlobTextData)
+{
+    struct GLOBSMODGT4 *modgt4;
+    struct UV4 *UV4s;
+    struct UV4 *PolyUV4;
+    char *Temp;
+    int NumPolys;
+
+    NumPolys = Scene2->ModelHdr->NumPolys;
+    if (PolyNum >= NumPolys) PolyNum = 0;
+    UV4s = (struct UV4 *)((char *)Scene2->ModelHdr + Scene2->ModelHdr->UVOffset);
+    Temp = (char *)Scene2->ModelHdr + Scene2->ModelHdr->RGBOffset;
+    modgt4 = (struct GLOBSMODGT4 *)(Scene2->ModelHdr + 1);
+    PolyUV4 = &UV4s[modgt4->UV];
+    GlobTextData->Uv0 = PolyUV4->uv[0];
+    GlobTextData->Uv1 = PolyUV4->uv[1];
+    GlobTextData->Uv2 = PolyUV4->uv[2];
+    GlobTextData->Uv3 = PolyUV4->uv[3];
+    GlobTextData->Clut = GamePals[modgt4->Pal];
+    *(struct RGB3 *)&GlobTextData->Colour = *(struct RGB3 *)(Temp + modgt4->Col0 * 3);
+    if (modgt4->trans) {
+        GlobTextData->Colour.Pad = 0x3e;
+        GlobTextData->TPage = alltpages[modgt4->Tp & 0x1f];
+    } else {
+        GlobTextData->Colour.Pad = semitranstable[modgt4->trans] | 0x3c;
+        GlobTextData->TPage = alltpages[modgt4->Tp & 0x1f] |= tptranstable[2];
+    }
+}
+
+struct MODELREF *GlobalSubModelRef;
+struct SCRPNTZ *SceneBuffer;
+struct SCRPNTZ *CurrentCoordBuffer;
+extern long *primlistarray[];
+extern struct DUMMYGPU *NextDummyGpu;
+extern struct DUMMYGPU *LastDummyGpu;
+extern struct DB *currdb;
+void RotateSceneCoords_(struct MODELREF *Ref, int Many, struct SCRPNTZ *Buffer);
+void DrawSceneBitAllSubDiv_(short *Model, struct POLY_GT4 *Poly, unsigned long *Ot, short *NextModel);
+void DrawSceneBitNoSubDiv_(short *Model, struct POLY_GT4 *Poly, unsigned long *Ot, short *NextModel);
+void DrawSceneBitSomeSubDiv_(short *Model, struct POLY_GT4 *Poly, unsigned long *Ot, short *NextModel);
+char *GetNextGlobalMemory(int Size);
+void OrderedSort(struct SORT *Self, struct SORT **SortLink);
+struct SORT *GetNextSortData(void);
+
+
+#define gte_ldv0(r0) __asm__ volatile("move $12,%0\n\tlwc2 $0,0($12)\n\tlwc2 $1,4($12)" : : "r"(r0) : "$12")
+#define gte_rtps() __asm__ volatile("nop\n\tnop\n\t.word 0x4A180001")
+#define gte_stsz(r0) __asm__ volatile("move $12,%0\n\tswc2 $19,0($12)" : : "r"(r0) : "$12", "memory")
+#define SetCoordBuffer(r0) __asm__ volatile("move $12,%0" : : "r"(r0) : "$12")
+
+static int OriginZ(void)
+{
+    struct SVECTOR NullSVector;
+    int ZVal;
+    memset(&NullSVector, 0, sizeof(NullSVector));
+    gte_ldv0(&NullSVector);
+    gte_rtps();
+    gte_stsz(&ZVal);
+    return ZVal;
+}
+
+/* the two failure paths of the sort-data test are separate else branches (cross-jumped into one 'GeneralSort = 0' block); this lengthens Ot's lifetime enough to give Packets/OtIndx s2 and Ot s3 */
+void DrawBrush(short OtIndx, struct SCENE2 *Scn2, struct SCENE *Scn, struct MODELREFINDX *MRef)
+{
+    int Many;
+    int ThisPass;
+    short *Packets;
+    short *Model;
+    short *NextModel;
+    unsigned long *Ot;
+    struct POLY_GT4 *Poly;
+    struct SCRPNTZ Buffer[15];
+    int GeneralSort;
+    struct SORT *Sort;
+
+    GlobalSubModelRef = MRef->Ref;
+    Many = Scn2->ModelHdr->NumPolys;
+    Model = (short *)(Scn2->ModelHdr + 1);
+    if (MRef->Many >= 16)
+        SceneBuffer = (struct SCRPNTZ *)primlistarray;
+    else
+        SceneBuffer = Buffer;
+    CurrentCoordBuffer = SceneBuffer;
+    RotateSceneCoords_(MRef->Ref, MRef->Many, SceneBuffer);
+    GeneralSort = Scn2->FreeSort;
+    if (GeneralSort) {
+        if (NextDummyGpu != LastDummyGpu) {
+            Sort = GetNextSortData();
+            if (Sort) {
+                Sort->Flags = 0;
+                Sort->ScreenZ = OriginZ();
+                NextDummyGpu->Tag = 0;
+                Sort->FirstLast[0] = (struct POLY_GT4 *)NextDummyGpu;
+                Sort->FirstLast[1] = (struct POLY_GT4 *)NextDummyGpu;
+                if (Scn2->MoveBufId) {
+                    struct BRUSHMOVEBUF *MoveBuf;
+                    MoveBuf = MOVEBUF(Scn2->MoveBufId);
+                    if (MoveBuf->Offset.vx || *(long *)&MoveBuf->Offset.vy) {
+                        if ((Sort->VectBox = (struct VECTBOX *)GetNextGlobalMemory(0x18))) {
+                            ((long *)Sort->VectBox)[0] = ((long *)&Scn2->VectBox)[0] + MoveBuf->Offset.vx;
+                            ((long *)Sort->VectBox)[1] = ((long *)&Scn2->VectBox)[1] + MoveBuf->Offset.vy;
+                            ((long *)Sort->VectBox)[2] = ((long *)&Scn2->VectBox)[2] + MoveBuf->Offset.vz;
+                            ((long *)Sort->VectBox)[3] = ((long *)&Scn2->VectBox)[3] + MoveBuf->Offset.vx;
+                            ((long *)Sort->VectBox)[4] = ((long *)&Scn2->VectBox)[4] + MoveBuf->Offset.vy;
+                            ((long *)Sort->VectBox)[5] = ((long *)&Scn2->VectBox)[5] + MoveBuf->Offset.vz;
+                        } else
+                            Sort->VectBox = &Scn2->VectBox;
+                    } else
+                        Sort->VectBox = &Scn2->VectBox;
+                } else
+                    Sort->VectBox = &Scn2->VectBox;
+                Ot = (unsigned long *)&Sort->FirstLast[0];
+            } else
+                GeneralSort = 0;
+        } else
+            GeneralSort = 0;
+    }
+    if (!GeneralSort)
+        Ot = CurrOt + OtIndx;
+    if (!Many)
+        return;
+    Packets = &Scn->Pols[1];
+    while (Many > 0) {
+        Poly = &currdb->modpolsg4[*Packets++];
+        ThisPass = Many;
+        if (Many >= 32)
+            ThisPass = 32;
+        Many -= ThisPass;
+        NextModel = Model + ThisPass * 6;
+        SetCoordBuffer(SceneBuffer);
+        switch (Scn2->SubDiv & 3) {
+        case 0:
+            DrawSceneBitAllSubDiv_(Model, Poly, Ot, NextModel);
+            break;
+        case 1:
+            DrawSceneBitNoSubDiv_(Model, Poly, Ot, NextModel);
+            break;
+        case 2:
+            DrawSceneBitSomeSubDiv_(Model, Poly, Ot, NextModel);
+            break;
+        }
+        Model = NextModel;
+    }
+    if (GeneralSort && (struct DUMMYGPU *)Sort->FirstLast[0] != NextDummyGpu) {
+        NextDummyGpu++;
+        OrderedSort(Sort, &AreaData[Scn2->Area].Data[CurrWinIndx].SortLink);
+    }
+}

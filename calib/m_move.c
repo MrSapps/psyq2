@@ -222,3 +222,173 @@ int SV_StepDirection(struct edict_s *ent, long yaw, long dist)
   G_TouchTriggers(ent);
   return 0;
 }
+
+/* do-while(0) around move = -speed flips the ideal/move register choice to the original's */
+int M_ChangeYaw(struct edict_s *ent)
+{
+    long ideal;
+    long current;
+    long move;
+    long total_move;
+    long speed;
+    int maxed_out;
+
+    maxed_out = 0;
+    current = anglemod(ent->sangles.vz);
+    ideal = ent->ideal_yaw;
+    if (current == ideal)
+        return;
+    {
+    move = ideal - current;
+    speed = ent->yaw_speed;
+    if (ideal > current) {
+        if (move >= 0x800)
+            move -= 0x1000;
+    } else if (move <= -0x800) {
+        move += 0x1000;
+    }
+    total_move = move;
+    if (move > 0) {
+        if (move > speed) {
+            move = speed;
+            maxed_out = 1;
+        }
+    } else if (move < -speed) {
+        do { move = -speed; } while (0);
+        maxed_out = 1;
+    }
+    if (ent->monsterinfo.turn_threshold && abs(total_move) > ent->monsterinfo.turn_threshold && ent->monsterinfo.turn)
+        ent->monsterinfo.turn(ent);
+    else
+        ((struct CREATURE *)ent->Extra.Creature)->IdealYaw = ent->sangles.vz = (long long)anglemod(current + move);
+    }
+    return maxed_out;
+}
+
+#define VectorCopy(a, b) ((b).vx = (a).vx, (b).vy = (a).vy, (b).vz = (a).vz)
+extern struct trace_t *traceptr;
+extern struct trace_t Trace;
+extern struct COLLHEADER MoveCollMap;
+void gitrace(struct VECT *start, struct VECT *mins, struct VECT *maxs, struct VECT *end, struct edict_s *passent, int contentmask, int start_space);
+void getminsmaxs(struct edict_s *ent, struct VECT *mins, struct VECT *maxs);
+
+int SV_movestep(struct edict_s *ent, struct VECT *move, int relink)
+{
+    long dz;
+    static struct VECT oldorg;
+    static struct VECT neworg;
+    static struct VECT end;
+    static struct VECT tempvec;
+    static struct VECT stepup;
+    int i;
+    long stepsize;
+    static struct VECT mins;
+    static struct VECT maxs;
+
+    VectorCopy(ent->sorigin, oldorg);
+    neworg.vx = ent->sorigin.vx + move->vx;
+    neworg.vy = ent->sorigin.vy + move->vy;
+    neworg.vz = ent->sorigin.vz + move->vz;
+    getminsmaxs(ent, &mins, &maxs);
+    if (ent->flags & 3) {
+        for (i = 0; i < 2; i++) {
+            neworg.vx = ent->sorigin.vx + move->vx;
+            neworg.vy = ent->sorigin.vy + move->vy;
+            neworg.vz = ent->sorigin.vz + move->vz;
+            if (i == 0 && ent->enemy) {
+                if (!ent->goalentity)
+                    ent->goalentity = ent->enemy;
+                dz = ent->sorigin.vy - ent->goalentity->sorigin.vy;
+                if (ent->goalentity->client) {
+                    if (dz < -480)
+                        neworg.vy += 96;
+                    if (!((ent->flags & 2) && ent->waterlevel < 2))
+                        if (dz > -360)
+                            neworg.vy -= 96;
+                } else {
+                    if (dz < -96)
+                        neworg.vy += 96;
+                    else if (dz < 0)
+                        neworg.vy += dz;
+                    else if (dz > 96)
+                        neworg.vy -= 96;
+                    else
+                        neworg.vy -= dz;
+                }
+            }
+            gitrace(&ent->sorigin, &mins, &maxs, &neworg, ent, 0x2020003, -1);
+            if (Trace.fraction == 4096) {
+                VectorCopy(Trace.endpos, ent->sorigin);
+                if (relink) {
+                    linkentity(ent, 0x81);
+                    G_TouchTriggers(ent);
+                }
+                return 1;
+            }
+            if (!ent->enemy)
+                break;
+        }
+        return 0;
+    }
+    if (!(ent->monsterinfo.aiflags & 0x400))
+        stepsize = 216;
+    else
+        stepsize = 12;
+    end.vx = ent->sorigin.vx + move->vx;
+    end.vy = ent->sorigin.vy + move->vy;
+    end.vz = ent->sorigin.vz + move->vz;
+    end.vy += stepsize;
+    VectorCopy(ent->sorigin, stepup);
+    stepup.vy -= stepsize;
+    gitrace(&ent->sorigin, &mins, &maxs, &stepup, ent, 0x2020003, ((struct CREATURE *)ent->Extra.Creature)->Box.MoveSpace);
+    if (!traceptr->startsolid) {
+        neworg.vy += traceptr->endpos.vy - ent->sorigin.vy;
+        if (move->vx || move->vy || move->vz) {
+            VectorCopy(traceptr->endpos, stepup);
+            gitrace(&stepup, &mins, &maxs, &neworg, ent, 0x2020003, MoveCollMap.ReturnSpaceNum);
+        }
+        if (traceptr->fraction != 4096)
+            return 0;
+        gitrace(&neworg, &mins, &maxs, &end, ent, 0x2020003, MoveCollMap.ReturnSpaceNum);
+    }
+    traceptr->endpos.vy--;
+    if (traceptr->startsolid) {
+        neworg.vx = ent->sorigin.vx + move->vx;
+        neworg.vy = ent->sorigin.vy + move->vy;
+        neworg.vz = ent->sorigin.vz + move->vz;
+        if (move->vx || move->vy || move->vz) {
+            gitrace(&ent->sorigin, &mins, &maxs, &neworg, ent, 0x2020003, ((struct CREATURE *)ent->Extra.Creature)->Box.MoveSpace);
+            if (traceptr->fraction != 4096)
+                return 0;
+            gitrace(&neworg, &mins, &maxs, &end, ent, 0x2020003, MoveCollMap.ReturnSpaceNum);
+        } else {
+            gitrace(&ent->sorigin, &mins, &maxs, &end, ent, 0x2020003, ((struct CREATURE *)ent->Extra.Creature)->Box.MoveSpace);
+        }
+        if (traceptr->startsolid)
+            return 0;
+    }
+    if (traceptr->fraction == 4096) {
+        if (ent->flags & 0x100)
+            return 1;
+        return 0;
+    }
+    VectorCopy(traceptr->endpos, ent->sorigin);
+    if (!M_CheckBottom(ent)) {
+        if (ent->flags & 0x100) {
+            if (relink) {
+                linkentity(ent, 0x81);
+                G_TouchTriggers(ent);
+            }
+            return 1;
+        }
+        VectorCopy(oldorg, ent->sorigin);
+        return 0;
+    }
+    if (ent->flags & 0x100)
+        ent->flags &= ~0x100;
+    if (relink) {
+        linkentity(ent, 0x81);
+        G_TouchTriggers(ent);
+    }
+    return 1;
+}

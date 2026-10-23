@@ -138,7 +138,10 @@ struct FILEDATA GetFileData(struct FILEHDR *BaseHdr, struct IDENTITYNAME Name)
             FileHdr++;
             break;
         case 1:
-            Temp = (char *)BaseHdr + FileHdr->Offset;
+            /* two statements: the extra RTL insn keeps each inlined copy's loop at 30 insns, so
+               loop.c leaves the constant 1 of the switch in the loop (ReadCommonFiles) */
+            Temp = (char *)BaseHdr;
+            Temp += FileHdr->Offset;
             return (struct FILEDATA){Temp, FileHdr[1].Offset - FileHdr->Offset};
         case 2:
             return (struct FILEDATA){0};
@@ -532,4 +535,671 @@ int GetLevelData(struct IDENTITYNAME NewLevelName)
     LevelPreInitFunc = NoLevelFunc;
     ThisLevelData = 0;
     return 0;
+}
+
+struct IDENTITYNAME LastZoneName;
+int *StringTable;
+char *CommonLevelBinAddr; /* globals.json says QLevIfce.obj, but loadlev uses it $gp-relative */
+extern struct COLLHEADER TrigBoundCollMap;
+extern short NumFixedLights;
+extern int GlobalKillsCount;
+extern struct PSXMAINEVENTHDR *eventlistbase;
+int Read_File_Alloc2(char *path, char *name2, void **Pntr, int hiflag);
+int ReadCollisionData(struct FILEHDR *File, struct COLLHEADER *CollHdr, struct IDENTITYNAME Name, struct IDENTITYNAME RemapName, int ZeroIfMissing);
+void InitialiseModelFile(struct GLOBMODHDR *Hdr);
+void InitialisePopulation(void *Addr);
+int CreatureCount(void *Addr);
+void LoadShieldData(void *Addr);
+void InitUserFuncs(char *addr);
+void LoadRelocateCreAi(char *Code, char *Rel);
+void UpdateMallocStart(char *Old, char *New);
+
+void ReadCommonFiles(char *Path)
+{
+    struct FILEDATA FileData;
+    struct FILEDATA FileData2;
+
+    LastZoneName = (struct IDENTITYNAME){"NULL"};
+    if (Read_File_Alloc2(Path, "Common.Dat", (void **)&CommonFiles, 1))
+    {
+        StartPositions = GetFileData(CommonFiles, (struct IDENTITYNAME){"StartPos"}).Addr;
+        ReadCollisionData(CommonFiles, &TrigBoundCollMap, (struct IDENTITYNAME){"TrigBounds"},
+                          (struct IDENTITYNAME){"TriggerRemap"}, 1);
+        ZoneData = GetFileData(CommonFiles, (struct IDENTITYNAME){"Resources"}).Addr;
+        FileData = GetFileData(CommonFiles, (struct IDENTITYNAME){"Lights"});
+        FixedLightData = FileData.Addr;
+        NumFixedLights = FileData.Size / 28;
+        FileData = GetFileData(CommonFiles, (struct IDENTITYNAME){"CastList"});
+        if (FileData.Size)
+        {
+            NextCommonCastList = FileData.Addr;
+            InitialiseModelFile(NextCommonCastList);
+        }
+        else
+            NextCommonCastList = 0;
+        InitialisePopulation(GetFileData(CommonFiles, (struct IDENTITYNAME){"Population"}).Addr);
+        GlobalKillsCount = CreatureCount(GetFileData(CommonFiles, (struct IDENTITYNAME){"Population"}).Addr);
+        LoadShieldData(GetFileData(CommonFiles, (struct IDENTITYNAME){"GlintMod"}).Addr);
+        eventlistbase = GetFileData(CommonFiles, (struct IDENTITYNAME){"Events"}).Addr;
+        StringTable = GetFileData(CommonFiles, (struct IDENTITYNAME){"Strings"}).Addr;
+        InitUserFuncs(GetFileData(CommonFiles, (struct IDENTITYNAME){"UserFuncs"}).Addr);
+        CommonCreAiBinAddr = 0;
+        FileData = GetFileData(CommonFiles, (struct IDENTITYNAME){"CreAIBin"});
+        if (FileData.Size)
+        {
+            FileData2 = GetFileData(CommonFiles, (struct IDENTITYNAME){"CreAIRel"});
+            if (FileData2.Size)
+            {
+                CommonCreAiBinAddr = FileData.Addr;
+                LoadRelocateCreAi(FileData.Addr, FileData2.Addr);
+            }
+        }
+        FileData = GetFileData(CommonFiles, (struct IDENTITYNAME){"LevelBin"});
+        if (FileData.Size)
+        {
+            FileData2 = GetFileData(CommonFiles, (struct IDENTITYNAME){"LevelRel"});
+            if (FileData2.Size)
+            {
+                CommonLevelBinAddr = FileData.Addr;
+                LoadRelocateLevel(FileData.Addr, FileData2.Addr, FileData.Size);
+            }
+        }
+        {
+            char *NewFileAddr;
+
+            NewFileAddr = GetFileData(CommonFiles, (struct IDENTITYNAME){"Resources"}).Addr;
+            if (NewFileAddr)
+            {
+                UpdateMallocStart((char *)CommonFiles, NewFileAddr);
+                CommonFiles = (struct FILEHDR *)NewFileAddr;
+            }
+        }
+    }
+    else
+        while (1)
+            ;
+}
+
+extern struct COLLHEADER MoveCollMap;
+extern int JustLoaded;
+extern short NumLaserWalls;
+extern short NumLaserBeams;
+extern short NumTelePorts;
+extern int DebrisModelsActive;
+extern struct MAPNAME *MapNames;
+extern short *FixedLightList;
+extern int Scene2DataLen;
+extern short NumSceneModels;
+extern struct MODELREF *ModelRef;
+extern int MaxWindows;
+extern struct PSXMAINEVENTHDR *neweventlistbase;
+extern void **usrfunclist;
+extern int GlobalSecretsCount;
+extern short Event_StartLevFlag;
+extern short Event_MuteLevFlag;
+extern struct IDENTITYNAME LastOrders;
+extern struct IDENTITYNAME LastObjective;
+void InitSolidBoxs(void);
+void InitMoveBuffer(void);
+void ReInitAreaConxData(void *ConxFile);
+void Event_TransferObjects(void);
+int Event_DoNamed(struct IDENTITYNAME name3, struct CREATURE *Cre);
+void HelpComputer_SetMessages(struct IDENTITYNAME Orders, struct IDENTITYNAME Objective);
+
+void ReadZoneFiles(char *Path, struct IDENTITYNAME ThisZoneName)
+{
+    struct FILEDATA FileData;
+    struct FILEDATA FileData2;
+    char FileName[13];
+    int a;
+    int c; /* unused here (SYM has it in $v0) */
+    int d;
+    int Win;
+    struct VECT Min; /* unused, but they take their stack slots */
+    struct VECT Max;
+
+    for (a = 0; a < 8; a++)
+        FileName[a] = ThisZoneName.Name[a];
+    FileName[8] = 0;
+    strcat(FileName, ".Dat");
+    InitSolidBoxs();
+    InitMoveBuffer();
+    NumLaserWalls = 0;
+    NumLaserBeams = 0;
+    NumTelePorts = 0;
+    DebrisModelsActive = 0;
+    if (Read_File_Alloc2(Path, FileName, (void **)&CurrentZoneFiles, 1))
+    {
+        JustLoaded = 1;
+        LastZoneName = ZoneName;
+        ZoneName = ThisZoneName;
+        ReadCollisionData(CurrentZoneFiles, &CollMap, (struct IDENTITYNAME){"PrimaryColl"},
+                          (struct IDENTITYNAME){"PrimaryRemap"}, 1);
+        ReadCollisionData(CurrentZoneFiles, &MoveCollMap, (struct IDENTITYNAME){"SecondaryCol"},
+                          (struct IDENTITYNAME){"SecondaryRem"}, 1);
+        MapNames = GetFileData(CurrentZoneFiles, (struct IDENTITYNAME){"MapNames"}).Addr;
+        FixedLightList = GetFileData(CurrentZoneFiles, (struct IDENTITYNAME){"SpaceLights"}).Addr;
+        SceneSortData = GetFileData(CurrentZoneFiles, (struct IDENTITYNAME){"SortData"}).Addr;
+        FileData = GetFileData(CurrentZoneFiles, (struct IDENTITYNAME){"Scene"});
+        Scene2Data = FileData.Addr;
+        Scene2DataLen = FileData.Size;
+        NumSceneModels = FileData.Size / sizeof(struct SCENE2);
+        SceneModData = GetFileData(CurrentZoneFiles, (struct IDENTITYNAME){"MapMod"}).Addr;
+        FileData = GetFileData(CurrentZoneFiles, (struct IDENTITYNAME){"Points"});
+        d = (int)FileData.Addr; /* via d ($v1 in SYM): the separate statements set sched's order */
+        d += 4;
+        ModelRefIndx = (struct MODELREFINDX *)d;
+        d += NumSceneModels * sizeof(struct MODELREFINDX);
+        ModelRef = (struct MODELREF *)d;
+        ReInitAreaConxData(GetFileData(CurrentZoneFiles, (struct IDENTITYNAME){"AreaConx"}).Addr);
+        for (a = 0; a < NumSceneModels; a++)
+        {
+            for (Win = 0; Win < MaxWindows; Win++)
+                Scene2Data[a].BuffIndx[Win] = 0;
+            Scene2Data[a].ModelHdr = (struct GLOBSMODHDR *)((int)Scene2Data[a].ModelHdr + (int)SceneModData);
+            ModelRefIndx[a].Ref = (struct MODELREF *)((int)ModelRefIndx[a].Ref + (int)ModelRef);
+            Scene2Data[a].Validate = 0x8000;
+            Scene2Data[a].MoveBufId = 0;
+        }
+        FileData = GetFileData(CurrentZoneFiles, (struct IDENTITYNAME){"CastList"});
+        if (FileData.Size)
+        {
+            NextZoneCastList = FileData.Addr;
+            InitialiseModelFile(NextZoneCastList);
+        }
+        else
+            NextZoneCastList = 0;
+        ZoneCreAiBinAddr = 0;
+        FileData = GetFileData(CurrentZoneFiles, (struct IDENTITYNAME){"CreAIBin"});
+        if (FileData.Size)
+        {
+            FileData2 = GetFileData(CurrentZoneFiles, (struct IDENTITYNAME){"CreAIRel"});
+            if (FileData2.Size)
+            {
+                ZoneCreAiBinAddr = FileData.Addr;
+                LoadRelocateCreAi(FileData.Addr, FileData2.Addr);
+            }
+        }
+        neweventlistbase = GetFileData(CurrentZoneFiles, (struct IDENTITYNAME){"Events"}).Addr;
+        if (usrfunclist == (void **)-1)
+        {
+            neweventlistbase = 0;
+            eventlistbase = 0;
+            usrfunclist = 0;
+        }
+        if (neweventlistbase)
+        {
+            GlobalSecretsCount = 0;
+            Event_TransferObjects();
+            Event_StartLevFlag = 1;
+            Event_MuteLevFlag = 1;
+            Event_DoNamed((struct IDENTITYNAME){"STARTLEV"}, 0);
+            Event_StartLevFlag = 0;
+            Event_MuteLevFlag = 0;
+        }
+        Engine.Scene2Data = Scene2Data;
+        {
+            char *NewFileAddr;
+
+            NewFileAddr = GetFileData(CurrentZoneFiles, (struct IDENTITYNAME){"Scene"}).Addr;
+            if (NewFileAddr)
+            {
+                UpdateMallocStart((char *)CurrentZoneFiles, NewFileAddr);
+                CurrentZoneFiles = (struct FILEHDR *)NewFileAddr;
+            }
+        }
+        HelpComputer_SetMessages(LastOrders, LastObjective);
+    }
+}
+extern char ActivateCreatureBatch[];
+extern char AddBlurPoints[];
+extern char AddCross[];
+extern char AddLaser[];
+extern char AddLevelInterMission[];
+extern char AddLight[];
+extern char AddParticlesSL[];
+extern char AddPrim_[];
+extern char AddThickLine[];
+extern char AlterFocalSubDiv[];
+extern char AreaData[];
+extern char AreaValid[];
+extern char BrushMoveBufs[];
+extern char CHECK_FOR_MCFILEWINDOW[];
+extern char CHECK_FOR_SLIDER[];
+extern char CdControl[];
+extern char CdControlB[];
+extern char CdDataCallback[];
+extern char CdRead2[];
+extern char CdReadyCallback[];
+extern char CdSearchFile[];
+extern char ChrisInitEveryFrame[];
+extern char ClearImage[];
+extern char ClearOTag[];
+extern char Config_InstallVideo[];
+extern char ControlGetPortName[];
+extern char DMACallback[];
+extern char DbFrame[];
+extern char DebugInfo[];
+extern char DebugWatch[];
+extern char DirectAccessLevelName[];
+extern char DoDamage[];
+extern char DoSnapShot[];
+extern char DrawAllModels[];
+extern char DrawAllScenes[];
+extern char DrawAllSortedObjs[];
+extern char DrawBorder[];
+extern char DrawOTag[];
+extern void *DummyMemory;
+extern char Event_GetDisableNamed[];
+extern char Event_GetNamedOffset[];
+extern char Event_SetDisableNamed[];
+extern char Find3dSpaceIndxLink[];
+extern char FindAnimHdr[];
+extern char FreeSubDivs[];
+extern char FrontEndAddText[];
+extern char FrontEndClearCursorMemory[];
+extern char FrontEndInitText[];
+extern char FrontEndLevelCompleteTimeout[];
+extern char FrontEndModifyText[];
+extern char FrontEndResetMultiplayerDefaults[];
+extern char FrontEndResetPlayerDefaults[];
+extern char FrontEndResetSoundDefaults[];
+extern char FrontEndResetVideoDefaults[];
+extern char FrontEndRestoreCursor[];
+extern char GameDeathWatchA[];
+extern char GameDeathWatchB[];
+extern char GameDeathWatchC[];
+extern char GameSetup[];
+extern char GameWindows[];
+extern char GenShieldMatrix[];
+extern char GenSolidBox[];
+extern char GenVectBox[];
+extern char GetAbsoluteModelVert[];
+extern char GetSceneNum[];
+extern char GetSoundClone[];
+extern char GetSoundNum[];
+extern char GetStringFromStringtable[];
+extern char GetTPage[];
+extern char GetToc[];
+extern char HelpComputer_NewMessage[];
+extern char InGame_PrintMemCardMessage[];
+extern char InSelfPlayMode[];
+extern char InitMultiQuakePlayer[];
+extern char InitialiseQuakePickup[];
+extern char InitialiseQuakePickups[];
+extern char InitialiseQuakePlayer[];
+extern char IsPlayerPadShockable[];
+extern char KillModel[];
+extern char LevelExtraDraw[];
+extern char LoadImage[];
+extern char LoadSaveGameConfigData[];
+extern char MY_malloc_name[];
+extern char MainLoop[];
+extern char MapPadInputToFire[];
+extern char MemCardAccept[];
+extern char MemCardCreateFile[];
+extern char MemCardFormat[];
+extern char MemCardGetDirentry[];
+extern char MemCardInit[];
+extern char MemCardReadFile[];
+extern char MemCardStart[];
+extern char MemCardSync[];
+extern char MemCardWriteFile[];
+extern char MemoryCardGetCardname[];
+extern char MemoryCardGetFilename[];
+extern char MemoryCardGetNumCards[];
+extern char MemoryCardGetNumFiles[];
+extern char MemoryCardGetNumFreeBlocks[];
+extern char MemoryCardGetStatus[];
+extern char MemoryCardInit[];
+extern char MemoryCardSetActiveCard[];
+extern char MemoryCardSetActiveFile[];
+extern char MemoryCardSetStatus[];
+extern char MemoryCardUpdate[];
+extern char Mission[];
+extern char MoveBottomPoly[];
+extern char MoveImage[];
+extern char MoveModels[];
+extern char MultiTapExists[];
+extern char MyFree[];
+extern char MyGetCDStatus[];
+extern char NewMission[];
+extern char NewPadRead[];
+extern char NewVcounts[];
+extern char NextMission[];
+extern char NoInputTime[];
+extern char NumPadds[];
+extern char OrderedSort[];
+extern char ParticleColoursTable[];
+extern char PatchEngineVariables[];
+extern char PlayThisXA[];
+extern char PrimaryQuakePickup[];
+extern char PrintDebugInfoScene[];
+extern char ProcessAllLensFlare[];
+extern char ProcessBlurs[];
+extern char ProcessLights[];
+extern char ProcessMessageText[];
+extern char ProcessMoveBufs[];
+extern char ProcessSounds[];
+extern char PutDrawEnv[];
+extern char QGenWindowSortList[];
+extern char QuakeEndSelfPlay[];
+extern char QuakeGenExplosion[];
+extern char QuakeNextDemoLevel[];
+extern char QuakeSinglePlayerInit[];
+extern char ReReadToc[];
+extern char ReactorShieldGlints[];
+extern char ReloadAutoSave[];
+extern char RemoveMeRoutine[];
+extern char ResetCallback[];
+extern char RotMatrixYXZ[];
+extern char Rotate[];
+extern char SceneObjFragments[];
+extern char SelfPlayOn[];
+extern char SelfRecordOn[];
+extern char SetCDVolume[];
+extern char SetDefDispEnv[];
+extern char SetDefDrawEnv[];
+extern char SetDispMask[];
+extern char SetDrawEnv[];
+extern char SetDrawMode[];
+extern char SetGeomStuffWin[];
+extern char SetNoInputTimeOutRoutine[];
+extern char SetShockData[];
+extern char SetSp[];
+extern char SetTile[];
+extern char SetWinFade[];
+extern char SetupScreen1by1[];
+extern char SetupScreen1by2[];
+extern char SetupScreen2by1[];
+extern char SetupScreen2by2[];
+extern char SetupScreenGivenArea[];
+extern char SnapShotPadViolation[];
+extern char SoundAtLocation[];
+extern char SoundByCreature[];
+extern char SoundHere[];
+extern char SoundSetPitch[];
+extern char SoundSetRelativePitch[];
+extern char SoundSetRelativeVolume[];
+extern char SoundSetVolume[];
+extern char SoundStopSoundID[];
+extern char SoundTestIfRunning[];
+extern char SpawnGeneral[];
+extern char SquareRootNR[];
+extern char StCdInterrupt[];
+extern char StCdIntrFlag[];
+extern char StFreeRing[];
+extern char StGetNext[];
+extern char StSetRing[];
+extern char StSetStream[];
+extern char StUnSetRing[];
+extern char StoreImage[];
+extern char UpdateWindowStuff[];
+extern char VSync[];
+extern char VectorNormalSS[];
+extern char actualStack0[];
+extern char actualStack1[];
+extern char alltpages[];
+extern char centreprintf[];
+extern char currdb[];
+extern char dprintf[];
+extern char memcard_data[];
+extern char palette[];
+extern char printf[];
+extern char rand[];
+extern char rcossin_tbl[];
+extern char sprintf[];
+extern char targetcdvol[];
+extern char tpscreenx[];
+extern char tpscreeny[];
+extern char usp[];
+
+void QuakeFillInLevelEngineSideInterface(void)
+{
+    Engine.SizeOf = 1268;
+    Engine.CantPause = 0;
+    Engine.usp = (void *)usp;
+    Engine.InitialiseQuakePlayer = (void *)InitialiseQuakePlayer;
+    Engine.InitMultiQuakePlayer = (void *)InitMultiQuakePlayer;
+    Engine.QuakeSinglePlayerInit = (void *)QuakeSinglePlayerInit;
+    Engine.ActivateCreatureBatch = (void *)ActivateCreatureBatch;
+    Engine.LoadSaveCreatureBatches = (void *)LoadSaveCreatureBatches;
+    Engine.InitialiseQuakePickup = (void *)InitialiseQuakePickup;
+    Engine.PrimaryQuakePickup = (void *)PrimaryQuakePickup;
+    Engine.AddCross = (void *)AddCross;
+    Engine.AddLight = (void *)AddLight;
+    Engine.AddLaser = (void *)AddLaser;
+    Engine.AddThickLine = (void *)AddThickLine;
+    Engine.AddParticlesSL = (void *)AddParticlesSL;
+    Engine.SceneObjFragments = (void *)SceneObjFragments;
+    Engine.QuakeGenExplosion = (void *)QuakeGenExplosion;
+    Engine.SelfRecordOn = (void *)SelfRecordOn;
+    Engine.SelfPlayOn = (void *)SelfPlayOn;
+    Engine.QuakeEndSelfPlay = (void *)QuakeEndSelfPlay;
+    Engine.SetNoInputTimeOutRoutine = (void *)SetNoInputTimeOutRoutine;
+    Engine.IsPlayerPadShockable = (void *)IsPlayerPadShockable;
+    Engine.QuakeNextDemoLevel = (void *)QuakeNextDemoLevel;
+    Engine.LevelSpecific = (void *)&LevelSpecific;
+    Engine.LevelExtraDraw = (void *)LevelExtraDraw;
+    Engine.NoInputTime = (void *)NoInputTime;
+    Engine.InSelfPlayMode = (void *)InSelfPlayMode;
+    Engine.BrushMoveBufs = (void *)BrushMoveBufs;
+    Engine.VectorNormalSS = (void *)VectorNormalSS;
+    Engine.GenSolidBox = (void *)GenSolidBox;
+    Engine.GetSceneNum = (void *)GetSceneNum;
+    Engine.Find3dSpaceIndxLink = (void *)Find3dSpaceIndxLink;
+    Engine.CollMap = (void *)&CollMap;
+    Engine.MoveCollMap = (void *)&MoveCollMap;
+    Engine.GameDeathWatchA = (void *)GameDeathWatchA;
+    Engine.GameDeathWatchB = (void *)GameDeathWatchB;
+    Engine.GameDeathWatchC = (void *)GameDeathWatchC;
+    Engine.Event_SetDisableNamed = (void *)Event_SetDisableNamed;
+    Engine.Event_GetDisableNamed = (void *)Event_GetDisableNamed;
+    Engine.Event_DoNamed = (void *)Event_DoNamed;
+    Engine.Event_GetNamedOffset = (void *)Event_GetNamedOffset;
+    Engine.eventlistbase = (void *)&eventlistbase;
+    Engine.PrintDebugInfoScene = (void *)PrintDebugInfoScene;
+    Engine.ProcessMessageText = (void *)ProcessMessageText;
+    Engine.RemoveMeRoutine = (void *)RemoveMeRoutine;
+    Engine.SetGeomStuffWin = (void *)SetGeomStuffWin;
+    Engine.AreaValid = (void *)AreaValid;
+    Engine.SetupScreenGivenArea = (void *)SetupScreenGivenArea;
+    Engine.SquareRootNR = (void *)SquareRootNR;
+    Engine.DummyMemory = DummyMemory;  /* long *, <= 8 bytes: gcc emits an unsplit `lw` that the assembler expands */
+    Engine.DbFrame = (void *)DbFrame;
+    Engine.Db = (void *)&db;
+    Engine.NewVcounts = (void *)NewVcounts;
+    Engine.MaxWindows = (void *)&MaxWindows;
+    Engine.ParticleColoursTable = (void *)ParticleColoursTable;
+    Engine.Creatures = (void *)&Creatures;
+    Engine.ChrisCount = (void *)&ChrisCount;
+    Engine.LevelTicks = (void *)&LevelTicks;
+    Engine.ZoneName = (void *)&ZoneName;
+    Engine.MainPlayerStart = (void *)&MainPlayerStart;
+    Engine.rcossin_tbl = (void *)rcossin_tbl;
+    Engine.GlobalKey = (void *)&GlobalKey;
+    Engine.LevelEvents = 0;
+    Engine.NumPadds = (void *)NumPadds;
+    Engine.MultiTapExists = (void *)MultiTapExists;
+    Engine.DoSnapShot = (void *)DoSnapShot;
+    Engine.SnapShotPadViolation = (void *)SnapShotPadViolation;
+    Engine.GameWindows = (void *)GameWindows;
+    Engine.OnZoneLoadTable = (void *)&OnZoneLoadTable;
+    Engine.rand = (void *)rand;
+    Engine.PrintF = (void *)printf;
+    Engine.sprintf = (void *)sprintf;
+    Engine.RotMatrixYXZ = (void *)RotMatrixYXZ;
+    Engine.PrintIdentityName = (void *)PrintIdentityName;
+    Engine.centreprintf = (void *)centreprintf;
+    Engine.dprintf = (void *)dprintf;
+    Engine.GetStringFromStringtable = (void *)GetStringFromStringtable;
+    Engine.PlayThisXA = (void *)PlayThisXA;
+    Engine.GetSoundNum = (void *)GetSoundNum;
+    Engine.GetSoundClone = (void *)GetSoundClone;
+    Engine.SoundSetVolume = (void *)SoundSetVolume;
+    Engine.SoundSetPitch = (void *)SoundSetPitch;
+    Engine.SoundSetRelativeVolume = (void *)SoundSetRelativeVolume;
+    Engine.SoundSetRelativePitch = (void *)SoundSetRelativePitch;
+    Engine.SoundTestIfRunning = (void *)SoundTestIfRunning;
+    Engine.SoundStopSoundID = (void *)SoundStopSoundID;
+    Engine.SoundByCreature = (void *)SoundByCreature;
+    Engine.SoundAtLocation = (void *)SoundAtLocation;
+    Engine.SoundHere = (void *)SoundHere;
+    Engine.MapPadInputToFire = (void *)MapPadInputToFire;
+    Engine.FrontEndResetMultiplayerDefaults = (void *)FrontEndResetMultiplayerDefaults;
+    Engine.MY_malloc_namehb = (void *)MY_malloc_namehb;
+    Engine.ThisLevelName = (void *)&ThisLevelName;
+    Engine.SetupScreen2by2 = (void *)SetupScreen2by2;
+    Engine.SetupScreen1by2 = (void *)SetupScreen1by2;
+    Engine.SetupScreen2by1 = (void *)SetupScreen2by1;
+    Engine.SetupScreen1by1 = (void *)SetupScreen1by1;
+    Engine.AlterFocalSubDiv = (void *)AlterFocalSubDiv;
+    Engine.GetAbsoluteModelVert = (void *)GetAbsoluteModelVert;
+    Engine.AddBlurPoints = (void *)AddBlurPoints;
+    Engine.GetLevelDataFromIdentityName = (void *)GetLevelDataFromIdentityName;
+    Engine.LoadImage = (void *)LoadImage;
+    Engine.DrawSync = (void *)DrawSync;
+    Engine.GetTPage = (void *)GetTPage;
+    Engine.AddPrim_ = (void *)AddPrim_;
+    Engine.ChrisInitEveryFrame = (void *)ChrisInitEveryFrame;
+    Engine.ProcessMoveBufs = (void *)ProcessMoveBufs;
+    Engine.ProcessSounds = (void *)ProcessSounds;
+    Engine.DrawAllScenes = (void *)DrawAllScenes;
+    Engine.DrawAllSortedObjs = (void *)DrawAllSortedObjs;
+    Engine.ProcessAllLensFlare = (void *)ProcessAllLensFlare;
+    Engine.DrawAllModels = (void *)DrawAllModels;
+    Engine.ProcessLights = (void *)ProcessLights;
+    Engine.ProcessBlurs = (void *)ProcessBlurs;
+    Engine.FreeSubDivs = (void *)FreeSubDivs;
+    Engine.ReallyFreePolyPackets = (void *)ReallyFreePolyPackets;
+    Engine.QGenWindowSortList = (void *)QGenWindowSortList;
+    Engine.UpdateWindowStuff = (void *)UpdateWindowStuff;
+    Engine.MoveModels = (void *)MoveModels;
+    Engine.SetSp = (void *)SetSp;
+    Engine.tpscreenx = (void *)tpscreenx;
+    Engine.tpscreeny = (void *)tpscreeny;
+    Engine.palette = (void *)palette;
+    Engine.currdb = (void *)currdb;
+    Engine.InGameInitScreen = (void *)InGameInitScreen;
+    Engine.FrontEndRestoreCursor = (void *)FrontEndRestoreCursor;
+    Engine.FrontEndClearCursorMemory = (void *)FrontEndClearCursorMemory;
+    Engine.FrontEndResetPlayerDefaults = (void *)FrontEndResetPlayerDefaults;
+    Engine.FrontEndResetSoundDefaults = (void *)FrontEndResetSoundDefaults;
+    Engine.FrontEndResetVideoDefaults = (void *)FrontEndResetVideoDefaults;
+    Engine.FrontEndResetMultiplayerDefaults = (void *)FrontEndResetMultiplayerDefaults;  /* assigned twice in the original (line 875 too): the second store is dropped by reload_cse, but it counts towards sched's 32-entry pending-memory flush */
+    Engine.FrontEndCreateMenu = (void *)FrontEndCreateMenu;
+    Engine.FrontEndAddText = (void *)FrontEndAddText;
+    Engine.FrontEndModifyText = (void *)FrontEndModifyText;
+    Engine.MemCardInit = (void *)MemCardInit;
+    Engine.MemCardStart = (void *)MemCardStart;
+    Engine.MemCardSync = (void *)MemCardSync;
+    Engine.MemCardAccept = (void *)MemCardAccept;
+    Engine.MemCardFormat = (void *)MemCardFormat;
+    Engine.MemCardGetDirentry = (void *)MemCardGetDirentry;
+    Engine.MemCardReadFile = (void *)MemCardReadFile;
+    Engine.MemCardWriteFile = (void *)MemCardWriteFile;
+    Engine.MemCardCreateFile = (void *)MemCardCreateFile;
+    Engine.FrontEndInitText = (void *)FrontEndInitText;
+    Engine.DoFrontEndStuff = (void *)DoFrontEndStuff;
+    Engine.MoveBottomPoly = (void *)MoveBottomPoly;
+    Engine.CHECK_FOR_SLIDER = (void *)CHECK_FOR_SLIDER;
+    Engine.CHECK_FOR_MCFILEWINDOW = (void *)CHECK_FOR_MCFILEWINDOW;
+    Engine.InGame_PrintMemCardMessage = (void *)InGame_PrintMemCardMessage;
+    Engine.FrontEndLevelCompleteTimeout = (void *)FrontEndLevelCompleteTimeout;
+    Engine.MemoryCardInit = (void *)MemoryCardInit;
+    Engine.MemoryCardGetStatus = (void *)MemoryCardGetStatus;
+    Engine.MemoryCardSetStatus = (void *)MemoryCardSetStatus;
+    Engine.MemoryCardGetFilename = (void *)MemoryCardGetFilename;
+    Engine.MemoryCardGetNumFiles = (void *)MemoryCardGetNumFiles;
+    Engine.MemoryCardGetCardname = (void *)MemoryCardGetCardname;
+    Engine.MemoryCardGetNumCards = (void *)MemoryCardGetNumCards;
+    Engine.MemoryCardSetActiveCard = (void *)MemoryCardSetActiveCard;
+    Engine.MemoryCardSetActiveFile = (void *)MemoryCardSetActiveFile;
+    Engine.MemoryCardGetNumFreeBlocks = (void *)MemoryCardGetNumFreeBlocks;
+    Engine.MemoryCardUpdate = (void *)MemoryCardUpdate;
+    Engine.ReloadAutoSave = (void *)ReloadAutoSave;
+    Engine.ReReadToc = (void *)ReReadToc;
+    Engine.MyGetCDStatus = (void *)MyGetCDStatus;
+    Engine.ControlGetPortName = (void *)ControlGetPortName;
+    Engine.GameSetup = (void *)GameSetup;
+    Engine.Backfunc = 0;
+    Engine.Specialfunc = 0;
+    Engine.Lightingfunc = 0;
+    Engine.Controllerfunc = 0;
+    Engine.Draw256func = 0;
+    Engine.MyStringTable = (void *)&MyStringTable;
+    Engine.PatchEngineVariables = (void *)PatchEngineVariables;
+    Engine.DirectAccessLevelName = (void *)DirectAccessLevelName;
+    Engine.MainLoop = (void *)MainLoop;
+    Engine.Config_InstallVideo = (void *)Config_InstallVideo;
+    Engine.InitialiseQuakePickups = (void *)InitialiseQuakePickups;
+    Engine.SpawnGeneral = (void *)SpawnGeneral;
+    Engine.KillModel = (void *)KillModel;
+    Engine.MainStartName = (void *)&MainStartName;
+    Engine.LevelComplete = (void *)&LevelComplete;
+    Engine.GenVectBox = (void *)GenVectBox;
+    Engine.OrderedSort = (void *)OrderedSort;
+    Engine.AreaData = (void *)AreaData;
+    Engine.ReactorShieldGlints = (void *)ReactorShieldGlints;
+    Engine.GenShieldMatrix = (void *)GenShieldMatrix;
+    Engine.Rotate = (void *)Rotate;
+    Engine.SetWinFade = (void *)SetWinFade;
+    Engine.FindAnimHdr = (void *)FindAnimHdr;
+    Engine.DoDamage = (void *)DoDamage;
+    Engine.GetToc = (void *)GetToc;
+    Engine.HelpComputer_NewMessage = (void *)HelpComputer_NewMessage;
+    Engine.AddLevelInterMission = (void *)AddLevelInterMission;
+    Engine.TPages = (void *)alltpages;
+    Engine.ModNameCmp = (void *)ModNameCmp;
+    Engine.NewMission = (void *)NewMission;
+    Engine.NextMission = (void *)NextMission;
+    Engine.Mission = (void *)Mission;
+    Engine.My_malloc_name = (void *)MY_malloc_name;
+    Engine.MyFree = (void *)MyFree;
+    Engine.StCdIntrFlagAddr = (void *)StCdIntrFlag;
+    Engine.StCdInterrupt = (void *)StCdInterrupt;
+    Engine.ClearImage = (void *)ClearImage;
+    Engine.MoveImage = (void *)MoveImage;
+    Engine.NewPadRead = (void *)NewPadRead;
+    Engine.StoreImage = (void *)StoreImage;
+    Engine.StGetNext = (void *)StGetNext;
+    Engine.StFreeRing = (void *)StFreeRing;
+    Engine.StUnSetRing = (void *)StUnSetRing;
+    Engine.StSetRing = (void *)StSetRing;
+    Engine.StSetStream = (void *)StSetStream;
+    Engine.SetDispMask = (void *)SetDispMask;
+    Engine.SetDefDispEnv = (void *)SetDefDispEnv;
+    Engine.SetDefDrawEnv = (void *)SetDefDrawEnv;
+    Engine.PutDispEnv = (void *)PutDispEnv;
+    Engine.PutDrawEnv = (void *)PutDrawEnv;
+    Engine.SetDrawMode = (void *)SetDrawMode;
+    Engine.SetDrawEnv = (void *)SetDrawEnv;
+    Engine.SetTile = (void *)SetTile;
+    Engine.ClearOTag = (void *)ClearOTag;
+    Engine.DrawOTag = (void *)DrawOTag;
+    Engine.VSync = (void *)VSync;
+    Engine.strcpy = (void *)strcpy;
+    Engine.strcat = (void *)strcat;
+    Engine.CdControl = (void *)CdControl;
+    Engine.CdControlB = (void *)CdControlB;
+    Engine.CdDataCallback = (void *)CdDataCallback;
+    Engine.CdReadyCallback = (void *)CdReadyCallback;
+    Engine.CdRead2 = (void *)CdRead2;
+    Engine.CdSearchFile = (void *)CdSearchFile;
+    Engine.SetCDVolume = (void *)SetCDVolume;
+    Engine.ResetCallback = (void *)ResetCallback;
+    Engine.DMACallback = (void *)DMACallback;
+    Engine.DebugWatch = (void *)DebugWatch;
+    Engine.LoadSaveGameConfigData = (void *)LoadSaveGameConfigData;
+    Engine.LoadImage = (void *)LoadImage;  /* again: keeps the address live in a1/t0/a2/a3 so sched2 moves it; store deleted later */
+    Engine.DebugInfoPntr = (void *)DebugInfo;
+    Engine.DrawBorder = (void *)DrawBorder;
+    Engine.GetTPage = (void *)GetTPage;  /* again: keeps the address live in a1/t0/a2/a3 so sched2 moves it; store deleted later */
+    Engine.PolyStack0 = (void *)actualStack0;
+    Engine.PolyStack1 = (void *)actualStack1;
+    Engine.SetShockData = (void *)SetShockData;
+    Engine.AddPrim_ = (void *)AddPrim_;  /* again: keeps the address live in a1/t0/a2/a3 so sched2 moves it; store deleted later */
+    Engine.targetcdvol = (void *)targetcdvol;
+    Engine.memcard_data = (void *)memcard_data;
+    Engine.DrawSync = (void *)DrawSync;  /* again: keeps the address live in a1/t0/a2/a3 so sched2 moves it; store deleted later */
 }

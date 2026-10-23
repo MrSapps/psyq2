@@ -9,7 +9,7 @@ extern struct PICKUPDESC QuakePickupData[];
 extern unsigned int LevelTicks;
 extern int NewVcounts;
 
-void Cre_HighLightFlame(struct CREATURE *Cre, struct PARTCOLOURS *PColoursA, struct PARTCOLOURS *PColoursB, int Size, unsigned char Time);
+void Cre_HighLightFlame(struct CREATURE *Cre, struct PARTCOLOURS *PColoursA, struct PARTCOLOURS *PColoursB, int Size, int Time);
 void GenModShape(struct CREATURE *Cre, struct PARTCOLOURS *PColoursA, struct PARTCOLOURS *PColoursB, int Size, int Blood);
 void TendToDefaultAmbience(struct CREATURE *Cre, int InverseRate);
 void ProcessQuakeBFGEffect(struct CREATURE *Cre, int Decrement);
@@ -140,7 +140,7 @@ struct PICKUPDESC *FindPickupData(int Ident)
 
 int rand(void);
 void GetFireLocSpace(struct CREATURE *Cre, struct VECT *FirePosition, short *FireSpace);
-struct CREATURE *GenerateQuakeBodyPart(struct CREATURE *Parent, int Angle, struct SVECT *Force, struct VECT *Location, int Space, int Life, struct IDENTITYNAME Name);
+void GenerateQuakeBodyPart(struct CREATURE *Parent, int Angle, struct SVECT *Force, struct VECT *Location, short Space, short Life, struct IDENTITYNAME Name);
 void GenerateQuakeBodyPart2(struct CREATURE *Parent, int Angle, struct SVECT *Force, struct VECT *Location, short Space, short Life, struct IDENTITYNAME Name);
 void GenBloodyBody(struct CREATURE *Cre);
 
@@ -211,6 +211,159 @@ void Cre_Plasma(struct CREATURE *Cre)
 void Cre_Hyper(struct CREATURE *Cre)
 {
     Cre_HighLightFlame(Cre, &ParticleColours_Fire, &ParticleColours_Fire, 0x7fff, 4);
+}
+
+extern int LevelIsMultiPlayer;
+extern int MaxWindows;
+extern int GlobalKey;
+extern short rcossin_tbl[][2];
+extern struct PARTCOLOURS ParticleColours_Red;
+extern struct PARTCOLOURS ParticleColours_Green;
+extern struct PARTCOLOURS ParticleColours_Blue;
+extern struct WINDOW GameWindows[];
+extern struct QENGINELEVINTERFACE Engine;
+extern struct PLAYER Players[];
+int rand(void);
+void *memset(void *s, int c, unsigned int n);
+struct MATRIX *RotMatrixYXZ(struct SVECTOR *r, struct MATRIX *m);
+int GetSoundNum(struct IDENTITYNAME Name);
+int SoundTestIfRunning(short SoundID, short Channel);
+int SoundByCreature(int SFXNumber, struct CREATURE *Cre);
+struct PARTICLE *AddParticlesSL(struct VECT *Pos, struct SVECT *Vel, struct PARTCOLOURS *PColour0, struct PARTCOLOURS *PColour1, int NumToDraw, int Timer, int Size, int Area);
+int AddLight(struct VECT *Location, struct COLOUR Colour, struct POWER Power, struct SHORTPAIR FlareTypeSize);
+int VectBoxOverlap(struct VECTBOX *VBoxA, struct VECTBOX *VBoxB);
+enum PICKUPSTATUS ProcessPickup(struct CREATURE *Cre, unsigned char Item_PickedUp);
+void GenPickupGlint(struct CREATURE *Cre);
+void KillModel(struct CREATURE *Cre);
+void PrimaryKillFade(struct CREATURE *Cre);
+
+int PrimaryQuakePickup(struct CREATURE *Cre)
+{
+    int Flags;
+    int a;
+    int b;
+    struct CREATURE *Target;
+    static struct SVECT Vel[15];
+    static int Sound_FadeIn = 0;
+    struct VECT Loc;
+    struct COLOUR Colour;
+    struct PARTCOLOURS *Party;
+    struct POWER Power;
+    enum PICKUPSTATUS PickupStatus;
+
+    memset(&Colour, 0, sizeof(struct COLOUR));
+    if (LevelIsMultiPlayer && Cre->WinData[0].NoDraw) {
+        if ((Cre->Params[2] -= NewVcounts) <= 0) {
+            for (a = 0; a < MaxWindows; a++)
+                Cre->WinData[a].NoDraw = 0;
+        }
+        return 0;
+    }
+    Flags = Cre->Params[0];
+    if (Flags) {
+        if (!(Flags & 0x80)) {
+            if (Cre->ModelHdr->NumFrames) {
+                Cre->AnimFrame += NewVcounts;
+                while (Cre->AnimFrame >= Cre->ModelHdr->NumFrames)
+                    Cre->AnimFrame -= Cre->ModelHdr->NumFrames;
+            }
+        }
+        if (Flags & 1) {
+            Cre->Ang.vy -= NewVcounts * 3;
+            RotMatrixYXZ((struct SVECTOR *)&Cre->Ang, &Cre->Matrix);
+        }
+        if (Flags & 2) {
+            if (Cre->ModelOpaque != 0x1000) {
+                if (!Cre->ModelOpaque) {
+                    Sound_FadeIn = GetSoundNum((struct IDENTITYNAME){"msc_tele1"});
+                    Cre->SoundID = 0;
+                    Cre->SoundChannel = 0;
+                }
+                if ((rcossin_tbl[(LevelTicks << 4) & 0xff0][0] + 0x1000) >> 4 > 0xf0)
+                    if (!SoundTestIfRunning(Cre->SoundID, Cre->SoundChannel))
+                        SoundByCreature(Sound_FadeIn, Cre);
+                Cre->ModelOpaque += NewVcounts * 2;
+                if (Cre->ModelOpaque > 0x1000) {
+                    Cre->ModelOpaque = 0x1000;
+                    Cre->Ambience.r = Cre->Ambience.g = Cre->Ambience.b = 0x7f;
+                    Cre->DefaultAmbience = Cre->Ambience;
+                }
+                for (a = 0; a < 15; a++) {
+                    Vel[a].vx = (rand() - 0x4000) >> 9;
+                    Vel[a].vy = (rand() - 0x4000) >> 9;
+                    Vel[a].vz = (rand() - 0x4000) >> 9;
+                }
+                if (Flags & 0x10)
+                    Party = &ParticleColours_Red;
+                else if (Flags & 0x20)
+                    Party = &ParticleColours_Green;
+                else if (Flags & 0x40)
+                    Party = &ParticleColours_Blue;
+                AddParticlesSL(&Cre->Draw.Location, Vel, Party, Party, 15, 10, 10000, Cre->Box.Area);
+            }
+        }
+        if (Flags & 0x70) {
+            short c; /* not in SYM; a short temp keeps gcc from folding (c >> 2) into one shift */
+            c = (rcossin_tbl[(LevelTicks << 4) & 0xff0][0] + 0x1000) >> 4;
+            Cre->Ambience.r = Cre->Ambience.g = Cre->Ambience.b = 0;
+            if (Flags & 0x10) {
+                Colour.r = 0xff;
+                Cre->Ambience.r = c >> 2;
+            }
+            if (Flags & 0x20) {
+                Colour.g = 0xff;
+                Cre->Ambience.g = c >> 2;
+            }
+            if (Flags & 0x40) {
+                Colour.b = 0xff;
+                Cre->Ambience.b = c >> 2;
+            }
+            Loc.vx = Cre->Draw.Location.vx - 50;
+            Loc.vy = Cre->Draw.Location.vy - 500;
+            Loc.vz = Cre->Draw.Location.vz;
+            c += 100;
+            Power.Full = c;
+            Power.Fall = c + (c >> 1);
+            AddLight(&Loc, Colour, Power, (struct SHORTPAIR){0, 0});
+        }
+        if (Flags & 4) {
+            Cre->Life -= NewVcounts;
+            if (Cre->Life <= 0) {
+                Cre->Life = 2;
+                Cre->Primary = PrimaryKillFade;
+                Cre->ModelOpaque = 0x1000;
+            }
+        }
+    }
+    for (a = 0; a < MaxWindows; a++) {
+        Target = GameWindows[a].Creature;
+        if (Target && Target->Health > 0 && VectBoxOverlap(&Cre->Box.VectBox, &Target->Box.VectBox)) {
+            PickupStatus = ProcessPickup(Target, Cre->Params[1]);
+            if (PickupStatus == PICKUP_LEFT_GEN_GLINT && ((Cre->Params[0] & 4) || !Engine.GameConfig.bWeaponStay || !LevelIsMultiPlayer))
+                PickupStatus = PICKUP_TAKEN_KILL_MODEL;
+            switch (PickupStatus) {
+            case PICKUP_TAKEN_KILL_MODEL:
+                GenPickupGlint(Cre);
+                if (LevelIsMultiPlayer && !(Cre->Params[0] & 4)) {
+                    if (Cre->Params[1] == 32)
+                        Cre->Params[2] = 32400;
+                    else
+                        Cre->Params[2] = 9000;
+                    for (b = 0; b < MaxWindows; b++)
+                        Cre->WinData[b].NoDraw = 1;
+                    return 1;
+                }
+                KillModel(Cre);
+                if (!LevelIsMultiPlayer)
+                    GlobalKey = Players[0].Extras.ExtraBits & 0xfff;
+                return 1;
+            case PICKUP_LEFT_GEN_GLINT:
+                GenPickupGlint(Cre);
+                return 1;
+            }
+        }
+    }
+    return 0;
 }
 
 void GenPickupGlint(struct CREATURE *Cre)
@@ -331,6 +484,111 @@ extern int ChrisCount;
 int GetNumberVertices(struct GLOBMODHDR *Hdr);
 void GetAbsoluteModelVert(struct CREATURE *Cre, short VertexNum, struct VECT *Pos);
 struct PARTICLE *AddParticles(struct VECT *Pos, struct SVECT *Vel, struct PARTCOLOURS *PColour0, struct PARTCOLOURS *PColour1, int NumToDraw, int Timer, int Size, int Area);
+void *memset(void *s, int c, unsigned int n);
+
+/* Inlined into the four Cre_* callers (SYM shows only its locals as nested blocks).
+   The loop is a guarded do/while: a plain while() gives the wrong delay-slot fill
+   for the `if (Cre->Player)` branch. */
+static void Cre_HighLight(struct CREATURE *Cre, struct PARTCOLOURS *PColoursA, struct PARTCOLOURS *PColoursB, int Size, int Time)
+{
+    struct PARTICLE *Part;
+    struct VECT Pos[15];
+    struct SVECT Vel[15];
+    int VertexNum;
+    int a;
+    int ThisPackSize;
+    int NumVerts;
+
+    NumVerts = GetNumberVertices(Cre->ModelHdr);
+    for (a = 0; a < 15; a++)
+        memset(&Vel[a], 0, sizeof(struct SVECT));
+    VertexNum = ChrisCount & 1;
+    NumVerts -= VertexNum;
+    if (NumVerts >= 2) do {
+        if (NumVerts < 30)
+            ThisPackSize = NumVerts >> 1;
+        else
+            ThisPackSize = 15;
+        NumVerts -= ThisPackSize * 2;
+        for (a = 0; a < ThisPackSize; a++) {
+            GetAbsoluteModelVert(Cre, VertexNum, &Pos[a]);
+            VertexNum += 2;
+        }
+        Part = AddParticles(Pos, Vel, PColoursA, PColoursB, (short)ThisPackSize, (short)Time, Size, Cre->Box.Area);
+        if (Part)
+            if (Cre->Player)
+                Part->NoDrawWin = 1 << (Cre->Player - Players);
+    } while (NumVerts >= 2);
+}
+
+void Cre_Quad(struct CREATURE *Cre)
+{
+    Cre_HighLight(Cre, &ParticleColours_Quad, &ParticleColours_Quad, 0x7fff, 1);
+}
+
+void Cre_BFGHighLight(struct CREATURE *Cre)
+{
+    Cre_HighLight(Cre, &ParticleColours_GreenBFG, &ParticleColours_GreenBFG, 0x7fff, 1);
+}
+
+void Cre_BFGHighLightFade(struct CREATURE *Cre)
+{
+    Cre_HighLight(Cre, &ParticleColours_GreenBFGFade, &ParticleColours_GreenBFGFade, 0x7fff, 4);
+}
+
+void Cre_Heal(struct CREATURE *Cre)
+{
+    Cre_HighLight(Cre, &ParticleColours_Blue, &ParticleColours_Blue, 0x7fff, 4);
+}
+
+extern short rcossin_tbl[][2];
+static void NoDraw(struct PARTICLE *Part, int Num)
+{
+    Part->NoDrawWin = 1 << Num;
+}
+
+void Cre_HighLightFlame(struct CREATURE *Cre, struct PARTCOLOURS *PColoursA, struct PARTCOLOURS *PColoursB, int Size, int Time)
+{
+    int NumVerts;
+    int ThisPackSize;
+    int a;
+    int VertexNum;
+    int Ang;
+    int Speed;
+    struct VECT Pos[15];
+    struct SVECT Vel[15];
+    struct PARTICLE *Part;
+
+    if (Cre->ModelHdr) {
+        NumVerts = GetNumberVertices(Cre->ModelHdr);
+        for (a = 0; a < 15; a++) {
+            Ang = rand() & 0xfff;
+            Speed = ((rand() - 0x4000) * 12 >> 13) + 32;
+            Vel[a].vx = rcossin_tbl[Ang][0] * Speed / 12000;
+            Vel[a].vy = (rand() - 0x4000) >> 10;
+            Vel[a].vz = rcossin_tbl[Ang][1] * Speed / 12000;
+        }
+        VertexNum = ChrisCount & 7;
+        NumVerts -= VertexNum;
+        /* guarded do/while, as in Cre_HighLight */
+        if (NumVerts >= 8) do {
+            if (NumVerts < 120)
+                ThisPackSize = NumVerts >> 3;
+            else
+                ThisPackSize = 15;
+            NumVerts -= ThisPackSize * 8;
+            for (a = 0; a < ThisPackSize; a++) {
+                GetAbsoluteModelVert(Cre, VertexNum, &Pos[a]);
+                VertexNum += 8;
+            }
+            Part = AddParticles(Pos, Vel, PColoursA, PColoursB, (short)ThisPackSize, (short)Time, Size, Cre->Box.Area);
+            if (Part)
+                if (Cre->Player)
+                    NoDraw(Part, Cre->Player - Players);
+        } while (NumVerts >= 8);
+    }
+}
+
 
 extern struct QENGINELEVINTERFACE Engine;
 extern struct ARMOUR_TYPE Armour_Types[];
@@ -405,6 +663,38 @@ static inline void UsePowerCells(struct PLAYER *Player, int Save, int Ratio)
     Player->Extras.AmmoCount[4] -= Save / Ratio;
 }
 
+/* Power is assigned a second time (from Save): with a single assignment gcc knows the
+   lhu-loaded value is zero-extended and tests `beqz a0` instead of `sll v0,a0,16; beqz v0`.
+   (found with decomp-permuter) */
+short CheckPowerArmour(struct CREATURE *Cre, int Damage)
+{
+    struct PLAYER *Player;
+    short Power;
+    short Save;
+
+    Player = Cre->Player;
+    Armour_Fade = 0;
+    Power = Player->Extras.AmmoCount[4];
+    if (!Damage)
+        return 0;
+    if (!(Player->Extras.ExtraBits & 0x18000))
+        return 0;
+    if (!Power)
+        return 0;
+    Damage = Damage * 2 / 3;
+    if (Damage < (short)(Power << 1))
+        Save = Damage;
+    else
+        Save = Power << 1;
+    Power = Save;
+    if (!Power)
+        return 0;
+    Armour_Fade = 1;
+    SetWinFade(Player->Window - GameWindows, (struct COLOUR){0, 0x80, 0x20, 0}, 2, 10, 10);
+    UsePowerCells(Player, Power, 2);
+    return Power;
+}
+
 
 int IsEnergyWeapon(int DamageType)
 {
@@ -421,6 +711,199 @@ int IsEnergyWeapon(int DamageType)
         return 1;
     }
     return 0;
+}
+
+extern short Console_Flags;
+extern struct edict_s *EdictTList;
+extern struct CREATURE Creatures[];
+extern struct VECT NullVec;
+extern struct PLAYER Players[];
+extern struct WINDOW GameWindows[];
+extern struct QENGINELEVINTERFACE Engine;
+void *memset(void *s, int c, unsigned int n);
+void VectorNormal(struct VECT *v0, struct VECT *v1);
+void PlayerLavaSound(struct CREATURE *Cre);
+void PlayerToxicSound(struct CREATURE *Cre);
+void T_Damage(struct edict_s *targ, struct edict_s *inflictor, struct edict_s *attacker, struct VECT *dir, struct VECT *point, struct VECT *normal, int damage, int knockback, int dflags, int mod);
+void SetShockData(int InputWin, int Ident, int InputScale, struct VECT *Location, struct POWER Power);
+short CheckPowerArmour(struct CREATURE *Cre, int Damage);
+short CheckArmour(struct CREATURE *Cre, int Damage, int EnergyWeapon);
+
+/* Inlined. The water test must be a value (xor + beqz) against 8 held in a register
+   (KnockBack's s4): a plain `DamageType != 8` gives li/beq. */
+static int Differ(int a, int b)
+{
+    return a != b;
+}
+
+void DoDamage(struct CREATURE *Cre, struct CREATURE *Target, int Damage, int DamageType, struct VECT *Centre)
+{
+    struct PLAYER *Player;
+    struct PTIMERS *PTimers;
+    int EnergyWeapon;
+    int KnockBack;
+    int ShockScale;
+    int ShockType;
+
+    Player = Target->Player;
+    PTimers = &Player->Extras.PTimers;
+    KnockBack = Damage;
+    if (!Target)
+        return;
+    if (LevelIsMultiPlayer) {
+        if (!Cre) {
+            if (Player)
+                Target->HitBy = Player - Players;
+        } else if (Cre->Player) {
+            Target->HitBy = Cre->Player - Players;
+        } else if (*(signed char *)&Cre->HitBy != 4) {
+            Target->HitBy = Cre->HitBy;
+        } else {
+            Engine.PrintF("Multiplayer, can't determine which player hit other player \n");
+        }
+    } else {
+        Target->HitBy = Cre - Creatures;
+    }
+    Target->HitType = DamageType;
+    if (KnockBack && Centre && (DamageType == 15 || DamageType == 13 || DamageType == 3 || DamageType == 18)) {
+        struct VECT Dir;
+        int Mass;
+        int Scale;
+
+        Dir.vx = Target->Box.Location.vx - Centre->vx;
+        Dir.vy = Target->Box.Location.vy - Centre->vy;
+        Dir.vz = Target->Box.Location.vz - Centre->vz;
+        VectorNormal(&Dir, &Dir);
+        Mass = 2400;
+        if (!Player || *(signed char *)&Cre->HitBy != Player - Players)
+            Scale = ((Engine.GameConfig.sBlastScale + 64) * 125) >> 6;
+        else
+            Scale = ((Engine.GameConfig.sBlastScale + 64) * 25) >> 2;
+        Dir.vx = Scale * Dir.vx * KnockBack / Mass >> 4;
+        Dir.vy = Scale * Dir.vy * KnockBack / Mass >> 4;
+        Dir.vz = Scale * Dir.vz * KnockBack / Mass >> 4;
+        if (!LevelIsMultiPlayer) {
+            if (Dir.vy < -0xc00)
+                Dir.vy = -0xc00;
+        }
+        if (Dir.vx > 0x7fff)
+            Dir.vx = 0x8000;
+        if (Dir.vx < -0x8000)
+            Dir.vx = -0x8000;
+        if (Dir.vy > 0x7fff)
+            Dir.vy = 0x8000;
+        if (Dir.vy < -0x8000)
+            Dir.vy = -0x8000;
+        if (Dir.vz > 0x7fff)
+            Dir.vz = 0x8000;
+        if (Dir.vz < -0x8000)
+            Dir.vz = -0x8000;
+        if (Target->Health > 0) {
+            Target->ForceVel.vx += Dir.vx;
+            Target->ForceVel.vy += Dir.vy;
+            Target->ForceVel.vz += Dir.vz;
+            Target->Control |= 0x4000;
+        } else {
+            Target->ForceVel.vx = Dir.vx;
+            Target->ForceVel.vy = Dir.vy;
+            Target->ForceVel.vz = Dir.vz;
+        }
+    }
+    switch (DamageType) {
+    case 9:
+        if (Player) {
+            if (LevelTicks < PTimers->EnviroTimer)
+                return;
+            if (LevelTicks < PTimers->InvTimer)
+                return;
+            if (Player->Extras.NextToxicFrame < LevelTicks) {
+                Player->Extras.NextToxicFrame = LevelTicks + 400;
+                if (Player->Creature)
+                    PlayerToxicSound(Player->Creature);
+            } else
+                return;
+        }
+        break;
+    case 10:
+        if (Player) {
+            if (LevelTicks > Player->Extras.NextToxicFrame) {
+                Player->Extras.NextToxicFrame = LevelTicks + 100;
+                if (Player->Creature)
+                    PlayerLavaSound(Player->Creature);
+            } else
+                return;
+        }
+        break;
+    }
+    if (Player) {
+        if (!Engine.GameConfig.sDifficulty && Cre->EdictT && !Cre->Player)
+            Damage = (Damage + 1) >> 1;
+        if (LevelTicks < PTimers->InvTimer)
+            return;
+        EnergyWeapon = IsEnergyWeapon(DamageType);
+        KnockBack = 8;
+        if (Differ(DamageType, KnockBack)) {
+            Damage -= CheckPowerArmour(Target, Damage);
+            Damage -= CheckArmour(Target, Damage, EnergyWeapon);
+        }
+        if ((Console_Flags & 0x80) && DamageType && DamageType != 8 && DamageType != 19 && DamageType != 10 && DamageType != 9) {
+            if (Target->Health > 0)
+                Target->Health = -Damage;
+            else
+                Target->Health -= Damage;
+        } else
+            Target->Health -= Damage;
+        if (Console_Flags & 2) {
+            if (Target->Health <= 0)
+                Target->Health = 200;
+        }
+    } else if (Target->EdictT) {
+        if (Cre && Cre->EdictT)
+            T_Damage(Target->EdictT, Cre->EdictT, Cre->EdictT, &NullVec, &NullVec, &NullVec, Damage, 0, 0, 32);
+        else
+            T_Damage(Target->EdictT, EdictTList + 1, EdictTList + 1, &NullVec, &NullVec, &NullVec, Damage, 0, 0, 32);
+    } else
+        Target->Health -= Damage;
+    if (Target->Player && Target->Player->Window && Target->Health > 0) {
+        switch (DamageType) {
+        case 1:
+            ShockType = 13;
+            ShockScale = 0x1000;
+            break;
+        case 5:
+        case 6:
+        case 18:
+            ShockType = 16;
+            ShockScale = 0x800;
+            break;
+        case 3:
+        case 7:
+        case 19:
+        case 20:
+        case 21:
+            ShockType = 15;
+            ShockScale = 0x1000;
+            break;
+        default:
+            ShockScale = 0;
+        }
+        if (ShockScale)
+            SetShockData(Target->Player->Window - GameWindows, ShockType, ShockScale, 0, (struct POWER){0});
+    }
+    switch (DamageType) {
+    case 1:
+        Target->Effect.BFGTime = 3;
+        break;
+    case 2:
+        Target->Effect.BurnTime = 15;
+        break;
+    case 4:
+        Target->Effect.PlasmaTime = 30;
+        break;
+    case 5:
+        Target->Effect.HyperTime = 5;
+        break;
+    }
 }
 
 void GenModShape(struct CREATURE *Cre, struct PARTCOLOURS *PColoursA, struct PARTCOLOURS *PColoursB, int Size, int Blood)
@@ -604,6 +1087,39 @@ void SetupCollBoxMinMax(struct COLLBOX3D *Box, struct SVECT RadiusXYZ);
 void PrimaryQuakeBodyPartMoving(struct CREATURE *Cre);
 
 /* Space and Life are int in SYM; short gives the original's register allocation */
+/* SYM says int Space/Life, but the body sign-extends them: short like GenerateQuakeBodyPart2 */
+void GenerateQuakeBodyPart(struct CREATURE *Parent, int Angle, struct SVECT *Force, struct VECT *Location, short Space, short Life, struct IDENTITYNAME Name)
+{
+    struct CREATURE *Cre;
+    int Speed;
+
+    Cre = GetNextCre(0);
+    if (Cre) {
+        Cre->Primary = PrimaryQuakeBodyPartMoving;
+        Cre->ModelHdr = GetModelHdr(Name);
+        Cre->HeightOffset = GetFloorOffset(Cre);
+        Cre->Control = 0x1800000;
+        Cre->Draw.Location = *Location;
+        Cre->Box.Location = *Location;
+        Cre->DefaultAmbience = *&(struct COLOUR){0x40, 0x40, 0x40, 0};
+        Cre->Ambience = *&(struct COLOUR){0x40, 0x40, 0x40, 0};
+        Speed = rand() * 768 / 32768 + 256;
+        Cre->Vel.vx = Force->vx + rcossin_tbl[Angle & 0xfff][1] * Speed / 4096;
+        Cre->Vel.vy = -rand() * 1536 / 32768 - 0xc00 + Force->vy;
+        Cre->Vel.vz = Force->vz + rcossin_tbl[Angle & 0xfff][0] * Speed / 4096;
+        Cre->Ang = (struct SVECT){rand(), rand(), rand()};
+        Cre->Params[0] = (rand() - 0x4000) >> 6;
+        RotMatrixYXZ((struct SVECTOR *)&Cre->Ang, &Cre->Matrix);
+        Cre->Ambience = Parent->Ambience;
+        Cre->DefaultAmbience = Parent->DefaultAmbience;
+        Cre->Box.MoveSpace = -1;
+        Cre->Life = Life;
+        Cre->Box.PrimarySpace = Space;
+        Cre->Box.Area = CollMap.Coll3dSpace[Space].Area;
+        SetupCollBoxMinMax(&Cre->Box, (struct SVECT){20, 20, 20});
+    }
+}
+
 void GenerateQuakeBodyPart2(struct CREATURE *Parent, int Angle, struct SVECT *Force, struct VECT *Location, short Space, short Life, struct IDENTITYNAME Name)
 {
     struct CREATURE *Cre;

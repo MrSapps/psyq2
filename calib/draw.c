@@ -358,6 +358,70 @@ void SetupScreen1by2(void *PanelRoutine)
     GameWindows[1].Pos = (struct SCRPNT){0, 0x79};
 }
 
+void SetupScreen2by1(void *PanelRoutine)
+{
+    int a;
+
+    memset(GameWindows, 0, sizeof(struct WINDOW) * 5);
+    SetupScreenHeavens();
+    memset(&ScreenDisplay[0], 0, sizeof(struct SCRPNT));
+    ScreenDisplay[1] = (struct SCRPNT){ScreenSize.sx, 0};
+    MaxWindows = 2;
+    for (a = 0; a < MaxWindows; a++) {
+        GameWindows[a].Size = (struct SCRPNT){ScreenSize.sx / 2 - 1, ScreenSize.sy};
+        GameWindows[a].StandardSize = GameWindows[a].Size;
+        GameWindows[a].Geom = (struct SCRPNT){GameWindows[a].Size.sx / 2, GameWindows[a].Size.sy / 2};
+        GameWindows[a].Focal = 0xAF;
+        GameWindows[a].SubDivDist = 0x1900;
+        GameWindows[a].ConeScale = (GameWindows[a].Size.sx << 9) / ScreenSize.sx;
+        GameWindows[a].ModelFt4Dist = 0x1800;
+        GameWindows[a].SkyColour = SkyColour;
+        GameWindows[a].SkyClear = SkyClear;
+        GameWindows[a].PanelRoutine = PanelRoutine;
+        GameWindows[a].PanelPos = (struct SCRPNT){0, ScreenSize.sy - 0x20};
+    }
+    /* a base pointer keeps GameWindows (not GameWindows+270) in s0 for both stores */
+    {
+        struct WINDOW *w = GameWindows;
+
+        memset(&w->Pos, 0, sizeof(struct SCRPNT));
+        w[1].Pos = (struct SCRPNT){0x100, 0};
+    }
+}
+
+void SetupScreen2by2(void *PanelRoutine)
+{
+    int a;
+
+    memset(GameWindows, 0, sizeof(struct WINDOW) * 5);
+    SetupScreenHeavens();
+    memset(&ScreenDisplay[0], 0, sizeof(struct SCRPNT));
+    ScreenDisplay[1] = (struct SCRPNT){ScreenSize.sx, 0};
+    MaxWindows = 4;
+    for (a = 0; a < MaxWindows; a++) {
+        GameWindows[a].Size = (struct SCRPNT){256, 119};
+        GameWindows[a].StandardSize = GameWindows[a].Size;
+        GameWindows[a].Geom = (struct SCRPNT){GameWindows[a].Size.sx / 2, GameWindows[a].Size.sy / 2};
+        GameWindows[a].Focal = 160;
+        GameWindows[a].SubDivDist = 0xFA0;
+        GameWindows[a].ConeScale = (GameWindows[a].Size.sx << 9) / ScreenSize.sx;
+        GameWindows[a].ModelFt4Dist = 0x1800;
+        GameWindows[a].SkyColour = SkyColour;
+        GameWindows[a].SkyClear = SkyClear;
+        GameWindows[a].PanelRoutine = PanelRoutine;
+        /* the pointer makes memset's address s0+304 instead of a second strength-reduced pointer */
+        {
+            struct WINDOW *w = &GameWindows[a];
+
+            memset(&w->PanelPos, 0, sizeof(struct SCRPNT));
+        }
+    }
+    GameWindows[0].Pos = (struct SCRPNT){1, 1};
+    GameWindows[1].Pos = (struct SCRPNT){0x101, 1};
+    GameWindows[2].Pos = (struct SCRPNT){1, 0x78};
+    GameWindows[3].Pos = (struct SCRPNT){0x101, 0x78};
+}
+
 void SetupScreenHeavens(void)
 {
     GameWindows[4].Size = ScreenSize;
@@ -389,6 +453,109 @@ struct DRAWENV *SetDefDrawEnv(struct DRAWENV *env, int x, int y, int w, int h);
 void SetDrawEnv(struct DR_ENV *dr_env, struct DRAWENV *env);
 void AddPrim_(void *ot, void *p);
 
+void SetTile(struct TILE *p);
+short ScreenYOff;
+unsigned long CurrTime;
+int QuakeLogicStopTime;
+int DrawStopTime;
+int ProcessorStopTime;
+int MoveModelTime;
+int SortTime;
+int DrawStartTime;
+int DrawSceneTime;
+int ProcessorStartTime;
+int QuakeLogicStartTime;
+int LightsTime;
+int SpecificTime;
+
+/* the colour word is copied as a long, as in the original lw/sw */
+void DrawTimeBar(void)
+{
+    struct TILE *TTile;
+
+    TTile = currdb->TimerTiles;
+    TTile->x0 = 20;
+    TTile->y0 = -ScreenYOff - 3;
+    TTile->w = 2;
+    TTile->h = (DrawStopTime - DrawStartTime) / 2;
+    *(long *)&TTile->r0 = *(long *)&(struct COLOUR){0, 0xff, 0xff, 0};
+    SetTile(TTile);
+    AddPrim_(&currdb->Ot[0][50], TTile);
+    TTile++;
+    TTile->x0 = 23;
+    TTile->y0 = -ScreenYOff - 3;
+    TTile->w = 2;
+    TTile->h = (ProcessorStopTime - ProcessorStartTime) / 2;
+    *(long *)&TTile->r0 = *(long *)&(struct COLOUR){0xff, 0xff, 0, 0};
+    SetTile(TTile);
+    AddPrim_(&currdb->Ot[0][50], TTile);
+    TTile++;
+    TTile->x0 = 28;
+    TTile->y0 = 22 - ScreenYOff;
+    TTile->w = 2;
+    TTile->h = DrawModTime / 2;
+    *(long *)&TTile->r0 = *(long *)&(struct COLOUR){0, 0, 0xff, 0};
+    SetTile(TTile);
+    AddPrim_(&currdb->Ot[0][50], TTile);
+    TTile++;
+    TTile->x0 = 31;
+    TTile->y0 = 22 - ScreenYOff;
+    TTile->w = 2;
+    TTile->h = DrawSceneTime / 2;
+    *(long *)&TTile->r0 = *(long *)&(struct COLOUR){0, 0xff, 0, 0};
+    SetTile(TTile);
+    AddPrim_(&currdb->Ot[0][50], TTile);
+    TTile++;
+    TTile->x0 = 34;
+    TTile->y0 = 22 - ScreenYOff;
+    TTile->w = 2;
+    TTile->h = LightsTime / 2;
+    *(long *)&TTile->r0 = *(long *)&(struct COLOUR){0xff, 0, 0, 0};
+    SetTile(TTile);
+    AddPrim_(&currdb->Ot[0][50], TTile);
+    TTile++;
+    TTile->x0 = 37;
+    TTile->y0 = 22 - ScreenYOff;
+    TTile->w = 2;
+    TTile->h = MoveModelTime / 2;
+    *(long *)&TTile->r0 = *(long *)&(struct COLOUR){0xff, 0, 0xff, 0};
+    SetTile(TTile);
+    AddPrim_(&currdb->Ot[0][50], TTile);
+    TTile++;
+    if (SpecificTime) {
+        TTile->x0 = 40;
+        TTile->y0 = 22 - ScreenYOff;
+        TTile->w = 2;
+        TTile->h = SpecificTime / 2;
+        *(long *)&TTile->r0 = *(long *)&(struct COLOUR){0xff, 0xff, 0xff, 0};
+        SetTile(TTile);
+        AddPrim_(&currdb->Ot[0][50], TTile);
+        TTile++;
+    }
+    TTile->x0 = 43;
+    TTile->y0 = 22 - ScreenYOff;
+    TTile->w = 2;
+    TTile->h = (QuakeLogicStopTime - QuakeLogicStartTime) / 2;
+    *(long *)&TTile->r0 = *(long *)&(struct COLOUR){0xff, 0, 0xff, 0};
+    SetTile(TTile);
+    AddPrim_(&currdb->Ot[0][50], TTile);
+    TTile++;
+    TTile->x0 = 46;
+    TTile->y0 = 22 - ScreenYOff;
+    TTile->w = 2;
+    TTile->h = SortTime / 2;
+    *(long *)&TTile->r0 = *(long *)&(struct COLOUR){0x80, 0x80, 0xff, 0};
+    SetTile(TTile);
+    AddPrim_(&currdb->Ot[0][50], TTile);
+    SpecificTime = 0;
+    SortTime = 0;
+    LightsTime = 0;
+    MoveModelTime = 0;
+    DrawModTime = 0;
+    DrawSceneTime = 0;
+    CurrTime = 1;
+}
+
 void DrawHeavens(void)
 {
     CurrWin = &GameWindows[4];
@@ -415,6 +582,46 @@ void DrawHeavens(void)
     SetDrawEnv(&currdb->DrawEnv[4].dr_env, &currdb->DrawEnv[4]);
     DrawHeavenlyModels();
     AddPrim_(CurrOt + 1, &currdb->DrawEnv[4].dr_env);
+}
+
+extern struct SCRPNT CurrOffset;
+extern int ProtectedSubdivideDistance;
+void SetAreaValid(int Win, int Area);
+void DrawScene(int Win);
+void DrawCrossesCurrWin(void);
+void DrawWinTile(int Win);
+
+void DrawWinScene(int Win)
+{
+    SetAreaValid(Win, 1);
+    SetAreaValid(Win, 1);
+    CurrWin = &GameWindows[Win];
+    CurrCamPos = &CurrWin->CamPos;
+    CurrCamMat = &CurrWin->CamMat;
+    CurrOt = currdb->Ot[Win];
+    CurrWinIndx = Win;
+    CurrOffset = CurrWin->WaterOffset;
+    CurrScreenSize.sx = CurrWin->Size.sx - CurrOffset.sx;
+    CurrScreenSize.sy = CurrWin->Size.sy - CurrOffset.sy;
+    memset(&CurrScreenMin, 0, sizeof(struct SCRPNT));
+    SetGeomOffset(CurrWin->Geom.sx, CurrWin->Geom.sy);
+    SetGeomScreen(CurrWin->Focal);
+    SubdivideDistance = CurrWin->SubDivDist;
+    ProtectedSubdivideDistance = SubdivideDistance / 4;
+    SetDefDrawEnv(&currdb->DrawEnv[Win], ScreenDisplay[DbFrame[0]].sx + CurrWin->Pos.sx + CurrOffset.sx,
+                  ScreenDisplay[DbFrame[0]].sy + CurrWin->Pos.sy + CurrOffset.sy, CurrScreenSize.sx, CurrScreenSize.sy);
+    currdb->DrawEnv[Win].isbg = CurrWin->SkyClear;
+    currdb->DrawEnv[Win].r0 = CurrWin->SkyColour.r;
+    currdb->DrawEnv[Win].g0 = CurrWin->SkyColour.g;
+    currdb->DrawEnv[Win].b0 = CurrWin->SkyColour.b;
+    SetDrawEnv(&currdb->DrawEnv[Win].dr_env, &currdb->DrawEnv[Win]);
+    DrawWinTile(Win);
+    TempTime = GetRCnt(0xf2000001);
+    if (CurrWin->ControlBits & 1)
+        DrawScene(Win);
+    DrawSceneTime += GetRCnt(0xf2000001) - TempTime;
+    DrawCrossesCurrWin();
+    AddPrim_(CurrOt + 1, &currdb->DrawEnv[Win].dr_env);
 }
 
 void SetTile(struct TILE *p);

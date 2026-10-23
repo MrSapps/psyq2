@@ -133,6 +133,32 @@ void PreInitNotNeeded(void)
 {
 }
 
+/* volatile: the original reloads the pointer after the 12-byte name copy and
+   tests the old pointer's next entry before storing the increment */
+extern struct IDENTITYNAME SelfPlayMapNames[];
+struct IDENTITYNAME * volatile SelfPlayMapNamePntr;
+
+void GameSelfPlay(void)
+{
+    if (GameRunningMode) {
+        NewMission = 0;
+        NextMission = 0;
+        DirectAccessLevelName = IDNAME("MagDemo");
+        DirectAccessZoneName = IDNAME("SelfPlay0");
+        InSelfPlayMode = 1;
+        return;
+    }
+    if (!SelfPlayMapNamePntr)
+        SelfPlayMapNamePntr = SelfPlayMapNames;
+    NewMission = 0;
+    NextMission = 0;
+    DirectAccessLevelName = *SelfPlayMapNamePntr;
+    DirectAccessZoneName = IDNAME("SelfPlay0");
+    InSelfPlayMode = 1;
+    if (*(int *)SelfPlayMapNamePntr++[1].Name == 0)
+        SelfPlayMapNamePntr = SelfPlayMapNames;
+}
+
 void GameDemoExit(void)
 {
     GameRunningMode = 3;
@@ -687,4 +713,58 @@ void ReloadAutoSave(void)
         PrintIdentityName(MainStartName);
         VBLevelTicks = PlayerStatus->VBLevelTicks;
     }
+}
+
+/* DrawBorder: defined after its caller DrawDarkenedBox so it is not inlined there */
+#define setlen(p, _len) (*(((unsigned char *)(p)) + 3) = (unsigned char)(_len))
+#define setcode(p, _code) (*(((unsigned char *)(p)) + 7) = (unsigned char)(_code))
+#define getcode(p) (unsigned char)(*(((unsigned char *)(p)) + 7))
+#define setPolyFT4(p) setlen(p, 9), setcode(p, 0x2c)
+#define setShadeTex(p, tge) ((tge) ? setcode(p, getcode(p) | 1) : setcode(p, getcode(p) & ~1))
+#define setXYWH(p, _x0, _y0, _w, _h) \
+    (p)->x0 = (_x0), (p)->y0 = (_y0), \
+    (p)->x1 = (_x0) + (_w), (p)->y1 = (_y0), \
+    (p)->x2 = (_x0), (p)->y2 = (_y0) + (_h), \
+    (p)->x3 = (_x0) + (_w), (p)->y3 = (_y0) + (_h)
+#define setXY4(p, _x0, _y0, _x1, _y1, _x2, _y2, _x3, _y3) \
+    (p)->x0 = (_x0), (p)->y0 = (_y0), (p)->x1 = (_x1), (p)->y1 = (_y1), \
+    (p)->x2 = (_x2), (p)->y2 = (_y2), (p)->x3 = (_x3), (p)->y3 = (_y3)
+#define setUVWH(p, _u0, _v0, _w, _h) \
+    (p)->u0 = (_u0), (p)->v0 = (_v0), \
+    (p)->u1 = (_u0) + (_w), (p)->v1 = (_v0), \
+    (p)->u2 = (_u0), (p)->v2 = (_v0) + (_h), \
+    (p)->u3 = (_u0) + (_w), (p)->v3 = (_v0) + (_h)
+
+extern short tpscreenx[];
+extern short tpscreeny[];
+extern short palette[];
+unsigned short GetTPage(int tp, int abr, int x, int y);
+
+void DrawBorder(struct RECT Rect, long *Ot, int OffsetY)
+{
+    struct POLY_FT4 *polft4;
+    short tpage;
+    short clut;
+
+    polft4 = currdb->PausedPolys;
+    tpage = GetTPage(0, 1, tpscreenx[13], tpscreeny[13]);
+    clut = palette[68];
+
+#define BORDERPOLY(u, v, uw, vh, x, y, w, h) \
+    setPolyFT4(polft4); \
+    setShadeTex(polft4, 1); \
+    polft4->clut = clut; \
+    polft4->tpage = tpage; \
+    setUVWH(polft4, u, v, uw, vh); \
+    setXYWH(polft4, x, y, w, h); \
+    AddPrim_(Ot, polft4++)
+
+    BORDERPOLY(32, 224, 46, 29, Rect.x - 10, Rect.y - 6 + OffsetY, 46, 29);
+    BORDERPOLY(32, 224, 46, 29, Rect.x + Rect.w + 10, Rect.y - 6 + OffsetY, -46, 29);
+    BORDERPOLY(32, 223, 46, 29, Rect.x + Rect.w + 10, Rect.y + Rect.h + 6 + OffsetY, -46, -30);
+    BORDERPOLY(32, 223, 46, 30, Rect.x - 10, Rect.y + Rect.h + 6 + OffsetY, 46, -30);
+    BORDERPOLY(112, 247, 19, 6, Rect.x + 36, Rect.y - 6 + OffsetY, Rect.w - 70, 7);
+    BORDERPOLY(112, 247, 19, 6, Rect.x + 36, Rect.y + Rect.h + OffsetY, Rect.w - 70, 7);
+    BORDERPOLY(81, 241, 11, 14, Rect.x - 10, Rect.y + 22 + OffsetY, 12, Rect.h - 44);
+    BORDERPOLY(81, 241, 11, 14, Rect.x + Rect.w - 1, Rect.y + 22 + OffsetY, 11, Rect.h - 44);
 }

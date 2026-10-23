@@ -129,6 +129,217 @@ void SetSpriteTpage(void)
     AddPrim_(Ot, &currdb->SpriteTpages[4]);
 }
 
+#define setlen(p, _len) (*(((unsigned char *)(p)) + 3) = (unsigned char)(_len))
+#define setcode(p, _code) (*(((unsigned char *)(p)) + 7) = (unsigned char)(_code))
+int SpaceWidth;
+int CharWidth;
+struct SPRT_16 *Sprite816;
+struct SPRT_16 *LastSprite816;
+extern unsigned char CharUVs8[182];
+extern struct SCRPNT Fizzles[64];
+extern unsigned char FizzleUVs[16];
+extern unsigned char FizzleRGBs[32];
+extern short palette[80];
+extern struct DB *currdb;
+int LeftMargin;
+int RightMargin;
+int MarginsOn;
+int SpriTextError;
+char *GetColourFromString(char *SubString, struct COLOUR *Colour);
+char *GetCoordsFromString(char *SubString);
+char *GetMarginsFromString(char *SubString);
+char *SpriteWord(struct WINDOW *Window, char *CharInString, long *Ot);
+void AddPrim_(void *ot, void *p);
+
+static int IsAlNum(int c)
+{
+    if ((unsigned)(c - 'A') < 26 || (unsigned)(c - 'a') < 26 || (unsigned)(c - '0') < 10)
+        return 1;
+    return 0;
+}
+
+/* `|| (SubString = 0)` puts a label in the loop test, so the test is not duplicated (the original
+ * enters with `j test`) and the reset is kept. reorg copies a `lui v0,%hi(CharUVs8)` into the
+ * loop-entry jump's delay slot; splat prints that orphan as the constant 0x800a. */
+void DoSpriText(struct WINDOW *Window)
+{
+    short Char;
+    short firstchar;
+    short charx2;
+    char *SubString;
+    char *charpntr;
+    long *Ot;
+    int WindowNum;
+    int SprSize;
+    int Fizzle;
+    int FizzleCount;
+
+    WindowNum = Window - GameWindows;
+    firstchar = 1;
+    SubString = MikeStringBuffer;
+    Fizzle = 0;
+    FizzleCount = 0;
+    SprSize = 8;
+    SpriTextError = 0;
+    if (WindowNum == 4)
+        Ot = (long *)&currdb->BigOt[9];
+    else
+        Ot = (long *)&currdb->Ot[WindowNum][50];
+    CharX = Window->Messages.TextPos.sx;
+    CharY = Window->Messages.TextPos.sy;
+    do
+    {
+        while (*SubString || (SubString = 0))
+        {
+            Char = *SubString++;
+            switch (Char)
+            {
+            case '@':
+                SubString = GetCoordsFromString(SubString);
+                break;
+            case '^':
+                SubString = GetColourFromString(SubString, &Window->Messages.TextColour);
+                break;
+            case '~':
+                SpaceWidth = *SubString - '0';
+                if (SpaceWidth < 1 || SpaceWidth > 15)
+                    SpaceWidth = 4;
+                SubString++;
+                break;
+            case '|':
+                if (*SubString == '0')
+                {
+                    SpritextPal = 0x48;
+                    SpaceMode = 0;
+                }
+                else
+                {
+                    SpritextPal = 0x4a;
+                    if (*SubString == '1')
+                        SpaceMode = 1;
+                    else
+                        SpaceMode = 2;
+                }
+                SubString++;
+                break;
+            case '*':
+                Fizzle = *SubString++ - '0';
+                break;
+            case '#':
+                SubString = GetMarginsFromString(SubString);
+                break;
+            case '\r':
+                if (MarginsOn)
+                    CharX = LeftMargin;
+                else
+                    CharX = 24;
+            case '\n':
+                if (MarginsOn)
+                {
+                    CharX = LeftMargin;
+                    if (*SubString == ' ')
+                        SubString++;
+                }
+                else
+                    CharX = 24;
+                CharY += SprSize;
+                if (CharY >= Window->Size.sy)
+                    CharY = 16;
+                break;
+            case '&':
+                SubString = SpriteWord(Window, SubString, Ot);
+                break;
+            default:
+                Char -= 32;
+                if (Char > 0 || SpaceMode == 2)
+                {
+                    if (firstchar && MarginsOn)
+                    {
+                        charpntr = SubString - 1;
+                        charx2 = CharX;
+                        while (IsAlNum(*charpntr++))
+                            charx2 += CharWidth;
+                        if (charx2 >= RightMargin)
+                        {
+                            CharX = LeftMargin;
+                            CharY += SprSize;
+                            if (CharY >= Window->Size.sy)
+                                CharY = 16;
+                        }
+                    }
+                    firstchar = 0;
+                    if (Sprite816 >= LastSprite816)
+                    {
+                        SpriTextError = 1;
+                        continue;
+                    }
+                    setlen(Sprite816, 3);
+                    setcode(Sprite816, 0x74);
+                    Sprite816->x0 = CharX;
+                    Sprite816->y0 = CharY;
+                    Sprite816->u0 = CharUVs8[Char * 2];
+                    Sprite816->v0 = CharUVs8[Char * 2 + 1];
+                    Sprite816->clut = palette[SpritextPal];
+                    Sprite816->r0 = Window->Messages.TextColour.r;
+                    Sprite816->g0 = Window->Messages.TextColour.g;
+                    Sprite816->b0 = Window->Messages.TextColour.b;
+                    AddPrim_(Ot, Sprite816++);
+                    Fizzles[FizzleCount].sx = CharX - 4;
+                    Fizzles[FizzleCount++].sy = CharY - 4;
+                    CharX += CharWidth;
+                }
+                else
+                {
+                    CharX += SpaceWidth;
+                    firstchar = 1;
+                }
+                if (MarginsOn)
+                {
+                    if (CharX >= RightMargin && !Char)
+                    {
+                        CharX = LeftMargin;
+                        if (*SubString == ' ')
+                            SubString++;
+                        CharY += SprSize;
+                        if (CharY >= Window->Size.sy)
+                            CharY = 16;
+                    }
+                }
+                else
+                {
+                    if (CharX >= Window->Size.sx)
+                    {
+                        CharX = 24;
+                        CharY += SprSize;
+                        if (CharY >= Window->Size.sy)
+                            CharY = 16;
+                    }
+                }
+                break;
+            }
+        }
+    } while (SubString);
+    if (Fizzle)
+    {
+        while (FizzleCount--)
+        {
+            setlen(Sprite816, 3);
+            setcode(Sprite816, 0x7c);
+            Sprite816->x0 = Fizzles[FizzleCount].sx;
+            Sprite816->y0 = Fizzles[FizzleCount].sy;
+            Sprite816->u0 = FizzleUVs[Fizzle * 2];
+            Sprite816->v0 = FizzleUVs[Fizzle * 2 + 1];
+            Sprite816->clut = palette[76];
+            Sprite816->r0 = FizzleRGBs[Fizzle * 4];
+            Sprite816->g0 = FizzleRGBs[Fizzle * 4 + 1];
+            Sprite816->b0 = FizzleRGBs[Fizzle * 4 + 2];
+            AddPrim_(Ot, Sprite816++);
+        }
+    }
+    Window->Messages.TextPos.sx = CharX;
+    Window->Messages.TextPos.sy = CharY;
+}
+
 #define HEXVAL(c) ((c) >= 'a' ? (c) - 'a' + 10 : (c) > '9' ? (c) - 'A' + 10 : (c) - '0')
 
 char *GetColourFromString(char *SubString, struct COLOUR *Colour)
@@ -388,4 +599,35 @@ char *SpriteWord(struct WINDOW *Window, char *CharInString, long *Ot)
         }
     }
     return CharInString;
+}
+
+int GetLengthOfToken(char Token)
+{
+    int Length;
+
+    switch (Token)
+    {
+    case 'P': Length = WordSprites[0].w; break;
+    case 'H': Length = WordSprites[1].w; break;
+    case 'B': Length = WordSprites[2].w; break;
+    case 'U': Length = WordSprites[3].w; break;
+    case 'S': Length = WordSprites[4].w; break;
+    case 'G': Length = WordSprites[5].w; break;
+    case 'M': Length = WordSprites[6].w; break;
+    case 'C': Length = WordSprites[7].w; break;
+    case 'E': Length = WordSprites[8].w; break;
+    case 'D': Length = WordSprites[9].w; break;
+    case 'L': Length = WordSprites[10].w; break;
+    case 'A': Length = WordSprites[11].w; break;
+    case 'F': Length = WordSprites[13].w; break;
+    case 'W': Length = WordSprites[14].w; break;
+    case 'O':
+    case 'R': Length = WordSprites[12].w; break;
+    default:
+        /* an empty loop (an empty debug macro?): its loop note stops jump.c threading the
+         * branch to the epilogue, so the default case keeps its own `jr ra` and v0 is unset */
+        do { } while (0);
+        return;
+    }
+    return Length / 8;
 }

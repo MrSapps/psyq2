@@ -78,3 +78,81 @@ void FrameShadowPolys(void)
     ShadowPolys = currdb->ShadowPolys;
     EndShadowPolys = &currdb->ShadowPolys[16];
 }
+
+extern struct MATRIX *CurrCamMat;
+extern struct WINDOW *CurrWin;
+struct SPAWNDETAILS *GetSpawnDetails(int TypeIdent);
+struct MODSUBOFF GetModSubOffFromVertex(struct GLOBMODHDR *Hdr, short VertexNum);
+struct SVECT GetSubModXYZ(struct GLOBMODHDR *GlobHdr, struct MODSUBOFF SubOff, int AnimFrame, int AnimJump);
+struct MATRIX *GenRotMatrixY(int yang, struct MATRIX *mat);
+void RotateS(struct MATRIX *m, struct SVECT *v1, struct SVECT *o2);
+void SetRotMatrix(struct MATRIX *m);
+void DrawShadow_(struct VECT *Pos, struct WINDOW *Win, struct SVECTOR *Points, struct POLY_FT4 *Poly);
+void AddPrim_(void *ot, void *p);
+
+#define MIN(a, b) ((a) < (b) ? (a) : (b))
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
+void DrawCreShadow(struct CREATURE *Cre, struct MODWIN *WinData)
+{
+    struct SVECTOR Rel;
+    struct VECT Tran;
+    struct SVECT CharXYZ;
+    long Distance;
+    struct SVECTOR Points[4];
+    short MinX;
+    short MaxX;
+    short MinZ;
+    short MaxZ;
+    short a;
+    struct MATRIX TempMat;
+
+    if (ShadowPolys < EndShadowPolys) {
+        Distance = Cre->ShadowPos.vy - Cre->Draw.Location.vy - Cre->HeightOffset;
+        if (Distance <= 600) {
+            GetSpawnDetails(Cre->TypeIdent);
+            MinX = MinZ = -Cre->Box.HitRadius;
+            MaxX = MaxZ = Cre->Box.HitRadius;
+            if (Cre->ModelHdr) {
+                a = 0;
+                while (Cre->ModelHdr->ShadowVerts[a] != -1) {
+                    if (a >= 4)
+                        break;
+                    CharXYZ = GetSubModXYZ(Cre->ModelHdr, GetModSubOffFromVertex(Cre->ModelHdr, Cre->ModelHdr->ShadowVerts[a]),
+                                           Cre->AnimFrame, Cre->Draw.AnimJump ? Cre->Draw.TargetAnimFrame : -1);
+                    MinX = MIN(MinX, CharXYZ.vx);
+                    MaxX = MAX(MaxX, CharXYZ.vx);
+                    MinZ = MIN(MinZ, CharXYZ.vz);
+                    MaxZ = MAX(MaxZ, CharXYZ.vz);
+                    a++;
+                }
+            }
+            MinX = MinX * (600 - Distance) / 600;
+            MaxX = MaxX * (600 - Distance) / 600;
+            MinZ = MinZ * (600 - Distance) / 600;
+            MaxZ = MaxZ * (600 - Distance) / 600;
+            if (MinX < MaxX && MinZ < MaxZ) {
+                GenRotMatrixY(Cre->Ang.vy, &TempMat);
+                CharXYZ.vx = MaxX;
+                CharXYZ.vz = MaxZ;
+                RotateS(&TempMat, &CharXYZ, &CharXYZ);
+                Points[0] = (struct SVECTOR){CharXYZ.vx, 0, CharXYZ.vz};
+                CharXYZ.vx = MinX;
+                CharXYZ.vz = MaxZ;
+                RotateS(&TempMat, &CharXYZ, &CharXYZ);
+                Points[1] = (struct SVECTOR){CharXYZ.vx, 0, CharXYZ.vz};
+                CharXYZ.vx = MaxX;
+                CharXYZ.vz = MinZ;
+                RotateS(&TempMat, &CharXYZ, &CharXYZ);
+                Points[2] = (struct SVECTOR){CharXYZ.vx, 0, CharXYZ.vz};
+                CharXYZ.vx = MinX;
+                CharXYZ.vz = MinZ;
+                RotateS(&TempMat, &CharXYZ, &CharXYZ);
+                Points[3] = (struct SVECTOR){CharXYZ.vx, 0, CharXYZ.vz};
+                SetRotMatrix(CurrCamMat);
+                DrawShadow_(&Cre->ShadowPos, CurrWin, Points, ShadowPolys);
+                AddPrim_(&WinData->Sort.FirstLast[0], ShadowPolys++);
+            }
+        }
+    }
+}

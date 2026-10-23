@@ -1,3 +1,6 @@
+/* The game was built with -g (it has SYM files), and here it shows: InitialisePlayerSounds only
+   matches with -g (cse flushes its table at a different point, which changes which registers
+   hold the byte-packing masks). Every other function in this file matches either way. */
 #include "types.h"
 
 /* defined in this file (qplayer.obj), so $gp-relative */
@@ -1252,4 +1255,70 @@ struct CREATURE *InitialiseQuakePlayer(int Win, struct STARTPOSITION *Start)
         return Cre;
     }
     return 0;
+}
+
+int sound_burn2;
+int sound_fall1;
+int sound_fry;
+int sound_gasp2;
+int sound_lava1;
+int sound_lava2;
+int sound_lava_in;
+int sound_spawnitem;
+int sound_step3;
+int sound_step4;
+int sound_wade1;
+int sound_wade2;
+int GetSoundNum(struct IDENTITYNAME Name);
+int GetSoundClone(int OriginalSoundNum);
+void SetRandomPitch(int SoundNum, int MaxPlus, int MaxMinus);
+
+void InitialisePlayerSounds(void)
+{
+    sound_burn1 = GetSoundNum((struct IDENTITYNAME){"pla_burn1"});
+    if (!sound_burn1)
+        sound_burn1 = GetSoundNum((struct IDENTITYNAME){"pla_burn2"});
+    sound_burn2 = sound_burn1;
+    sound_death4 = GetSoundNum((struct IDENTITYNAME){"pla_death4"});
+    sound_drown1 = GetSoundNum((struct IDENTITYNAME){"pla_drown1"});
+    sound_fall2 = GetSoundNum((struct IDENTITYNAME){"pla_fall2"});
+    sound_fall1 = sound_fall2;
+    sound_fry = sound_burn1;
+    sound_gasp1 = GetSoundNum((struct IDENTITYNAME){"pla_gasp1"});
+    sound_gasp2 = GetSoundNum((struct IDENTITYNAME){"pla_gasp2"});
+    sound_jump1 = GetSoundNum((struct IDENTITYNAME){"pla_jump1"});
+    sound_land1 = GetSoundNum((struct IDENTITYNAME){"pla_land1"});
+    sound_lava1 = sound_burn1;
+    sound_lava2 = sound_burn1;
+    sound_lava_in = sound_burn1;
+    sound_step1 = GetSoundNum((struct IDENTITYNAME){"pla_step1"});
+    sound_step2 = GetSoundNum((struct IDENTITYNAME){"pla_step2"});
+    sound_step3 = sound_step1;
+    sound_step4 = sound_step2;
+    sound_u_brea2 = GetSoundNum((struct IDENTITYNAME){"pla_u_brea~2"});
+    sound_u_brea1 = sound_u_brea2;
+    sound_wade3 = GetSoundNum((struct IDENTITYNAME){"pla_wade3"});
+    sound_wade1 = sound_wade3;
+    sound_wade2 = sound_wade3;
+    sound_watr_in = GetSoundNum((struct IDENTITYNAME){"pla_watr_in"});
+    sound_watr_out = GetSoundNum((struct IDENTITYNAME){"pla_watr_out"});
+    sound_watr_un = GetSoundNum((struct IDENTITYNAME){"pla_watr_un"});
+    sound_spawnplayer = GetSoundNum((struct IDENTITYNAME){"msc_tele1"});
+    sound_spawnitem = GetSoundNum((struct IDENTITYNAME){"itm_respawn1"});
+
+    sound_u_brea1 = GetSoundClone(sound_u_brea2);
+
+    SetRandomPitch(sound_gasp1, 4, -5);
+
+    SetRandomPitch(sound_drown1, 4, -5);
+
+    SetRandomPitch(sound_burn1, 0, -2);
+    SetRandomPitch(sound_burn2, 0, -2);
+
+    SetRandomPitch(sound_wade3, 3, -3);
+
+    Sound_Pain25 = GetSoundNum((struct IDENTITYNAME){"mal_pn25_1"});
+    Sound_Pain50 = GetSoundNum((struct IDENTITYNAME){"mal_pn50_1"});
+    Sound_Pain75 = GetSoundNum((struct IDENTITYNAME){"mal_pn75_1"});
+    Sound_Pain100 = GetSoundNum((struct IDENTITYNAME){"mal_pn100_1"});
 }

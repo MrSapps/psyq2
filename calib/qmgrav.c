@@ -38,3 +38,49 @@ void PrintMissionDetails_8002478C(void)
     PrintBool(GravData->ShotComp[1]);
     PrintBool(GravData->HelpCompStatus);
 }
+
+extern char GameDeathWatchA;
+extern char GameDeathWatchB;
+extern char GameDeathWatchC;
+extern struct IDENTITYNAME LastObjective;
+extern struct IDENTITYNAME LastOrders;
+struct SAVEFILEHDR *OpenSaveMemory(struct IDENTITYNAME Name, int Writeable);
+void CloseWritableSaveMemoryFile(struct IDENTITYNAME Name, short Flags);
+void HelpComputer_SetMessages(struct IDENTITYNAME Orders, struct IDENTITYNAME Objective);
+void HelpComputer_GetMessages(struct IDENTITYNAME *Orders, struct IDENTITYNAME *Objective);
+int HelpComputer_Reset(void);
+void *memset(void *s, int c, unsigned int n);
+
+static const struct IDENTITYNAME MissionName = {"Mission 4"};
+
+void MissionLoadSaveHub_800241A8(int Write)
+{
+    struct SAVEFILEHDR *FileHdr;
+    struct GRAVDATA *SaveGravData;
+
+    FileHdr = OpenSaveMemory(MissionName, Write);
+    if (FileHdr) {
+        SaveGravData = (struct GRAVDATA *)(FileHdr + 1);
+        if (Write) {
+            HelpComputer_GetMessages(&GravData->HelpOrders, &GravData->HelpObjective);
+            *SaveGravData = *GravData;
+            FileHdr->Size = sizeof(struct GRAVDATA);
+            CloseWritableSaveMemoryFile(MissionName, 2);
+        } else {
+            *GravData = *SaveGravData;
+            HelpComputer_SetMessages(GravData->HelpOrders, GravData->HelpObjective);
+        }
+    } else {
+        memset(GravData, 0, sizeof(struct GRAVDATA));
+        GravData->HelpObjective = LastObjective;
+        GravData->HelpOrders = LastOrders;
+        GameDeathWatchC = 0;
+        GameDeathWatchB = 0;
+        GameDeathWatchA = 0;
+        if (!NextLevelName.Name[0]) {
+            NextLevelName = *(struct IDENTITYNAME *)"Command";
+            MainStartName = *(struct IDENTITYNAME *)"Default";
+            HelpComputer_Reset();
+        }
+    }
+}

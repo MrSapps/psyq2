@@ -448,3 +448,247 @@ void DrawLensFlareSparkle(struct SCRPNT Coord, int NumPoints, int Size, unsigned
         NextGeneralG4++;
     }
 }
+
+void SetPolyF4(void *p);
+
+/* Colour is the 4th parameter: inlined, its home slot in the 16-byte arg block lands at sp+164.
+   The braces around each case let both inlines reuse the same arg block. */
+static void DrawLensFlareG4(struct SCRPNT *Points, int NumPoints, unsigned long *Ot, struct COLOUR Colour)
+{
+    struct POLY_G4 *Poly;
+    int p;
+
+    Poly = NextGeneralG4;
+    if (Poly + NumPoints / 2 > LastGeneralG4)
+        return;
+    for (p = 0; p < NumPoints; p += 2) {
+        Poly->tag = 0x8000000;
+        *(struct COLOUR *)&Poly->r0 = (struct COLOUR){0, 0, 0, 0x3a};
+        *(struct COLOUR *)&Poly->r1 = Colour;
+        *(struct COLOUR *)&Poly->r2 = (struct COLOUR){0, 0, 0, 0};
+        *(struct COLOUR *)&Poly->r3 = (struct COLOUR){0, 0, 0, 0};
+        *(struct SCRPNT *)&Poly->x1 = Points[0];
+        *(struct SCRPNT *)&Poly->x0 = Points[p + 1];
+        *(struct SCRPNT *)&Poly->x2 = Points[p + 2];
+        *(struct SCRPNT *)&Poly->x3 = Points[p + 3];
+        AddPrim_(Ot, Poly++);
+    }
+    NextGeneralG4 = Poly;
+}
+
+static void DrawLensFlareF4(struct SCRPNT *Points, int NumPoints, unsigned long *Ot, struct COLOUR Colour)
+{
+    struct POLY_F4 *Poly;
+    int p;
+
+    Poly = (struct POLY_F4 *)NextGeneralG4;
+    if ((struct POLY_G4 *)Poly + 2 > LastGeneralG4)
+        return;
+    for (p = 0; p < NumPoints; p += 2) {
+        Poly = (struct POLY_F4 *)NextGeneralG4;
+        *(struct COLOUR *)&Poly->r0 = Colour;
+        SetPolyF4(Poly);
+        Poly->code |= 2;
+        *(struct SCRPNT *)&Poly->x1 = Points[0];
+        *(struct SCRPNT *)&Poly->x0 = Points[p + 1];
+        *(struct SCRPNT *)&Poly->x2 = Points[p + 2];
+        *(struct SCRPNT *)&Poly->x3 = Points[p + 3];
+        AddPrim_(Ot, Poly);
+        NextGeneralG4++;
+    }
+}
+
+void DrawLensFlares(struct LENSFLARE *LensFlare, struct SCRPNT BaseCoord, int BaseSize, unsigned long *Ot, struct BIGCOLOUR *BigColour)
+{
+    struct SCRPNT Points[27];
+    struct SCRPNT Coord;
+    int Size;
+    struct COLOUR Colour;
+
+    for (; LensFlare->Type; LensFlare++) {
+        Coord.sx = CurrWin->Geom.sx + (BaseCoord.sx - CurrWin->Geom.sx) * LensFlare->Dist / 4096;
+        Coord.sy = CurrWin->Geom.sy + (BaseCoord.sy - CurrWin->Geom.sy) * LensFlare->Dist / 4096;
+        Size = BaseSize * LensFlare->Scale / 4096;
+        Colour.r = BigColour->r * LensFlare->Intensity >> 16;
+        Colour.g = BigColour->g * LensFlare->Intensity >> 16;
+        Colour.b = BigColour->b * LensFlare->Intensity >> 16;
+        switch (LensFlare->Type) {
+        case 1: {
+            SetLensFlarePointsAny(Coord, Size, Points, 12);
+            DrawLensFlareG4(Points, 12, Ot, Colour);
+            DrawLensFlareSparkle(Coord, 8, Size, Ot, Colour);
+            break; }
+        case 2: {
+            SetLensFlarePointsHex(Coord, Size, Points);
+            DrawLensFlareF4(Points, 6, Ot, Colour);
+            break; }
+        }
+    }
+}
+
+extern struct OBJSORTINFO ObjSortInfo[];
+extern int ObjSortIndx;
+extern struct MODELREFINDX *ModelRefIndx;
+int GetDist2Shift_(struct MODELREF *ModRef, struct VECT *Rel, int Shift);
+void ProcessMobileLights(void)
+{
+    struct LIGHTBACK *LightBack;
+    struct LIGHTBACK *LightBack2;
+    struct LIGHTBACK *LightBack3;
+    struct LIGHTS *Lighting;
+    struct MODELREF *ModRef;
+    struct OBJSORTINFO *ObjSort;
+    struct VECT Light;
+    struct VECT LightMin;
+    struct VECT LightMax;
+    struct VECT RelBase;
+    struct COLOUR *Colour;
+    struct COLOUR Col;
+    int Red, Green, Blue;
+    int Br, Bg, Bb;
+    int Tr, Tg, Tb;
+    int Full2, Fall2;
+    int ShiftVal;
+    int Scale2;
+    int Dist2;
+    int Bright;
+    int a, b, c, d, e, f, g;
+    char **SprA;
+    char **SprB;
+    char *temp;
+    unsigned char *r;
+
+    LightBack2 = LightBackList2[DbFrame[0]];
+    LightBack3 = LightBack2;
+    for (Lighting = LightList; Lighting < LightListCurrent; Lighting++) {
+        Light = Lighting->Location;
+        Red = Lighting->Colour.r;
+        Green = Lighting->Colour.g;
+        Blue = Lighting->Colour.b;
+
+        Full2 = Lighting->PowerSqrd.Full2;
+        Fall2 = Lighting->PowerSqrd.Fall2;
+
+        ShiftVal = 0;
+        while (Fall2 > 0x7fff) {
+            Full2 /= 4;
+            Fall2 /= 4;
+            ShiftVal++;
+        }
+        Scale2 = (Fall2 - Full2) / 256;
+
+        LightMin.vx = Light.vx - Lighting->Radius;
+        LightMin.vy = Light.vy - Lighting->Radius;
+        LightMin.vz = Light.vz - Lighting->Radius;
+
+        LightMax.vx = Light.vx + Lighting->Radius;
+        LightMax.vy = Light.vy + Lighting->Radius;
+        LightMax.vz = Light.vz + Lighting->Radius;
+
+        for (ObjSort = ObjSortInfo; ObjSort < &ObjSortInfo[ObjSortIndx]; ObjSort++) {
+            if (LightMin.vx < ObjSort->Max.vx && LightMax.vx > ObjSort->Min.vx &&
+                LightMin.vz < ObjSort->Max.vz && LightMax.vz > ObjSort->Min.vz &&
+                LightMin.vy < ObjSort->Max.vy && LightMax.vy > ObjSort->Min.vy) {
+                if (*(int *)&ObjSort->ObjPntr->Pad & 0x800000)
+                    continue;
+                for (LightBack = LightBack3; LightBack < LightBack2; LightBack++) {
+                    if (LightBack->Object == ObjSort->Num)
+                        goto AlreadyThere;
+                }
+                if (LightBack2 == &LightBackList2[DbFrame[0]][128])
+                    goto NoMorePossible;
+                LightBack = LightBack2++;
+                LightBack->Object = ObjSort->Num;
+                LightBack->Scn2 = ObjSort->ObjPntr;
+
+                LightBack->Count = ObjSort->Count;
+
+                SprA = LightBack->Spr[0];
+                SprB = LightBack->Spr[1];
+
+                b = ObjSort->Pols[0][1];
+                c = ObjSort->Pols[0][2];
+                *SprA = (char *)&currdb->modpolsg4[b];
+                *SprB = (char *)&currdb->modpolsg4[c];
+
+                for (a = 1; a < LightBack->Count; a++) {
+                    d = ObjSort->Pols[a][1];
+                    e = ObjSort->Pols[a][2];
+
+                    f = d - b;
+                    g = e - c;
+
+                    b = d;
+                    c = e;
+
+                    *++SprA = (char *)(f * sizeof(struct POLY_GT4));
+                    *++SprB = (char *)(g * sizeof(struct POLY_GT4));
+                }
+AlreadyThere:
+                RelBase.vx = Light.vx - ObjSort->ObjPntr->Origin.vx;
+                RelBase.vy = Light.vy - ObjSort->ObjPntr->Origin.vy;
+                RelBase.vz = Light.vz - ObjSort->ObjPntr->Origin.vz;
+
+                ModRef = ModelRefIndx[ObjSort->Num].Ref;
+                for (a = 0; a < ModelRefIndx[ObjSort->Num].Many; a++, ModRef++) {
+                    Dist2 = GetDist2Shift_(ModRef, &RelBase, ShiftVal);
+
+                    if (Dist2 > Fall2)
+                        continue;
+                    Dist2 -= Full2;
+
+                    if (Dist2 < 0) {
+                        Br = Red;
+                        Bg = Green;
+                        Bb = Blue;
+                    } else {
+                        Dist2 = Dist2 / Scale2;
+                        Bright = 255 - Dist2;
+
+                        Br = Bright * Red / 256;
+                        Bg = Bright * Green / 256;
+                        Bb = Bright * Blue / 256;
+                    }
+
+                    r = ModRef->Ref;
+
+                    for (b = 0; b < 4; b++, r++) {
+                        if (*r == 255)
+                            break;
+
+                        if (*r < 128)
+                            SprA = LightBack->Spr[0];
+                        else
+                            SprA = LightBack->Spr[1];
+
+                        temp = *SprA;
+                        Colour = (struct COLOUR *)(temp + Conv[*r]);
+                        temp = (char *)Colour;
+
+                        Tr = Colour->r + Br;
+                        Tg = Colour->g + Bg;
+                        Tb = Colour->b + Bb;
+
+                        if (Tr > 255) Tr = 255;
+                        if (Tg > 255) Tg = 255;
+                        if (Tb > 255) Tb = 255;
+
+                        Colour->r = Tr;
+                        Colour->g = Tg;
+                        Colour->b = Tb;
+
+                        Col = *Colour;
+
+                        for (c = 1; c < LightBack->Count; c++) {
+                            Colour = (struct COLOUR *)(temp + (int)*++SprA);
+                            temp = (char *)Colour;
+                            *Colour = Col;
+                        }
+                    }
+                }
+            }
+NoMorePossible:;
+        }
+    }
+    LightBackEnd2[DbFrame[0]] = LightBack2;
+}
