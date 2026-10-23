@@ -3,8 +3,8 @@
 
 usage: cmpfunc.py ASMFILE FUNC COMPILED.o [--relax] [--cross mipsel-linux-gnu-]
 
-Relocations against data C can't name the same way compare equal: unnamed data (string literals and
-other `D_xxxxxxxx` labels in the original, section symbols such as `.rodata`, `$LC` labels) all become
+Relocations against data C can't name the same way compare equal: unnamed data (string literals, switch
+tables: `D_`/`jtbl_` labels in the original, section symbols such as `.rodata`, `$LC` labels) all become
 `<anon>` with the addend in the instruction ignored, and gcc's numbered function-local statics
 (`Temp.100`) compare by base name. Use --strict to compare every symbol and addend exactly.
 
@@ -36,7 +36,7 @@ if not m:
 body = '.include "macro.inc"\n.set noat\n.set noreorder\n.section .text, "ax"\n' + m.group(0)
 
 
-ANON = re.compile(r"^(D_[0-9A-Fa-f]{8}|\.(rodata|rdata|sdata|data|sbss|bss)|\$LC?\d+)([+-]0x[0-9a-f]+)?$")
+ANON = re.compile(r"^((D|jtbl)_[0-9A-Fa-f]{8}|\.(rodata|rdata|sdata|data|sbss|bss)|\$LC?\d+)([+-]0x[0-9a-f]+)?$")
 
 
 def normalise_symbol(sym):
