@@ -127,35 +127,6 @@ void SpriText();
 extern unsigned char QuakeGunNumbers[];
 void Assign_NoSprite(int Num, struct SPRITEDATA *Hundred, struct SPRITEDATA *Ten, struct SPRITEDATA *One, int Minus_Sign);
 
-#define SET_ICON(Icon, Pos)                                     \
-    {                                                           \
-        short PosOff;                                           \
-        unsigned char *Table;                                   \
-                                                                \
-        PosOff = (Pos);                                         \
-        Table = QuakeIconTable;                                 \
-        Icon->u = Table[PosOff];                                \
-        Icon->v = Table[PosOff + 1];                            \
-        if (LevelIsMultiPlayer) {                               \
-            if (PosOff) {                                       \
-                if (Engine.GameConfig.sNumPlayers == 2) {       \
-                    Icon->w = 24;                               \
-                    Icon->h = 18;                               \
-                } else {                                        \
-                    Icon->w = 16;                               \
-                    Icon->h = 12;                               \
-                }                                               \
-            } else {                                            \
-                Icon->w = 1;                                    \
-                Icon->h = 1;                                    \
-            }                                                   \
-        } else {                                                \
-            Icon->w = Table[PosOff + 2];                        \
-            Icon->h = Table[PosOff + 3];                        \
-        }                                                       \
-        Icon->pal = Table[PosOff + 4];                          \
-    }
-
 extern struct WINDOW GameWindows[];
 extern struct PLAYER Players[];
 extern unsigned char QuakeIconTable[];
@@ -559,17 +530,22 @@ void MegaHealth_Think(struct CREATURE *Cre)
     }
 }
 
-void Display_Health(struct WINDOW *Window, struct CREATURE *Cre, struct SPRITEDATA *Icon, struct SPRITEDATA *Hundred, struct SPRITEDATA *Ten, struct SPRITEDATA *One)
+/* Inlined into every Display_* function: SYM shows it as a nested block holding Icon and
+   PosOff (its own lines are missing from the line table, so it probably came from a header;
+   the name is made up). Table is not in SYM either (a constant pseudo gets no debug info) but
+   the codegen needs it. Display_Health calls it with a constant: the inlined body, with the
+   PosOff == 0 branch that only folds away later, is what pushes Display_Health over gcc's
+   inline-candidate limit, so it is emitted in place rather than at the end of the file. */
+static void SetIcon(struct SPRITEDATA *Icon, short PosOff)
 {
-    {
-        short PosOff;
-        unsigned char *Table;
+    unsigned char *Table;
 
-        Table = QuakeIconTable;
-        PosOff = 0xaa;
-        Icon->u = Table[PosOff];
-        Icon->v = Table[PosOff + 1];
-        if (LevelIsMultiPlayer) {
+    Table = QuakeIconTable;
+    PosOff *= 5;
+    Icon->u = Table[PosOff];
+    Icon->v = Table[PosOff + 1];
+    if (LevelIsMultiPlayer) {
+        if (PosOff) {
             if (Engine.GameConfig.sNumPlayers == 2) {
                 Icon->w = 24;
                 Icon->h = 18;
@@ -578,11 +554,19 @@ void Display_Health(struct WINDOW *Window, struct CREATURE *Cre, struct SPRITEDA
                 Icon->h = 12;
             }
         } else {
-            Icon->w = Table[PosOff + 2];
-            Icon->h = Table[PosOff + 3];
+            Icon->w = 1;
+            Icon->h = 1;
         }
-        Icon->pal = Table[PosOff + 4];
+    } else {
+        Icon->w = Table[PosOff + 2];
+        Icon->h = Table[PosOff + 3];
     }
+    Icon->pal = Table[PosOff + 4];
+}
+
+void Display_Health(struct WINDOW *Window, struct CREATURE *Cre, struct SPRITEDATA *Icon, struct SPRITEDATA *Hundred, struct SPRITEDATA *Ten, struct SPRITEDATA *One)
+{
+    SetIcon(Icon, 34);
     if (Cre) {
         if (Cre->Health < -99)
             Cre->Health = -99;
@@ -610,34 +594,7 @@ void Display_Ammo(struct WINDOW *Window, struct CREATURE *Cre, struct SPRITEDATA
     unsigned char QuakeAmmoIconMap[12] = { 0, 0, 0x12, 0x12, 0x13, 0x13, 0x14, 0x14, 0x15, 0x16, 0x17, 0x16 };
     unsigned char QuakeAmmoMap[12] = { 0, 0, 0, 0, 1, 1, 2, 2, 3, 4, 5, 4 };
 
-    {
-        short PosOff;
-        unsigned char *Table;
-
-        PosOff = QuakeAmmoIconMap[GunType];
-        Table = QuakeIconTable;
-        PosOff *= 5;
-        Icon->u = Table[PosOff];
-        Icon->v = Table[PosOff + 1];
-        if (LevelIsMultiPlayer) {
-            if (PosOff) {
-                if (Engine.GameConfig.sNumPlayers == 2) {
-                    Icon->w = 24;
-                    Icon->h = 18;
-                } else {
-                    Icon->w = 16;
-                    Icon->h = 12;
-                }
-            } else {
-                Icon->w = 1;
-                Icon->h = 1;
-            }
-        } else {
-            Icon->w = Table[PosOff + 2];
-            Icon->h = Table[PosOff + 3];
-        }
-        Icon->pal = Table[PosOff + 4];
-    }
+    SetIcon(Icon, QuakeAmmoIconMap[GunType]);
     if (Player->Extras.AmmoCount[QuakeAmmoMap[GunType]] < 6 && !(LevelTicks & 0x80))
         One->pal = 7;
     Assign_NoSprite(Player->Extras.AmmoCount[QuakeAmmoMap[GunType]], Hundred, Ten, One, 0);
@@ -683,19 +640,19 @@ void Display_Armour(struct WINDOW *Window, struct CREATURE *Cre, struct SPRITEDA
         Player->Extras.Power_Armour = 0;
     if (Player->Extras.Power_Armour) {
         if (Player->Extras.ExtraBits & 0x8000)
-            SET_ICON(Icon, 0x96)
+            SetIcon(Icon, 30);
         else
-            SET_ICON(Icon, 0)
+            SetIcon(Icon, 0);
         Assign_NoSprite(Cre->Player->Extras.AmmoCount[4], Hundred, Ten, One, 0);
     } else {
         if (Player->Extras.ExtraBits & 0x4000)
-            SET_ICON(Icon, 0x82)
+            SetIcon(Icon, 26);
         else if (Player->Extras.ExtraBits & 0x2000)
-            SET_ICON(Icon, 0x87)
+            SetIcon(Icon, 27);
         else if (Player->Extras.ExtraBits & 0x1000)
-            SET_ICON(Icon, 0x8c)
+            SetIcon(Icon, 28);
         else
-            SET_ICON(Icon, 0)
+            SetIcon(Icon, 0);
         if (Player->Extras.Armour_Count)
             Assign_NoSprite(Player->Extras.Armour_Count, Hundred, Ten, One, 0);
     }
@@ -704,33 +661,9 @@ void Display_Armour(struct WINDOW *Window, struct CREATURE *Cre, struct SPRITEDA
 void Display_WeaponChange(struct WINDOW *Window, struct CREATURE *Cre, struct SPRITEDATA *Icon)
 {
     struct PLAYER *Player;
-    short PosOff;
-    unsigned char *p;
-    unsigned char *Table;
 
     Player = &Players[Window - GameWindows];
-    Table = QuakeIconTable;
-    PosOff = Player->Extras.FastWeaponSelect * 5;
-        Icon->u = Table[PosOff];
-    Icon->v = Table[PosOff + 1];
-    if (LevelIsMultiPlayer) {
-        if (PosOff) {
-            if (Engine.GameConfig.sNumPlayers == 2) {
-                Icon->w = 24;
-                Icon->h = 18;
-            } else {
-                Icon->w = 16;
-                Icon->h = 12;
-            }
-        } else {
-            Icon->w = 1;
-            Icon->h = 1;
-        }
-    } else {
-        Icon->w = Table[PosOff + 2];
-        Icon->h = Table[PosOff + 3];
-    }
-    Icon->pal = Table[PosOff + 4];
+    SetIcon(Icon, Player->Extras.FastWeaponSelect);
 }
 
 void Display_Pickup(struct WINDOW *Window, struct CREATURE *Cre, struct SPRITEDATA *Icon)
@@ -743,34 +676,7 @@ void Display_Pickup(struct WINDOW *Window, struct CREATURE *Cre, struct SPRITEDA
     if (Player->Extras.Pickup_NewIcon) {
         if (LevelTicks > PTimers->Pickup_Timer)
             Player->Extras.Pickup_NewIcon = 0;
-        {
-            short PosOff;
-            unsigned char *Table;
-
-            Table = QuakeIconTable;
-            PosOff = Player->Extras.Pickup_NewIcon;
-            PosOff *= 5;
-            Icon->u = Table[PosOff];
-            Icon->v = Table[PosOff + 1];
-            if (LevelIsMultiPlayer) {
-                if (PosOff) {
-                    if (Engine.GameConfig.sNumPlayers == 2) {
-                        Icon->w = 24;
-                        Icon->h = 18;
-                    } else {
-                        Icon->w = 16;
-                        Icon->h = 12;
-                    }
-                } else {
-                    Icon->w = 1;
-                    Icon->h = 1;
-                }
-            } else {
-                Icon->w = Table[PosOff + 2];
-                Icon->h = Table[PosOff + 3];
-            }
-            Icon->pal = Table[PosOff + 4];
-        }
+        SetIcon(Icon, Player->Extras.Pickup_NewIcon);
         sprintf(String, "@03BB8^828282|0~8%s~4", Icon_Text[Player->Extras.Pickup_NewIcon]);
         SpriText(Window, String);
     }
@@ -784,22 +690,22 @@ void Display_PowerUp(struct WINDOW *Window, struct CREATURE *Cre, struct SPRITED
     PTimers = &Cre->Player->Extras.PTimers;
     if (LevelTicks < PTimers->QuadTimer) {
         Seconds_Timer = (PTimers->QuadTimer - LevelTicks) / 300;
-        SET_ICON(Icon, 200);
+        SetIcon(Icon, 40);
         Assign_NoSprite(Seconds_Timer, Hundred, Ten, One, 0);
     } else if (LevelTicks < PTimers->InvTimer) {
         Seconds_Timer = (PTimers->InvTimer - LevelTicks) / 300;
-        SET_ICON(Icon, 205);
+        SetIcon(Icon, 41);
         Assign_NoSprite(Seconds_Timer, Hundred, Ten, One, 0);
     } else if (LevelTicks < PTimers->EnviroTimer) {
         Seconds_Timer = (PTimers->EnviroTimer - LevelTicks) / 300;
-        SET_ICON(Icon, 210);
+        SetIcon(Icon, 42);
         Assign_NoSprite(Seconds_Timer, Hundred, Ten, One, 0);
     } else if (LevelTicks < PTimers->BreatherTimer) {
         Seconds_Timer = (PTimers->BreatherTimer - LevelTicks) / 300;
-        SET_ICON(Icon, 215);
+        SetIcon(Icon, 43);
         Assign_NoSprite(Seconds_Timer, Hundred, Ten, One, 0);
     } else
-        SET_ICON(Icon, 0);
+        SetIcon(Icon, 0);
 }
 
 void Display_FragCount(struct WINDOW *Window, int Score, struct SPRITEDATA *Hundred, struct SPRITEDATA *Ten, struct SPRITEDATA *One)

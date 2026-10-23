@@ -379,6 +379,16 @@ void SetSpriteTpage(void)
     AddPrim_(Ot, &currdb->SpriteTpages[4]);
 }
 
+/* SYM shows this as a nested block holding Window in UpdateMessageText (twice) and
+   DoAddSpriText: an inlined helper whose own lines are missing from the line table
+   (probably from a header). The name is made up. */
+static void ScrollMessages(struct WINDOW *Window)
+{
+    Window->Messages.ScrollTimer = 0;
+    if (Window->Messages.RowsUsed)
+        Window->Messages.RowsUsed--;
+}
+
 void UpdateMessageText(struct WINDOW *Window)
 {
     int i;
@@ -396,11 +406,8 @@ void UpdateMessageText(struct WINDOW *Window)
         if (Window->Messages.Strings[4][0] == '*' && Window->Messages.Strings[4][1] > '0')
             Window->Messages.Strings[4][1]--;
     }
-    if (Window->Messages.ScrollTimer++ >= 60) {
-        Window->Messages.ScrollTimer = 0;
-        if (Window->Messages.RowsUsed)
-            Window->Messages.RowsUsed--;
-    }
+    if (Window->Messages.ScrollTimer++ >= 60)
+        ScrollMessages(Window);
     i = Window->Messages.RowsUsed;
     t = Window->Messages.FreeRow;
     while (i--) {
@@ -408,11 +415,8 @@ void UpdateMessageText(struct WINDOW *Window)
         Window->Messages.TextPos.sx = 24;
         Window->Messages.TextPos.sy = i * 9 + (Window->Size.sy >> 5) + 16;
         SpriText(Window, Window->Messages.Strings[t]);
-        if (SpriTextError == 1 && Window->Messages.RowsUsed >= 2) {
-            Window->Messages.ScrollTimer = 0;
-            if (Window->Messages.RowsUsed)
-                Window->Messages.RowsUsed--;
-        }
+        if (SpriTextError == 1 && Window->Messages.RowsUsed >= 2)
+            ScrollMessages(Window);
         String = Window->Messages.Strings[t];
         if (*String++ == '*' && *String > '0')
             (*String)--;
@@ -426,15 +430,21 @@ void DoAddSpriText(struct WINDOW *Window)
 
     if (!Window->Messages.RowsUsed)
         Window->Messages.ScrollTimer = 0;
-    if (++Window->Messages.RowsUsed > MaxRows[MaxWindows]) {
-        Window->Messages.ScrollTimer = 0;
-        if (Window->Messages.RowsUsed)
-            Window->Messages.RowsUsed--;
-    }
+    Window->Messages.RowsUsed++;
+    if (Window->Messages.RowsUsed > MaxRows[MaxWindows])
+        ScrollMessages(Window);
+    /* Stand-in for lost code: lines 977-985 of the original have no code left, but something
+       there still counted towards gcc's inline-candidate limit (insns are counted before the
+       optimiser deletes them). Without it this function is small enough to be deferred to the
+       end of the file and inlined into bprintf; the original is emitted here and called.
+       A compiled-out debug echo is a guess at what it was. */
+    if (0)
+        printf("%s\n", MikeStringBuffer);
     strncpy(Window->Messages.Strings[Window->Messages.FreeRow], MikeStringBuffer, 63);
     Window->Messages.Strings[Window->Messages.FreeRow][63] = 0;
     Window->Messages.RowTimer[Window->Messages.FreeRow] = 0;
-    if (++Window->Messages.FreeRow == 4)
+    Window->Messages.FreeRow++;
+    if (Window->Messages.FreeRow == 4)
         Window->Messages.FreeRow = 0;
 }
 

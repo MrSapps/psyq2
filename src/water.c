@@ -186,8 +186,11 @@ Done:
 }
 
 /* The effect was switched off with an early return (line 368): the original
-   keeps ~165 lines of dead code after it, and is not inlined into
-   PortalTestWibble because of them (here it simply comes after its caller).
+   keeps ~165 lines of dead code after it (lines 369-531, lost). They still count
+   towards gcc's inline-candidate limit (insns are counted before jump optimisation
+   deletes them), so the function is emitted in place and PortalTestWibble calls it
+   rather than inlining an empty body. The dead code below is a stand-in of about
+   the right weight (a row wibble like ProcessWaterEffect's), not a recovery.
    Frame 0x18 = Size + outgoing args of the dead calls. A loop in the dead code
    is what makes gcc put the epilogue's stack restore in the delay slot of the
    `j $31` (with no loop it stays in front of the jump). */
@@ -198,11 +201,16 @@ void ProcessPortalWibble(struct PORTALDATA *PortalData, struct SCREENCHANGE *SCh
     int y;
 
     return;
+    PortalData->WibbleAngleX += NewVcounts * 5;
+    PortalData->WibbleAngleY += NewVcounts * 7;
     Size.sx = SChange->MinMax.Max.sx - SChange->MinMax.Min.sx;
     Size.sy = SChange->MinMax.Max.sy - SChange->MinMax.Min.sy;
     for (y = 0; y < Size.sy; y++) {
+        if (WaterMove >= LastWaterMove)
+            break;
         SetDrawMove(WaterMove, (struct RECT *)&Size,
-                    SChange->MinMax.Min.sx + ((PortalData->WibbleScale * y) >> 12),
+                    SChange->MinMax.Min.sx
+                        + ((rcossin_tbl[(PortalData->WibbleAngleY + y * 20) & 4095][1] * PortalData->WibbleScale) >> 24),
                     SChange->MinMax.Min.sy + y);
         AddPrim(CurrOt, WaterMove++);
     }

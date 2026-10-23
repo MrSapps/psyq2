@@ -784,7 +784,8 @@ void MallocEdictTList(short NumEdicts, short NumClients)
 {
     int Size;
 
-    Size = NumEdicts * sizeof(struct edict_s) + NumClients * sizeof(struct gclient_s);
+    Size = NumEdicts * sizeof(struct edict_s);
+    Size += NumClients * sizeof(struct gclient_s);
     if (Size)
         EdictTList = MY_malloc_name(Size, "Quakes Edicts");
     else

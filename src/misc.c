@@ -352,6 +352,7 @@ void RotateRelSpeedsLadder(struct MATRIX *M, struct SVECT *Rel, struct SVECT *Ve
     struct SVECT Vel2;
     struct SVECT AVel;
     struct SVECT BVel;
+    int Dot;  /* not in SYM: dead, so its pseudo never gets a home */
 
     v2.vx = Rel->vx * M->m[0][0] + Rel->vy * M->m[0][1] + Rel->vz * M->m[0][2];
     v2.vy = Rel->vx * M->m[1][0] + Rel->vy * M->m[1][1] + Rel->vz * M->m[1][2];
@@ -359,6 +360,11 @@ void RotateRelSpeedsLadder(struct MATRIX *M, struct SVECT *Rel, struct SVECT *Ve
     v2.vx >>= 12;
     v2.vy = -(v2.vy >> 12);
     v2.vz >>= 12;
+    /* Dead (result unused, the code that used it is gone): the line table has a statement
+       here whose only surviving code is the Norm->vx load that CSE reuses for OutPut->vx.
+       Its pre-optimisation insns are what make this function too big to be an inline
+       candidate, so it is emitted in place. */
+    Dot = Norm->vx * Vel->vx + Norm->vy * Vel->vy + Norm->vz * Vel->vz;
     OutPut->vx = v2.vx + (Norm->vx >> 5);
     OutPut->vy = v2.vy;
     OutPut->vz = v2.vz + (Norm->vz >> 5);

@@ -1,7 +1,7 @@
 #include "types.h"
 
 /* defined below; gcc defers these to the end of the file in this order */
-void RemoveSndBody(void); void SoundSetPitch(int SampleNum, int Pitch);
+void SoundSetPitch(int SampleNum, int Pitch);
 void SoundSetRelativeVolume(int SampleNum, int Volume);
 void SoundSetRelativePitch(int SampleNum, int Pitch);
 void ProcessSounds(void);
@@ -842,7 +842,10 @@ void unfreechanoff(int chan)
     SoundControlBuffers[chan].SoundID = 0;
 }
 
-void ProcessSounds(void)
+/* Declared inline in the original: far too big to be an inline candidate on size, yet gcc
+   deferred it to the end of the file, which only an explicit `inline` does (nothing in this
+   file calls it after its definition, so it is never actually inlined). Same for GetSoundNum. */
+inline void ProcessSounds(void)
 {
     struct SpuVoiceAttr voiceAttr;
     struct SNDCTRL *SoundControlBuffer;
@@ -979,7 +982,8 @@ void ProcessSounds(void)
         SpriText(GameWindows, "@033C6^7F0000M u t e");
 }
 
-int GetSoundNum(struct IDENTITYNAME Name)
+/* inline: see ProcessSounds */
+inline int GetSoundNum(struct IDENTITYNAME Name)
 {
     struct IDENTITYNAME *SoundName;
     int SFXNumber;

@@ -894,23 +894,19 @@ int QuakePlayerJump(struct CREATURE *Cre, int JumpTapped)
             Player->JumpCount = 0;
         else
             Player->JumpCount -= NewVcounts;
-        return 0;
-    }
-    if (!JumpTapped)
-        return 0;
-    if (Cre->Box.DontJump)
-        return 0;
-    if (Cre->Box.FloorNorm.vy > Cre->Box.FloorNormMin || Cre->Box.OnLadder) {
-        if (Cre->Box.OnLadder) {
-            Cre->ForceVel.vx = -Cre->Box.WallNorm.vx;
-            Cre->ForceVel.vz = -Cre->Box.WallNorm.vz;
+    } else if (JumpTapped && !Cre->Box.DontJump) {
+        if (Cre->Box.FloorNorm.vy > Cre->Box.FloorNormMin || Cre->Box.OnLadder) {
+            if (Cre->Box.OnLadder) {
+                Cre->ForceVel.vx = -Cre->Box.WallNorm.vx;
+                Cre->ForceVel.vz = -Cre->Box.WallNorm.vz;
+            }
+            Cre->ForceVel.vy = -0xc00;
+            Player->JumpCount = 0x240;
+            Cre->Control |= 0x4000;
+            PlayerNoise(Cre->EdictT, &Cre->Box.Location, 0);
+            SoundByCreature(sound_jump1, Cre);
+            return 1;
         }
-        Cre->ForceVel.vy = -0xc00;
-        Player->JumpCount = 0x240;
-        Cre->Control |= 0x4000;
-        PlayerNoise(Cre->EdictT, &Cre->Box.Location, 0);
-        SoundByCreature(sound_jump1, Cre);
-        return 1;
     }
     return 0;
 }

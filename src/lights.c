@@ -162,7 +162,7 @@ void InitLights(void)
     for (a = 0; a < 64; a++)
         for (b = 0; b < 4; b++)
             Conv[a * 4 + b] = (a & 31) * 52 + b * 12 + 4;
-    for (a = 15; a >= 0; a--)
+    for (a = 0; a < 16; a++)
         TimedLights[a].Life = 0;
 }
 
