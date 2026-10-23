@@ -38,24 +38,58 @@ every label; `src/functions.json` has per-function line tables for matching.
 ## Decompiling a function
 
 Compiler: PSY-Q `cc1psx.exe` under wine, from an SDK directory (`PSYQ=~/dev/psyq_sdk/psyq_4.4` by default),
-then `tools/maspsx` (submodule: `git submodule update --init`) and GNU as. Which PSY-Q version and flags
-the game used is still unknown; start with `-O2 -G0`, and try other SDK versions via `PSYQ=`.
+then `tools/maspsx` (submodule: `git submodule update --init`) and GNU as. Flags: **`-O3 -G8`** (the default).
 
-    tools/cc-psx.sh work.c work.o [-O2 -G0]          # C -> object (headers: src/include/types.h, globals.h)
+    tools/cc-psx.sh work.c work.o [-O3 -G8]          # C -> object (headers: src/include/types.h, globals.h)
     python3 tools/cmpfunc.py asm/main.s FuncName work.o   # side-by-side diff against the original, exit 0 = match
 
-`src/src/*.C` has the original signature, locals (with registers/frame offsets) and line range for
-every function; `src/functions.json` has the address-to-line table, which helps ordering statements.
-## Compiler calibration (so far)
+`work.o` may hold other functions too; `cmpfunc.py` only compares `FuncName`. `src/src/*.C` has the original
+signature, locals (with registers/frame offsets) and line range for every function; `src/functions.json` has
+the address-to-line table, which helps ordering statements.
 
-Trivial functions (`GameIsPaused`, `anglemod`, `GetSaveMemorySize`, `ReCalcCollBox`) match byte-for-byte with
-**PSY-Q 4.4, `-O2 -G8`** (also with `-G4`, `-O1`, `-O3`). `GameIsPaused` needs `$gp` addressing, so `-G0` is out.
-PSY-Q 4.3 and 4.5 do not reproduce even `anglemod` here, so 4.4 is the working assumption.
-The `-O` level is not yet pinned down.
+Getting the SDKs: the `psyq-binaries` release of `mkst/esa` on GitHub (`psyq4.4.tar.gz` etc., as used by
+decomp.me) holds the `bin/` of each SDK. Unpack into `~/dev/psyq_sdk/psyq_<ver>/bin` and add lowercase
+symlinks (`cc1psx.exe -> CC1PSX.EXE`). 4.0 and 4.1 need `tools/patch-cc1psx-tmp.py` to run under wine.
 
-Open question from `DoubleTrebleBuffer` (asm/main.s): at `-G8`, `TbFrame`/`DbFrame`/`db` get `%hi/%lo`
-addressing like the original when declared as incomplete arrays (`extern unsigned char TbFrame[];`), but
-`currdb`/`olddb` come out `$gp`-relative while the original uses `%hi/%lo`. Something about how those
-two are declared or placed differs; `Paused` and `quitgame` do use `$gp` in the original.
+## Compiler and flags
 
-Status: the pipeline works end to end and four trivial functions match; nothing larger is matched yet.
+The game was built with **PSY-Q 4.4 (`cc1psx` gcc 2.8.1 SN32 build 4.0.0010) or 4.3 (gcc 2.8.0), `-O3 -G8`**,
+assembled by ASPSX 2.79 (`ccpsx` runs `aspsx -q -G8`). `calib/` holds matched functions, one file per
+original source file; `tools/calibrate.sh [flags]` recompiles them and diffs each against `asm/`:
+
+| SDK (cc1psx)          | -O1 | -O2 | -O3 | -O3 -G0 | -O3 -G4 |
+|-----------------------|-----|-----|-----|---------|---------|
+| 4.0 (cygnus 2.7.2)    | 2/8 | 2/8 | 2/8 | 1/8     | 2/8     |
+| 4.1 (cygnus 2.7.2)    | 2/8 | 2/8 | 2/8 | 1/8     | 2/8     |
+| 4.3 (gcc 2.8.0)       | 4/8 | 8/8 | 8/8 | 5/8     | 8/8     |
+| 4.4 (gcc 2.8.1)       | 4/8 | 8/8 | 8/8 | 5/8     | 8/8     |
+| 4.5 (egcs 1.1.2)      | 4/8 | 4/8 | 4/8 | 3/8     | 4/8     |
+| 4.6 (gcc 2.95.2)      | 2/8 | 2/8 | 2/8 | 1/8     | 2/8     |
+
+The functions: `mystrlen`, `SeekL`, `strupr`, `Big2Little`, `ModNameCmp`, `DoubleTrebleBuffer`,
+`GameIsPaused`, `PSXDOOR2SIDE` (99 instructions). What settles the rest:
+
+- **`-O3`, not `-O2`.** Per function they compile the same; the difference is function order. `-O3`
+  (`-finline-functions`) makes every small function an inline candidate, and gcc 2.8 defers those to the
+  end of the file, even public ones, in the order they were first declared (prototype order). That is the
+  layout of the game: each file's large functions come first in line order, then the small ones out of
+  order (see `src/functions.json`: 522 of 1037 functions sit in such a tail). With `-O2` only explicit
+  `inline` functions move. A small function can still be called rather than inlined when its body is long
+  in the source: `ProcessPortalWibble` compiles to 3 instructions but has 170 lines of dead code after a
+  `return`, so it stays in line order and `PortalTestWibble` calls it.
+- **`-G8`.** 8-byte objects (`ScreenDisplay[2]`, `MissionRect`, `WaterMoves[2]`, `lightorder[4]`) are
+  `$gp`-relative, nothing larger is, and 8 is ccpsx's default. `-G0` loses every `$gp` access.
+- **`$gp` only for symbols defined in the same file.** ASPSX 2.79 never makes an extern `$gp`-relative,
+  whatever size gcc gives it in `.extern`. `Paused` is defined in Quake.obj, so `GameIsPaused` uses `$gp`;
+  `currdb`/`olddb` are defined in dbuffer.obj (a data-only file), so every file uses `%hi/%lo` for them.
+  `cc-psx.sh` therefore gives `-G` to maspsx (which `$gp`s the file's own symbols) and runs GNU as with
+  `-G0`. When decompiling, define a variable in the file that SYM says owns it (`obj` in
+  `src/globals.json`) and declare the rest `extern`. Extern arrays need incomplete types
+  (`extern unsigned char TbFrame[];`) to get the original addressing.
+- **4.3 vs 4.4: open, 4.4 assumed.** They share the gcc 2.8 backend; random-program fuzzing found one
+  difference outside `long long`: a `?:` picking between `unsigned char`/`unsigned short` constants with
+  the top bit set (`x ? 200 : 250`). 4.3 loads them sign-extended (`li $2,-56`, plus an `andi` when the
+  value is used as an int), 4.4 loads them as is. No `li -N` followed by `andi 0xff` exists anywhere in the
+  game, which points to 4.4 but doesn't prove it. A matched function with such a `?:` would settle it.
+
+`char` is unsigned in every cc1psx version (as `ccpsx` also defines `__CHAR_UNSIGNED__`).
