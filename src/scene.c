@@ -75,14 +75,9 @@ unsigned long AreaNotHiddenData[3] BSS;
 /* SYM says int, but the code loads them with lhu */
 extern unsigned short ChrisCount;
 extern unsigned short ChrisCount1;
-extern struct AREA AreaData[];
-extern unsigned long AreaNotHiddenData[];
 extern int MaxWindows;
-extern int ScreenChangeIndx[];
-extern struct BRUSHMOVEBUF BrushMoveBufs[];
 extern struct WINDOW GameWindows[];
 #define MOVEBUF(i) (&BrushMoveBufs[(i) - 1])
-extern unsigned char FreeListMoveBuf[];
 extern struct COLLHEADER CollMap;
 void TurnOffSceneModel(struct SCENE2 *Scn2, int Win);
 
@@ -97,7 +92,6 @@ extern unsigned char semitranstable[];
 extern short alltpages[];
 extern unsigned short tptranstable[];
 extern struct DB db[];
-extern struct SCENE SceneBuffs[];
 void FreeSubDivFromPoly(struct POLY_GT4 *Poly);
 void FreePolyPackets(short *Source);
 
@@ -110,7 +104,6 @@ static void FreeSceneBuff(unsigned char *BuffIndx)
 extern struct SCRPNT CurrOffset;
 extern int CurrWinIndx;
 extern unsigned long *CurrOt;
-extern struct SCREENCHANGE ScreenChanges[4][24];
 extern struct DRAWENV *ChangeDrawEnv;
 extern struct DRAWENV *LastChangeDrawEnv;
 extern unsigned char DbFrame[];
@@ -197,8 +190,6 @@ static void RotVect(struct VECT *P, struct VECT *Q, struct VECT *Out)
 extern int MASK[17];
 extern int LastObjDrawn;
 extern struct MATRIX *CurrCamMat;
-extern unsigned char SceneBuffFreeList[];
-extern struct OBJSORTINFO ObjSortInfo[];
 extern void T2GlobSubdivideGt4();
 void SetRotMatrix(struct MATRIX *m);
 void MulMatrix0(struct MATRIX *m0, struct MATRIX *m1, struct MATRIX *m2);

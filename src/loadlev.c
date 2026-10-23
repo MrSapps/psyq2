@@ -64,7 +64,8 @@ struct IDENTITYNAME ZoneName BSS;
 struct IDENTITYNAME LastZoneName BSS;
 struct IDENTITYNAME NextZoneName BSS;
 struct IDENTITYNAME DirectAccessZoneName BSS;
-char LevelPath[40] BSS;
+/* no aligned(4) here: the original was a common, so gcc copied strings into it with lwl/lwr */
+char LevelPath[40] __attribute__((section(".bss")));
 struct IDENTITYNAME ThisLevelName BSS;
 struct IDENTITYNAME NextLevelName BSS;
 char DirectAccessLevelName[12] BSS;
@@ -110,7 +111,6 @@ extern int LevelCounter;
 extern int ChrisCount;
 extern int ChrisCount1;
 extern struct DB db[];
-void (*LevelInitFunc)();
 extern void (*LevelSpecific)();
 extern struct GLOBMODHDR *CastList;
 extern struct CREATURE Creatures[48];
@@ -193,7 +193,6 @@ static int ZoneChanged(struct IDENTITYNAME Name)
     return ModNameCmp(&Name, &ZoneName) != 1;
 }
 
-void (*LevelPreInitFunc)();
 extern int UseCdData;
 char *strcat();
 char *CommonLevelBinAddr; /* globals.json says QLevIfce.obj, but loadlev uses it $gp-relative */
@@ -589,6 +588,14 @@ int MaybeLoadZoneName(struct IDENTITYNAME name)
     MyStringTable[0].cursorItem = 1;
     DoFrontEndStuff();
     return 1;
+}
+
+/* The original .rdata has the compound literal "Zone" here, before ReloadLevelData's strings
+   (LoadLevelData's "Zone" then shares it), and SYM has no function for lines 486-508: an
+   unused static function that gcc compiled to RTL but never output. Its body is a guess. */
+static struct IDENTITYNAME FirstZoneName(void)
+{
+    return IDNAME("Zone");
 }
 
 void ReloadLevelData(struct IDENTITYNAME ThisZoneName)

@@ -582,14 +582,14 @@ void Weapon_Animations(struct CREATURE *Gun, short AnimStart, int VCount_Amount,
                 }
             } else if (AnimStart == Gun->Params[1] && !(Gun->AnimFlags & 2)) {
                 switch (Weapon_Type) {
+                case 3:
+                    SetAnim = FindAnimHdr(Gun->ModelHdr, (struct IDENTITYNAME){"Fire"});
+                    break;
                 case 6:
                     SetAnim = FindAnimHdr(Gun->ModelHdr, (struct IDENTITYNAME){"Set"});
                     break;
                 case 7:
                     SetAnim = FindAnimHdr(Gun->ModelHdr, (struct IDENTITYNAME){"Spin"});
-                    break;
-                case 3:
-                    SetAnim = FindAnimHdr(Gun->ModelHdr, (struct IDENTITYNAME){"Fire"});
                     break;
                 case 8:
                     SetAnim = FindAnimHdr(Gun->ModelHdr, (struct IDENTITYNAME){"Fire"});

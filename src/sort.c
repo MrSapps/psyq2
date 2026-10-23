@@ -232,6 +232,43 @@ int GenerateLinearFromLinked(struct SORT *Sort, struct SORT **Original, int Max,
     return NumElements;
 }
 
+/* name unknown: SYM only shows it inlined into GenerateSortOrder (no line info there) */
+static int BreakDependancyLoop(int NumElements, int *Dependancies, int Added)
+{
+    int ShiftValB;
+    int ShiftVal;
+    int MinIndx;
+    int MinCount;
+    int a;
+    int Count;
+    int Indx;
+
+    MinCount = 33;
+    MinIndx = 32;
+    ShiftVal = 1;
+    for (Indx = 0; Indx < NumElements; Indx++, ShiftVal <<= 1) {
+        if (!(Added & ShiftVal)) {
+            ShiftValB = 1;
+            Count = 0;
+            for (a = 0; a < NumElements; a++) {
+                if (Dependancies[Indx] & ShiftValB)
+                    Count++;
+                ShiftValB <<= 1;
+            }
+            if (Count < MinCount) {
+                MinCount = Count;
+                MinIndx = Indx;
+            }
+        }
+    }
+    if (MinIndx == 32) {
+        dprintf(GameWindows, "Can't break dependency loop\n");
+        return -1;
+    }
+    Dependancies[MinIndx] = 0;
+    return MinIndx;
+}
+
 void GenerateSortOrder(struct SORT *Sort, struct SORT *QSort, struct SORT **NewSort, int *Dependancies, int *QDependancies, struct SORT **Original, struct SORT **QOriginal, int NumElements, int QNumElements)
 {
     int Indx;
@@ -322,41 +359,7 @@ void GenerateSortOrder(struct SORT *Sort, struct SORT *QSort, struct SORT **NewS
             }
             if (NumLeft && SinceLastAdd == NumLeft) {
                 dprintf(GameWindows, "Possible dependancy loop\n");
-                {
-                    int ShiftValB;
-                    int ShiftVal;
-                    int MinIndx;
-                    int MinCount;
-                    int a;
-                    int Count;
-                    int b;
-
-                    MinCount = 33;
-                    MinIndx = 32;
-                    ShiftVal = 1;
-                    for (b = 0; b < NumElements; b++, ShiftVal <<= 1) {
-                        if (!(Added & ShiftVal)) {
-                            ShiftValB = 1;
-                            Count = 0;
-                            for (a = 0; a < NumElements; a++) {
-                                if (Dependancies[b] & ShiftValB)
-                                    Count++;
-                                ShiftValB <<= 1;
-                            }
-                            if (Count < MinCount) {
-                                MinCount = Count;
-                                MinIndx = b;
-                            }
-                        }
-                    }
-                    if (MinIndx == 32) {
-                        dprintf(GameWindows, "Can't break dependency loop\n");
-                        Indx = -1;
-                    } else {
-                        Dependancies[MinIndx] = 0;
-                        Indx = MinIndx;
-                    }
-                }
+                Indx = BreakDependancyLoop(NumElements, Dependancies, Added);
                 ShiftVal = 1 << Indx;
                 SinceLastAdd--;
                 if (Indx == -1)
