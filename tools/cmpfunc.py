@@ -33,7 +33,10 @@ text = open(asmfile).read()
 m = re.search(rf"^glabel {re.escape(func)}\n.*?^endlabel {re.escape(func)}\n", text, re.S | re.M)
 if not m:
     sys.exit(f"{func} not found in {asmfile}")
-body = '.include "macro.inc"\n.set noat\n.set noreorder\n.section .text, "ax"\n' + m.group(0)
+# jump-table labels are global symbols in splat's output; as plain labels the assembler resolves
+# branches to them itself, as it does in the compiled object
+body = re.sub(r"^\s*jlabel (\S+)", r"\1:", m.group(0), flags=re.M)
+body = '.include "macro.inc"\n.set noat\n.set noreorder\n.section .text, "ax"\n' + body
 
 
 ANON = re.compile(r"^((D|jtbl)_[0-9A-Fa-f]{8}|\.(rodata|rdata|sdata|data|sbss|bss)|\$LC?\d+)([+-]0x[0-9a-f]+)?$")
