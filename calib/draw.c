@@ -283,6 +283,81 @@ void SetGeomStuffWin(int Win)
     gte_SetTransMatrix((struct MATRIX *)((char *)&NullVec - 20));
 }
 
+struct SCRPNT ScreenDisplay[2];
+char SkyClear;
+void SetupScreenHeavens(void);
+
+void SetupScreen1by1(void *PanelRoutine)
+{
+    MaxWindows = 1;
+    memset(GameWindows, 0, sizeof(struct WINDOW) * 5);
+    SetupScreenHeavens();
+    memset(&ScreenDisplay[0], 0, sizeof(struct SCRPNT));
+    ScreenDisplay[1] = (struct SCRPNT){ScreenSize.sx, 0};
+    GameWindows[0].Size = ScreenSize;
+    GameWindows[0].StandardSize = GameWindows[0].Size;
+    GameWindows[0].ModelFt4Dist = 0x2000;
+    GameWindows[0].Geom = (struct SCRPNT){GameWindows[0].Size.sx / 2, GameWindows[0].Size.sy / 2};
+    GameWindows[0].PanelRoutine = PanelRoutine;
+    GameWindows[0].Focal = 160;
+    GameWindows[0].SubDivDist = 0x1900;
+    GameWindows[0].ConeScale = (GameWindows[0].Size.sx << 9) / ScreenSize.sy;
+    GameWindows[0].PanelPos = (struct SCRPNT){0x5D, 0xC9};
+    memset(&GameWindows[0].Pos, 0, sizeof(struct SCRPNT));
+    GameWindows[0].SkyColour = SkyColour;
+    GameWindows[0].SkyClear = SkyClear;
+}
+
+void SetupScreenLoading(void)
+{
+    memset(GameWindows, 0, sizeof(struct WINDOW) * 5);
+    SetupScreenHeavens();
+    memset(&ScreenDisplay[0], 0, sizeof(struct SCRPNT));
+    memset(&ScreenDisplay[1], 0, sizeof(struct SCRPNT));
+    GameWindows[0].Size = ScreenSize;
+    GameWindows[0].StandardSize = GameWindows[0].Size;
+    GameWindows[0].ModelFt4Dist = 0x2000;
+    GameWindows[0].Geom = (struct SCRPNT){GameWindows[0].Size.sx / 2, GameWindows[0].Size.sy / 2};
+    GameWindows[0].ConeScale = (GameWindows[0].Size.sx << 9) / ScreenSize.sy;
+    GameWindows[0].PanelRoutine = 0;
+    MaxWindows = 1;
+    GameWindows[0].Focal = 320;
+    GameWindows[0].SubDivDist = 0x1900;
+    GameWindows[0].PanelPos = (struct SCRPNT){0x5D, 0xC9};
+    memset(&GameWindows[0].Pos, 0, sizeof(struct SCRPNT));
+    GameWindows[0].SkyColour = SkyColour;
+    GameWindows[0].SkyClear = SkyClear;
+    SetDefDispEnv(&db[0].DispEnv, ScreenDisplay[0].sx, ScreenDisplay[0].sy, ScreenSize.sx, ScreenSize.sy);
+    SetDefDispEnv(&db[1].DispEnv, ScreenDisplay[1].sx, ScreenDisplay[1].sy, ScreenSize.sx, ScreenSize.sy);
+    Config_InstallVideo();
+}
+
+void SetupScreen1by2(void *PanelRoutine)
+{
+    int a;
+
+    memset(GameWindows, 0, sizeof(struct WINDOW) * 5);
+    SetupScreenHeavens();
+    memset(&ScreenDisplay[0], 0, sizeof(struct SCRPNT));
+    ScreenDisplay[1] = (struct SCRPNT){ScreenSize.sx, 0};
+    MaxWindows = 2;
+    for (a = 0; a < MaxWindows; a++) {
+        GameWindows[a].Size = (struct SCRPNT){ScreenSize.sx, (ScreenSize.sy + 1) / 2 - 1};
+        GameWindows[a].StandardSize = (struct SCRPNT){320, 160};
+        GameWindows[a].Geom = (struct SCRPNT){GameWindows[a].Size.sx / 2, GameWindows[a].Size.sy / 2};
+        GameWindows[a].Focal = 160;
+        GameWindows[a].SubDivDist = 0x1900;
+        GameWindows[a].ConeScale = (GameWindows[a].Size.sx << 9) / ScreenSize.sx;
+        GameWindows[a].ModelFt4Dist = 0x1800;
+        GameWindows[a].SkyColour = SkyColour;
+        GameWindows[a].SkyClear = SkyClear;
+        GameWindows[a].PanelRoutine = PanelRoutine;
+        GameWindows[a].PanelPos = (struct SCRPNT){0, 0x5F};
+    }
+    GameWindows[0].Pos = (struct SCRPNT){0, 1};
+    GameWindows[1].Pos = (struct SCRPNT){0, 0x79};
+}
+
 void SetupScreenHeavens(void)
 {
     GameWindows[4].Size = ScreenSize;
@@ -296,3 +371,86 @@ void SetupScreenHeavens(void)
     GameWindows[4].SkyClear = 0;
 }
 
+
+extern int CurrWinIndx;
+extern struct SCRPNT CurrScreenMin;
+extern struct SCRPNT CurrScreenSize;
+extern int SubdivideDistance;
+extern struct SCRPNT ScreenSize;
+extern unsigned char DbFrame[];
+void *memset();
+void MYRotMatrixYXZ2(struct SVECT *ang, struct MATRIX *m);
+void ReverseMatrix(struct MATRIX *MatrixOut, struct MATRIX *MatrixIn);
+void ScaleCameraMatrix(struct MATRIX *MatrixOut, struct MATRIX *MatrixIn, short x, short y);
+void DrawHeavenlyModels(void);
+void SetGeomOffset(long ofx, long ofy);
+void SetGeomScreen(long h);
+struct DRAWENV *SetDefDrawEnv(struct DRAWENV *env, int x, int y, int w, int h);
+void SetDrawEnv(struct DR_ENV *dr_env, struct DRAWENV *env);
+void AddPrim_(void *ot, void *p);
+
+void DrawHeavens(void)
+{
+    CurrWin = &GameWindows[4];
+    CurrCamPos = &GameWindows[4].CamPos;
+    CurrCamMat = &GameWindows[4].CamMat;
+    CurrWinIndx = 0;
+    CurrOt = currdb->BigOt;
+    MYRotMatrixYXZ2(&GameWindows[4].CamAng, &GameWindows[4].CamMatNorm);
+    ScaleCameraMatrix(CurrCamMat, &CurrWin->CamMatNorm, CurrWin->StandardSize.sx, CurrWin->StandardSize.sy);
+    ReverseMatrix(&CurrWin->CamMatNormFlip, &CurrWin->CamMatNorm);
+    CurrScreenSize = CurrWin->Size;
+    memset(&CurrScreenMin, 0, sizeof(struct SCRPNT));
+    SetGeomOffset(CurrWin->Geom.sx, CurrWin->Geom.sy);
+    SetGeomScreen(CurrWin->Focal);
+    SubdivideDistance = CurrWin->SubDivDist;
+    if (DbFrame[0])
+        SetDefDrawEnv(&currdb->DrawEnv[4], ScreenSize.sx + CurrWin->Pos.sx, CurrWin->Pos.sy, CurrWin->Size.sx, CurrWin->Size.sy);
+    else
+        SetDefDrawEnv(&currdb->DrawEnv[4], CurrWin->Pos.sx, CurrWin->Pos.sy, CurrWin->Size.sx, CurrWin->Size.sy);
+    currdb->DrawEnv[4].isbg = CurrWin->SkyClear;
+    currdb->DrawEnv[4].r0 = CurrWin->SkyColour.r;
+    currdb->DrawEnv[4].g0 = CurrWin->SkyColour.g;
+    currdb->DrawEnv[4].b0 = CurrWin->SkyColour.b;
+    SetDrawEnv(&currdb->DrawEnv[4].dr_env, &currdb->DrawEnv[4]);
+    DrawHeavenlyModels();
+    AddPrim_(CurrOt + 1, &currdb->DrawEnv[4].dr_env);
+}
+
+void SetTile(struct TILE *p);
+
+void DrawWinTile(int Win)
+{
+    struct TILE *Tile;
+    int t;
+
+    Tile = &currdb->TileFade[Win];
+    if (CurrWin->FadeTime) {
+        SetTile(Tile);
+        Tile->code |= 2;
+        t = (CurrWin->FadeTime << 16) / CurrWin->FadeInitTime;
+        switch (CurrWin->FadeType) {
+        case 1:
+            Tile->r0 = CurrWin->FadeColour.b - ((CurrWin->FadeColour.r * t) >> 16);
+            Tile->g0 = CurrWin->FadeColour.b - ((CurrWin->FadeColour.g * t) >> 16);
+            Tile->b0 = CurrWin->FadeColour.b - ((CurrWin->FadeColour.b * t) >> 16);
+            break;
+        case 2:
+            Tile->r0 = (CurrWin->FadeColour.r * t) >> 16;
+            Tile->g0 = (CurrWin->FadeColour.g * t) >> 16;
+            Tile->b0 = (CurrWin->FadeColour.b * t) >> 16;
+            break;
+        case 3:
+            Tile->r0 = CurrWin->FadeColour.r;
+            Tile->g0 = CurrWin->FadeColour.g;
+            Tile->b0 = CurrWin->FadeColour.b;
+            break;
+        }
+        Tile->x0 = 0;
+        Tile->y0 = 0;
+        Tile->w = CurrWin->Size.sx;
+        Tile->h = CurrWin->Size.sy;
+        AddPrim_(CurrOt + 50, Tile);
+        CurrWin->FadeTime--;
+    }
+}

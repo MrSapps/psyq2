@@ -136,6 +136,37 @@ unsigned long MaxMallocSize(void)
 
 int printf(char *fmt, ...);
 
+void printheap(void)
+{
+    int *lastp;
+    int gap;
+    int TotalUsed;
+    int TotalFree;
+    TotalFree = 0;
+    TotalUsed = 0;
+    lastp = heapstart;
+    printf("\n****** MEMORY -- BLOCKS *******\n");
+    while (1) {
+        TotalUsed += 7 + lastp[2];
+        printf("USED  Address: %x   Used size: %x   ( %d )", lastp + 7, lastp[2], lastp[2]);
+        printf("   '%s'\n", lastp + 3);
+        if (!lastp[1])
+            gap = (char *)heapend - (char *)lastp - (28 + lastp[2]);
+        else
+            gap = (char *)lastp[1] - (char *)lastp - (28 + lastp[2]);
+        if (gap > 0) {
+            TotalFree += gap;
+            printf("FREE  Address: %x   Gap size:  %x   ( %d )\n", (char *)lastp + ((lastp[2] + 31) & ~3), gap, gap);
+        }
+        if (!lastp[1])
+            break;
+        lastp = (int *)lastp[1];
+    }
+    printf("TotalUsed %d, TotalFree %d, Total %d\n", TotalUsed, TotalFree, TotalUsed + TotalFree);
+    printf("***********************\n\n");
+}
+
+
 void *MyMalloc(int Length, int HiFlag)
 {
     unsigned long Gap;

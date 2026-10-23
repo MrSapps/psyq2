@@ -1135,10 +1135,8 @@ int Do_SubEvent(struct PSXSUBEVENT *subevent, struct CREATURE *Cre)
     return 0;
 }
 
-/* PSXLIFT1EVENT_T: same code as the original, but the original has a dead
-   `lui $v1,%hi(PrimaryDoor2_PDH)` (0x8002) that splat leaves as a bare constant,
-   so cmpfunc sees a relocation vs a constant. Disabled so calibrate stays clean. */
-#ifdef SPLAT_ORPHAN_HI
+/* PSXLIFT1EVENT_T: the original has a dead `lui $v1,%hi(PrimaryDoor2_PDH)` that splat leaves as a
+   bare constant (0x8002); cmpfunc compares %hi/%lo of functions by value. */
 
 struct PSXSUBEVENT *PSXLIFT1EVENT_T(struct PSXSUBEVENT *subevent)
 {
@@ -1192,4 +1190,3 @@ struct PSXSUBEVENT *PSXLIFT1EVENT_T(struct PSXSUBEVENT *subevent)
     }
     return (struct PSXSUBEVENT *)((char *)ev + sizeof(struct PSXEVUSRFUNC_LIFT1));
 }
-#endif

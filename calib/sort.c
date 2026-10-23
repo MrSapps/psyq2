@@ -14,6 +14,66 @@ static void ClearDependancies(int *Dependancies, int NumElements)
         Dependancies[a] = 0;
 }
 
+extern struct WINDOW GameWindows[];
+extern struct DB *currdb;
+extern struct VECT *CurrCamPos;
+void AddPrims(unsigned long *Ot, void *First, void *Last);
+void SortObjectsClever(struct SORT *Sort, struct SORT *QSort, struct SORT **NewSort);
+extern struct AREA AreaData[];
+extern unsigned long *CurrOt;
+int AreaValidPntr(int Win, struct AREA *Area);
+
+void DrawSortedObjects(int Win)
+{
+    struct AREA *Area;
+    struct SORT *Sort;
+    struct SORT *QSort;
+    struct SORT *NewSort;
+    unsigned long *Ot;
+
+    Area = &AreaData[1];
+    Sort = Area->Data[Win].SortLink;
+    QSort = Area->Data[Win].QuickSortLink;
+    CurrCamPos = &GameWindows[Win].CamPos;
+    CurrOt = currdb->Ot[Win];
+    Ot = &currdb->Ot[Win][46];
+    if (Sort || QSort) {
+        for (; Sort; Sort = Sort->SortLink)
+            AddPrims(Ot, Sort->FirstLast[0], Sort->FirstLast[1]);
+        for (; QSort; QSort = QSort->SortLink)
+            AddPrims(Ot, QSort->FirstLast[0], QSort->FirstLast[1]);
+    }
+    Area->Data[Win].SortLink = 0;
+    Area->Data[Win].QuickSortLink = 0;
+
+    Area = &AreaData[2];
+    Sort = Area->Data[Win].SortLink;
+    QSort = Area->Data[Win].QuickSortLink;
+    Ot = CurrOt + 1;
+    if (Sort || QSort) {
+        SortObjectsClever(Sort, QSort, &NewSort);
+        for (; NewSort; NewSort = NewSort->SortLink)
+            AddPrims(Ot, NewSort->FirstLast[0], NewSort->FirstLast[1]);
+    }
+    Area->Data[Win].SortLink = 0;
+    Area->Data[Win].QuickSortLink = 0;
+
+    for (Area = &AreaData[3]; Area < &AreaData[96]; Area++) {
+        if (AreaValidPntr(Win, Area)) {
+            Sort = Area->Data[Win].SortLink;
+            QSort = Area->Data[Win].QuickSortLink;
+            Ot = CurrOt + Area->Data[Win].ScreenChange->OtLevel;
+            if (Sort || QSort) {
+                SortObjectsClever(Sort, QSort, &NewSort);
+                for (; NewSort; NewSort = NewSort->SortLink)
+                    AddPrims(Ot, NewSort->FirstLast[0], NewSort->FirstLast[1]);
+            }
+        }
+        Area->Data[Win].SortLink = 0;
+        Area->Data[Win].QuickSortLink = 0;
+    }
+}
+
 void SortObjectsClever(struct SORT *Sort, struct SORT *QSort, struct SORT **NewSort)
 {
     struct SORT **Original;
@@ -209,3 +269,4 @@ int NoDependancyCheck(int *MinMaxA, int *MinMaxB, int Base)
         return MinB >= MaxA;
     return Base >= MaxB && MinA >= MaxB;
 }
+

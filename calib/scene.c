@@ -41,8 +41,7 @@ extern int MaxWindows;
 extern int ScreenChangeIndx[];
 extern struct BRUSHMOVEBUF BrushMoveBufs[];
 extern struct WINDOW GameWindows[];
-/* splat names BrushMoveBufs - 1 as GameWindows + 0xF24 */
-#define MOVEBUF(i) ((struct BRUSHMOVEBUF *)((char *)GameWindows + 0xF24) + (i))
+#define MOVEBUF(i) (&BrushMoveBufs[(i) - 1])
 extern unsigned char FreeListMoveBuf[];
 extern struct COLLHEADER CollMap;
 void TurnOffSceneModel(struct SCENE2 *Scn2, int Win);
@@ -198,8 +197,121 @@ extern unsigned short *GamePals;
 extern unsigned char semitranstable[];
 extern short alltpages[];
 extern unsigned short tptranstable[];
-/* the RGB part of a COLOUR, copied as a 3-byte struct */
-struct RGB3 {
-    unsigned char r, g, b;
-};
+extern struct DB db[];
+unsigned char *SceneBuffFreePntr;
+extern struct SCENE SceneBuffs[];
+void FreeSubDivFromPoly(struct POLY_GT4 *Poly);
+void FreePolyPackets(short *Source);
 
+static void FreeSceneBuff(unsigned char *BuffIndx)
+{
+    *--SceneBuffFreePntr = *BuffIndx;
+    *BuffIndx = 0;
+}
+
+void TurnOffSceneModel(struct SCENE2 *Scn2, int Win)
+{
+    int b;
+    int c;
+    struct POLY_GT4 *Spr0;
+    struct SCENE *Scn;
+
+    if (Scn2->BuffIndx[Win]) {
+        Scn = &SceneBuffs[Scn2->BuffIndx[Win] - 1];
+        for (b = 0; b < Scn2->ModelHdr->NumPolys >> 5; b++) {
+            Spr0 = &db[0].modpolsg4[Scn->Pols[b + 1]];
+            for (c = 0; c < 32; c++, Spr0++)
+                if (Spr0->pad3)
+                    FreeSubDivFromPoly(Spr0);
+        }
+        Spr0 = &db[0].modpolsg4[Scn->Pols[b + 1]];
+        for (c = 0; c < (Scn2->ModelHdr->NumPolys & 31); c++, Spr0++)
+            if (Spr0->pad3)
+                FreeSubDivFromPoly(Spr0);
+        FreePolyPackets(Scn->Pols);
+        FreeSceneBuff(&Scn2->BuffIndx[Win]);
+    }
+}
+
+extern struct SCRPNT CurrOffset;
+extern int CurrWinIndx;
+extern unsigned long *CurrOt;
+extern struct SCREENCHANGE ScreenChanges[4][24];
+extern struct DRAWENV *ChangeDrawEnv;
+extern struct DRAWENV *LastChangeDrawEnv;
+extern unsigned char DbFrame[];
+unsigned char PortalDepth;
+void dprintf(struct WINDOW *Window, char *_format, ...);
+void PortalTestWibble(struct SCREENCHANGE *SChange, struct SCENE2 *Scn2);
+struct DRAWENV *SetDefDrawEnv(struct DRAWENV *env, int x, int y, int w, int h);
+void SetDrawEnv(struct DR_ENV *dr_env, struct DRAWENV *env);
+void AddPrim_(void *ot, void *p);
+void *memset(void *, int, int);
+
+#define gte_SetGeomOffset(r0, r1) { \
+    __asm__ volatile("move $12,%0" : : "r"(r0) : "$12", "memory"); \
+    __asm__ volatile("move $13,%0" : : "r"(r1) : "$13", "memory"); \
+    __asm__ volatile("sll $12,$12,16\n\tsll $13,$13,16\n\tctc2 $12,$24\n\tctc2 $13,$25" : : : "$12", "$13"); }
+
+int AlterScreenClipping(struct SCRPNT Min, struct SCRPNT Max, struct SCRPNT Offset, struct SHORTPAIR OtArea, struct SHORTPAIR ObjClip)
+{
+    struct SCRPNT Size;
+    int ReturnVal;
+    struct SCREENCHANGE *SChange;
+    int NoDraw;
+
+    NoDraw = 0;
+    if (Min.sx == Max.sx || Min.sy == Max.sy) {
+        memset(&Min, 0, sizeof(Min));
+        Max = Min;
+        NoDraw = 1;
+    }
+    if (++ScreenChangeIndx[CurrWinIndx] >= 24) {
+        if (!(*(int *)&ChrisCount & 31))
+            dprintf(GameWindows, "Out of ScreenChanges on frame %d\n", *(int *)&ChrisCount);
+        NoDraw = 1;
+    }
+    SChange = &ScreenChanges[CurrWinIndx][ScreenChangeIndx[CurrWinIndx]];
+    SChange->Offset = Offset;
+    SChange->MinMax.Min = Min;
+    SChange->MinMax.Max = Max;
+    SChange->Area = OtArea.b;
+    SChange->OtLevel = OtArea.a;
+    SChange->Obj = ObjClip.a;
+    SChange->ClipLevel = ObjClip.b;
+    if (!NoDraw && (ObjClip.a & 0xfff) != 0xfff && Scene2Data[ObjClip.a].SubDiv)
+        PortalTestWibble(SChange, &Scene2Data[ObjClip.a]);
+    Size.sx = SChange->MinMax.Max.sx - SChange->MinMax.Min.sx;
+    Size.sy = SChange->MinMax.Max.sy - SChange->MinMax.Min.sy;
+    if (Size.sx != CurrScreenSize.sx || Size.sy != CurrScreenSize.sy
+        || SChange->MinMax.Min.sx != CurrScreenMin.sx || SChange->MinMax.Min.sy != CurrScreenMin.sy
+        || SChange->Offset.sx != CurrOffset.sx || SChange->Offset.sy != CurrOffset.sy) {
+        if (ChangeDrawEnv != LastChangeDrawEnv) {
+            struct SCRPNT Pos;
+            if (DbFrame[0])
+                Pos = (struct SCRPNT){ScreenSize.sx + CurrWin->Pos.sx + CurrScreenMin.sx + CurrOffset.sx,
+                                      CurrWin->Pos.sy + CurrScreenMin.sy + CurrOffset.sy};
+            else
+                Pos = (struct SCRPNT){CurrWin->Pos.sx + CurrScreenMin.sx + CurrOffset.sx,
+                                      CurrWin->Pos.sy + CurrScreenMin.sy + CurrOffset.sy};
+            SetDefDrawEnv(ChangeDrawEnv, Pos.sx, Pos.sy, CurrScreenSize.sx, CurrScreenSize.sy);
+            ChangeDrawEnv->isbg = 0;
+            SetDrawEnv(&ChangeDrawEnv->dr_env, ChangeDrawEnv);
+            AddPrim_(CurrOt + OtArea.a, &ChangeDrawEnv->dr_env);
+            ChangeDrawEnv++;
+        }
+        CurrOffset = SChange->Offset;
+        CurrScreenSize = Size;
+        CurrScreenMin = SChange->MinMax.Min;
+    }
+    gte_SetGeomOffset(CurrWin->Geom.sx - SChange->MinMax.Min.sx, CurrWin->Geom.sy - SChange->MinMax.Min.sy);
+    if (OtArea.b == -1)
+        return ReturnVal;
+    ReturnVal = *(long *)&SChange->MinMax.Min != *(long *)&SChange->MinMax.Max;
+    if (ReturnVal) {
+        AreaData[OtArea.b].Data[CurrWinIndx].Depth = PortalDepth++;
+        AreaData[OtArea.b].Data[CurrWinIndx].ValidCheck = ChrisCount;
+        AreaData[OtArea.b].Data[CurrWinIndx].ScreenChange = SChange;
+    }
+    return ReturnVal;
+}
