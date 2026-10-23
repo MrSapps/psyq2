@@ -50,6 +50,7 @@ SYMADDR = {}
 for _l in open(os.path.join(root, "config", "symbol_addrs.txt")):
     if (_m := re.match(r"(\w+) = (0x[0-9A-Fa-f]+);", _l)) and "type:func" not in _l:
         SYMADDR[_m.group(1)] = int(_m.group(2), 16)
+RESOLVE_D = False  # second rendering: D_ labels as the address in their name (a field of a variable)
 IMM = re.compile(r"(-?(?:0x)?[0-9a-f]+)(\(\w+\))?$")
 
 
@@ -62,6 +63,9 @@ def normalise_symbol(sym):
     """Return (symbol, is_anonymous_data) with names C can't reproduce made comparable."""
     # function-local statics (gcc's `Temp.100`) too: splat names some after SYM (`Temp.7`) and leaves
     # others unnamed (`D_800AE890`)
+    if RESOLVE_D and (m := re.fullmatch(r"D_([0-9A-Fa-f]{8})", sym)):
+        SYMADDR[sym] = int(m.group(1), 16)
+        return sym, False
     if ANON.match(sym) or re.match(r"^\w+\.\d+([+-]0x[0-9a-f]+)?$", sym):
         return "<anon>", True
     return sym, False
@@ -132,13 +136,20 @@ with tempfile.TemporaryDirectory() as d:
     subprocess.run([cross + "as", "-EL", "-march=r3000", "-mabi=32", "-no-pad-sections", "-I",
                     os.path.join(root, "include"), "-o", o, s], check=True)
     want = listing(o)
+    if not strict:  # the original's D_ labels may be a field of a named variable: also try them as addresses
+        RESOLVE_D = True
+        want_alt = listing(o)
+        RESOLVE_D = False
+    else:
+        want_alt = want
 have = listing(obj, func)
 n = max(len(want), len(have))
-same = want == have
+eq = [i < len(want) and i < len(have) and have[i] in (want[i], want_alt[i]) for i in range(n)]
+same = len(want) == len(have) and all(eq)
 print(f"{func}: original {len(want)} instructions, compiled {len(have)}  {'MATCH' if same else 'DIFFERS'}")
 if not same:
     for i in range(n):
         a = want[i] if i < len(want) else ""
         b = have[i] if i < len(have) else ""
-        print(f"{'  ' if a == b else '!!'} {a:<46} | {b}")
+        print(f"{'  ' if eq[i] else '!!'} {a:<46} | {b}")
 sys.exit(0 if same else 1)
