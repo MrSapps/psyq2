@@ -46,7 +46,7 @@ struct PSXSUBEVENT *PSXDISABLEME(struct PSXSUBEVENT *subevent);
 void PSXOBJDRAWOFF(struct PSXSUBEVENT *subevent);
 void PSXOBJDRAWON(struct PSXSUBEVENT *subevent);
 void PSXONKEYDO(struct PSXSUBEVENT *subevent);
-void transfunc_error(void); void InitUserFuncs(char *addr);
+void InitUserFuncs(char *addr);
 void Event_KillTimers(void);
 void DrawLaserBeams(void);
 void DoSolidBoxEventDamage(struct SOLIDBOX *solidbox, short damage, struct VECT *Location);
@@ -87,7 +87,6 @@ static int Event_FindTimer(void *timerevent)
 extern long *DummyMemory;
 extern struct WINDOW GameWindows[];
 int sprintf(char *, const char *, ...);
-void centreprintf();
 
 extern int MaxWindows;
 int rand(void);
@@ -136,7 +135,6 @@ int SoundAtLocation(int SFXNumber, struct VECT *loc);
 struct PSXMAINEVENTHDR *neweventlistbase;
 short numbrushes;
 extern struct SCENE2 *Scene2Data;
-void *memset(void *, int, int);
 void PrimarySimRot_PDH2(struct BRUSHMOVEBUF *MoveBuf);
 
 void PrimarySimRot_PDH(struct BRUSHMOVEBUF *MoveBuf);
@@ -189,7 +187,7 @@ extern unsigned int LevelTicks;
 
 
 extern int ChrisCount;
-void DoDamage(struct CREATURE *Cre, struct CREATURE *Target, int Damage, int DamageType);
+void DoDamage();
 
 /* not in types.h: event type 9, a counter */
 struct PSXEVCOUNTER {
@@ -376,18 +374,7 @@ extern struct BRUSHMOVEBUF BrushMoveBufs[48];
 struct PSXMAINEVENTHDR *eventlistbase;
 
 /* Sound_Explosion: splat names Event.Obj's copy Sound_Explosion_800B2A68 (quakecre.obj has another) */
-int Sound_KeyUse;
-int Sound_KeyTry;
-int Sound_PlatformStart;
-int Sound_PlatformMiddle;
-int Sound_PlatformEnd;
-int Sound_Button;
-int Sound_Menu1;
-int Sound_Menu2;
-int Sound_Menu3;
-int Sound_Secret;
-int Sound_Explosion_800B2A68;
-int Sound_GlassSmash;
+static int Sound_Menu3;
 int GetSoundNum(struct IDENTITYNAME Name);
 extern struct IDENTITYNAME MainStartName;
 extern short LevelComplete;
@@ -406,7 +393,6 @@ struct BRUSHMOVEBUF *MoveBuf;
 extern struct BRUSHMOVEBUF BrushMoveBufs[];
 extern unsigned int LevelTicks;
 extern short LaserWallEvents[][2];
-void DoDamage(struct CREATURE *Cre, struct CREATURE *Target, int Damage, int DamageType, struct VECT *Centre);
 /* defined in Event.Obj, so $gp-relative */
 struct PSXMAINEVENTHDR *eventlistbase;
 struct PSXMAINEVENTHDR *neweventlistbase;
@@ -2197,22 +2183,6 @@ void InitUserFuncs(char *addr)
     InitEventSoundsEachLevel();
 }
 
-void InitEventSoundsEachLevel(void)
-{
-    Sound_KeyUse = GetSoundNum((struct IDENTITYNAME){"msc_keyuse"});
-    Sound_KeyTry = GetSoundNum((struct IDENTITYNAME){"msc_keytry"});
-    Sound_PlatformStart = GetSoundNum((struct IDENTITYNAME){"pt1__strt"});
-    Sound_PlatformMiddle = GetSoundNum((struct IDENTITYNAME){"pt1__mid"});
-    Sound_PlatformEnd = GetSoundNum((struct IDENTITYNAME){"pt1__end"});
-    Sound_Button = GetSoundNum((struct IDENTITYNAME){"amb_butn2"});
-    Sound_Menu1 = GetSoundNum((struct IDENTITYNAME){"msc_menu1"});
-    Sound_Menu2 = GetSoundNum((struct IDENTITYNAME){"msc_menu2"});
-    Sound_Menu3 = GetSoundNum((struct IDENTITYNAME){"msc_menu3"});
-    Sound_Secret = GetSoundNum((struct IDENTITYNAME){"msc_secret"});
-    Sound_Explosion_800B2A68 = GetSoundNum((struct IDENTITYNAME){"wep_grenlx1a"});
-    Sound_GlassSmash = GetSoundNum((struct IDENTITYNAME){"amb_brkglas"});
-}
-
 struct PSXSUBEVENT *PSXCAGELIFT1EVENT(struct PSXSUBEVENT *subevent)
 {
     struct PSXEVUSRFUNC_CAGELIFT1 *ev;
@@ -3777,4 +3747,20 @@ struct PSXSUBEVENT *PSXSIMPLESOUND(struct PSXSUBEVENT *subevent)
         SoundAtLocation(GetSoundNum(*(struct IDENTITYNAME *)((char *)subevent + 20)), (struct VECT *)((char *)subevent + 4));
     }
     return (struct PSXSUBEVENT *)((char *)subevent + 32);
+}
+
+void InitEventSoundsEachLevel(void)
+{
+    Sound_KeyUse = GetSoundNum((struct IDENTITYNAME){"msc_keyuse"});
+    Sound_KeyTry = GetSoundNum((struct IDENTITYNAME){"msc_keytry"});
+    Sound_PlatformStart = GetSoundNum((struct IDENTITYNAME){"pt1__strt"});
+    Sound_PlatformMiddle = GetSoundNum((struct IDENTITYNAME){"pt1__mid"});
+    Sound_PlatformEnd = GetSoundNum((struct IDENTITYNAME){"pt1__end"});
+    Sound_Button = GetSoundNum((struct IDENTITYNAME){"amb_butn2"});
+    Sound_Menu1 = GetSoundNum((struct IDENTITYNAME){"msc_menu1"});
+    Sound_Menu2 = GetSoundNum((struct IDENTITYNAME){"msc_menu2"});
+    Sound_Menu3 = GetSoundNum((struct IDENTITYNAME){"msc_menu3"});
+    Sound_Secret = GetSoundNum((struct IDENTITYNAME){"msc_secret"});
+    Sound_Explosion_800B2A68 = GetSoundNum((struct IDENTITYNAME){"wep_grenlx1a"});
+    Sound_GlassSmash = GetSoundNum((struct IDENTITYNAME){"amb_brkglas"});
 }
