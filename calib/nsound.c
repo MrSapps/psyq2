@@ -809,6 +809,177 @@ void DoMix(int chan, struct SNDCTRL *sbuf)
     }
 }
 
+
+extern struct QENGINELEVINTERFACE Engine;
+extern struct VECTOR SFXRotCoord;
+static int Muted;
+int ttt;
+long SpuGetKeyStatus(unsigned long voice_bit);
+char *strncpy(char *d, const char *s, unsigned int n);
+void SpriText();
+
+static void SetVolPan(struct SNDCTRL *sbuf)
+{
+    {
+        int vol;
+        int pan;
+        vol = 0x3000 - SFXCurrDist;
+        vol = vol * sbuf->basevol;
+        vol = vol / 4096;
+        if (vol > 255)
+            vol = 255;
+        if (vol < 0)
+            vol = 0;
+        sbuf->currvol = vol;
+        pan = SFXRotCoord.vx * 15 / SFXCurrDist + 15;
+        sbuf->lrpan = pan;
+        pan = SFXRotCoord.vz * 15 / SFXCurrDist + 15;
+        sbuf->fbpan = pan;
+        if (Paused) {
+            sbuf->currvol = 255;
+            sbuf->lrpan = 15;
+            sbuf->fbpan = 15;
+        }
+    }
+}
+
+void ProcessSounds(void)
+{
+    struct SpuVoiceAttr voiceAttr;
+    struct SNDCTRL *SoundControlBuffer;
+    int Channel;
+    int wStatus;
+    struct CREATURE *Cre;
+    int sendkeymask;
+    int newsound;
+
+    SoundControlBuffer = SoundControlBuffers;
+    sendkeymask = 0;
+    if (Engine.GameConfig.bStereo)
+        DefaultMix = 2;
+    else
+        DefaultMix = 1;
+    if (SFXMasterVolume != Engine.GameConfig.sSoundFX) {
+        SFXMasterVolume = Engine.GameConfig.sSoundFX;
+        SoundStopAllLoopingSamples();
+    }
+    for (Channel = 0; Channel < 24; SoundControlBuffer++, Channel++) {
+        if (!*(signed char *)&SoundControlBuffer->type)
+            continue;
+        SFXCurrDist = 0;
+        newsound = 0;
+        if (*(signed char *)&SoundControlBuffer->type < 0) {
+            newsound = 1;
+            *(signed char *)&SoundControlBuffer->type = -*(signed char *)&SoundControlBuffer->type;
+        }
+        switch (*(signed char *)&SoundControlBuffer->type) {
+        case 1:
+            if (!SoundControlBuffer->pntr)
+                break;
+            Cre = SoundControlBuffer->pntr;
+            CalcSFXCurrDist(&Cre->Draw.Location);
+            SetVolPan(SoundControlBuffer);
+            DoMix(Channel, SoundControlBuffer);
+            ReCalcPitch(Channel, SoundControlBuffer);
+            if (Cre->Life <= 0 || LevelTicks >= SoundControlBuffer->SoundEndFrame || Cre->Ident != SoundControlBuffer->CreIdent)
+                unfreechanoff(Channel);
+            break;
+        case 7:
+            if (!SoundControlBuffer->pntr)
+                break;
+            Cre = SoundControlBuffer->pntr;
+            DoMix(Channel, SoundControlBuffer);
+            ReCalcPitch(Channel, SoundControlBuffer);
+            if (Cre->Life <= 0 || LevelTicks >= SoundControlBuffer->SoundEndFrame || Cre->Ident != SoundControlBuffer->CreIdent)
+                unfreechanoff(Channel);
+            break;
+        case 2:
+            if (!SoundControlBuffer->pntr)
+                break;
+            CalcSFXCurrDist(SoundControlBuffer->pntr);
+            SetVolPan(SoundControlBuffer);
+            DoMix(Channel, SoundControlBuffer);
+            ReCalcPitch(Channel, SoundControlBuffer);
+            break;
+        case 5:
+            if (!SoundControlBuffer->pntr)
+                break;
+            CalcSFXCurrDist(SoundControlBuffer->pntr);
+            SetVolPan(SoundControlBuffer);
+            DoMix(Channel, SoundControlBuffer);
+            ReCalcPitch(Channel, SoundControlBuffer);
+            if (LevelTicks > SoundControlBuffer->SoundEndFrame)
+                unfreechanoff(Channel);
+            break;
+        case 3:
+            CalcSFXCurrDist(&SoundControlBuffer->pos);
+            SetVolPan(SoundControlBuffer);
+        case 4:
+            DoMix(Channel, SoundControlBuffer);
+            ReCalcPitch(Channel, SoundControlBuffer);
+            break;
+        case 6:
+            if (!SoundControlBuffer->pntr)
+                break;
+            {
+                int vol = SoundControlBuffer->basevol * 3;
+                if (vol > 255)
+                    vol = 255;
+                if (vol < 0)
+                    vol = 0;
+                SoundControlBuffer->currvol = vol;
+                SoundControlBuffer->lrpan = (SFXRotCoord.vx + 1) * 15;
+                SoundControlBuffer->fbpan = (SFXRotCoord.vz + 1) * 15;
+            }
+            DoMix(Channel, SoundControlBuffer);
+            ReCalcPitch(Channel, SoundControlBuffer);
+        case 8:
+            if (!SoundControlBuffer->pntr)
+                break;
+            /* two inlined unfreechanoff copies (SYM has two chan blocks here): the second has no label
+               before it, so cases 1/7/5 cross-jump to a new label outside jump_chain and stay apart */
+            if (LevelTicks >= SoundControlBuffer->SoundEndFrame)
+                unfreechanoff(Channel);
+            else if (SampleInfoTable[SoundControlBuffer->samplenum].Flags & 4)
+                unfreechanoff(Channel);
+            break;
+        }
+        if (Muted)
+            continue;
+        if (newsound) {
+            strncpy(NameBuffer, SoundNames + (SoundControlBuffer->samplenum + 1) * 12, 12);
+            NameBuffer[12] = 0;
+            ttt = 0;
+            DoMix(Channel, SoundControlBuffer);
+            sendkeymask |= 1 << Channel;
+            voiceAttr.voice = 1 << Channel;
+            voiceAttr.mask = 0x80;
+            voiceAttr.addr = VAGList[SoundControlBuffer->samplenum].dwAddr;
+            SpuSetVoiceAttr(&voiceAttr);
+            SendPitch(Channel, SoundControlBuffer->currpitch * VAGList[SoundControlBuffer->samplenum].dwMulti / 256);
+            if (SoundControlBuffer->mixflag == 4 || SoundControlBuffer->mixflag == 5) {
+                DoMix(SoundControlBuffer->channel2, SoundControlBuffer);
+                SendPitch(SoundControlBuffer->channel2, SoundControlBuffer->currpitch * VAGList[SoundControlBuffer->samplenum].dwMulti / 256);
+                if (*(signed char *)&SoundControlBuffer->mixflag == 5) {
+                    sendkeymask |= 1 << SoundControlBuffer->channel2;
+                    voiceAttr.voice = 1 << SoundControlBuffer->channel2;
+                    voiceAttr.mask = 0x80;
+                    voiceAttr.addr = VAGList[SoundControlBuffer->samplenum + 1].dwAddr;
+                    SpuSetVoiceAttr(&voiceAttr);
+                }
+            }
+        } else {
+            wStatus = SpuGetKeyStatus(1 << Channel);
+            if (wStatus == 0 || wStatus == 3)
+                unfreechanoff(Channel);
+        }
+    }
+    if (sendkeymask)
+        SpuSetKey(1, sendkeymask);
+    if (Muted)
+        SpriText(GameWindows, "@033C6^7F0000M u t e");
+}
+
 /* after ProcessSounds, which calls it rather than inlining it */
 int SoundStopAllLoopingSamples(void)
 {
