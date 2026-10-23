@@ -10,6 +10,111 @@ void ProcessWaterEffect(struct WINDOW *Window);
 int Find3dSpaceIndxLink(struct COLLHEADER *Map, struct VECT *Loc, short Main, int CheckAll);
 int Find3dSpaceGivenSecondary(struct VECT *Location, struct VECT *MoveLoc, int MoveSpace);
 
+extern int NewVcounts;
+extern int LevelIsMultiPlayer;
+extern int Paused;
+extern int ChrisCount;
+void QuakeCamera(struct WINDOW *Window, struct CREATURE *Cre);
+void QGenWindowSortList(struct WINDOW *Window);
+int SeekAng(int Start, int Stop, int Speed);
+void DoFrontEndStuff(void);
+int MapPadInputToFire(int Player);
+void ReInitMultiQuakePlayer(int Win);
+
+void MoveQuakeCamera(int Win)
+{
+    struct WINDOW *Window;
+    struct CREATURE *Cre;
+
+    Window = &GameWindows[Win];
+    Window->ControlBits |= 7;
+    Cre = Window->Creature;
+    if (Cre) {
+        QuakeCamera(Window, Cre);
+    } else {
+        Window->CamAng.vz = SeekAng(Window->CamAng.vz, -0x180, NewVcounts * 50);
+        if (!LevelIsMultiPlayer)
+            DoFrontEndStuff();
+        else if (MapPadInputToFire(Win) && !Paused && LevelIsMultiPlayer)
+            ReInitMultiQuakePlayer(Win);
+    }
+    QGenWindowSortList(Window);
+    UpdateWindowStuff(Window);
+    ProcessWaterEffect(Window);
+    if (ChrisCount) {
+        Window->SkyClear = 0;
+        /* nested ifs: with && gcc merges the vx/vy short compares into one word compare */
+        if (Window->OldCamPos.vx == Window->CamPos.vx)
+            if (Window->OldCamPos.vy == Window->CamPos.vy)
+                if (Window->OldCamPos.vz == Window->CamPos.vz)
+                    if (Window->OldCamAng.vx == Window->CamAng.vx)
+                        if (Window->OldCamAng.vy == Window->CamAng.vy)
+                            if (Window->OldCamAng.vz == Window->CamAng.vz)
+                                if (Window->OldSpace == Window->CamSpace)
+                                        Window->SkyClear = 1;
+    } else
+        Window->SkyClear = 1;
+    Window->OldCamPos = Window->CamPos;
+    Window->OldCamAng = Window->CamAng;
+    Window->OldSpace = Window->CamSpace;
+}
+
+extern unsigned int LevelTicks;
+
+struct SVECT CalcPlayerCameraModifications(struct CREATURE *Cre)
+{
+    struct WINDOW *Window;
+    struct PLAYER *Player;
+    struct PTIMERS *PTimers;
+    unsigned int Ratio;
+    short Pitch;
+    short Roll;
+    short Yaw;
+    int Time;
+
+    Pitch = 0;
+    Roll = 0;
+    Yaw = 0;
+    Player = Cre->Player;
+    if (Player) {
+        PTimers = &Player->Extras.PTimers;
+        Window = Player->Window;
+        Time = PTimers->Kick_Timer - LevelTicks;
+        if (Time >= 0) {
+            Ratio = (Time << 12) / 30;
+            if (Ratio) {
+                Pitch = Ratio * Player->Extras.Kick_Angles.vx >> 12;
+                Yaw = Ratio * Player->Extras.Kick_Angles.vy >> 12;
+                Roll = Ratio * Player->Extras.Kick_Angles.vz >> 12;
+            } else
+                memset(&Player->Extras.Kick_Angles, 0, 6);
+        }
+        Time = PTimers->Damage_Timer - LevelTicks;
+        if (Time >= 0) {
+            Ratio = (Time << 12) / 150;
+            if (Ratio) {
+                Pitch += Ratio * Player->Extras.Dmg_Pitch >> 12;
+                Roll += Ratio * Player->Extras.Dmg_Roll >> 12;
+            }
+        }
+        Time = PTimers->Fall_Timer - LevelTicks;
+        if (Time >= 0) {
+            Ratio = (Time << 12) / 90;
+            if (Ratio)
+                Pitch += Ratio * Player->Extras.Fall_Value >> 12;
+        }
+        Window->CamAngOff.vx = Pitch;
+        Window->CamAngOff.vy = Yaw;
+        Window->CamAngOff.vz = Roll;
+    } else {
+        /* Window is not set here: the original uses it uninitialised */
+        Window->CamAngOff.vz = 0;
+        Window->CamAngOff.vy = 0;
+        Window->CamAngOff.vx = 0;
+    }
+    return Window->CamAngOff;
+}
+
 void MoveQuakeCameraInterMission(int Win)
 {
     struct WINDOW *Window = &GameWindows[Win];

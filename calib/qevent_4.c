@@ -121,3 +121,25 @@ struct PSXSUBEVENT *PSXB3ROCKS(struct PSXSUBEVENT *subevent, struct CREATURE *cr
     }
     return (struct PSXSUBEVENT *)((char *)subevent + sizeof(struct PSXEVUSRFUNC_B3ROCKS));
 }
+
+struct PSXSUBEVENT *PSXCAGELIFT1EVENT(struct PSXSUBEVENT *subevent)
+{
+    struct PSXEVUSRFUNC_CAGELIFT1 *ev;
+
+    if (subevent->evsize != sizeof(struct PSXEVUSRFUNC_CAGELIFT1))
+        return subevent;
+    ev = (struct PSXEVUSRFUNC_CAGELIFT1 *)subevent;
+    if (ev->crossobj[0] >= 0) {
+        MoveBuf = &BrushMoveBufs[ev->crossobj[0]];
+        MoveBuf->Triggered = 1;
+        if (!MoveBuf->OpenFlag) {
+            MoveBuf->StartDelay = ev->StartDelay * 300;
+            if (ev->EndDelay == 0xff)
+                MoveBuf->Time = 0xffff;
+            else
+                MoveBuf->Time = ev->EndDelay * 300;
+        }
+    }
+    subevent = (struct PSXSUBEVENT *)(ev + 1);
+    return subevent;
+}
