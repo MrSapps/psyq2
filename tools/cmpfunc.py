@@ -132,10 +132,12 @@ def resolve_addresses(lines, local):
             if sym not in SYMADDR or sym in local or kind not in ("HI16", "LO16", "GPREL16") or normalise_symbol(sym)[1]:
                 continue
             imm = imm_of(line[1])
-            if kind == "HI16":
+            if kind == "HI16":  # as the plain constant: splat writes an orphaned %hi as a bare lui
                 lo = next((imm_of(l[1]) for l in lines[i + 1:] for k, s in l[4] if k == "LO16" and s == sym), 0)
                 addr = SYMADDR[sym] + ((imm << 16) & 0xffffffff) + lo
-                text = f"HI16 %hi({(addr + 0x8000) >> 16 << 16:#x})"
+                line[1] = IMM.sub(hex((addr + 0x8000) >> 16) + r"\2", line[1])
+                line[3] = re.sub(rf"\s+HI16 {re.escape(sym)}\b", "", line[3])
+                continue
             elif kind == "LO16":  # the low half only: any carry is in the paired %hi
                 text = f"LO16 %lo({(SYMADDR[sym] + imm) & 0xffff:#x})"
             else:

@@ -38,9 +38,9 @@ every label; `src/functions.json` has per-function line tables for matching.
 ## Decompiling a function
 
 Compiler: PSY-Q `cc1psx.exe` under wine, from an SDK directory (`PSYQ=~/dev/psyq_sdk/psyq_4.4` by default),
-then `tools/maspsx` (submodule: `git submodule update --init`) and GNU as. Flags: **`-O3 -G8`** (the default).
+then `tools/maspsx` (submodule: `git submodule update --init`) and GNU as. Flags: **`-O3 -G8 -g`** (the default).
 
-    tools/cc-psx.sh work.c work.o [-O3 -G8]          # C -> object (headers: src/include/types.h, globals.h)
+    tools/cc-psx.sh work.c work.o [-O3 -G8 -g]          # C -> object (headers: src/include/types.h, globals.h)
     python3 tools/cmpfunc.py asm/main.s FuncName work.o   # side-by-side diff against the original, exit 0 = match
 
 `work.o` may hold other functions too; `cmpfunc.py` only compares `FuncName`. `src/src/*.C` has the original
@@ -53,7 +53,7 @@ symlinks (`cc1psx.exe -> CC1PSX.EXE`). 4.0 and 4.1 need `tools/patch-cc1psx-tmp.
 
 ## Compiler and flags
 
-The game was built with the **`cc1psx` of PSY-Q 4.4 (gcc 2.8.1 SN32 build 4.0.0010), `-O3 -G8`, assembled
+The game was built with the **`cc1psx` of PSY-Q 4.4 (gcc 2.8.1 SN32 build 4.0.0010), `-O3 -G8 -g`, assembled
 by an ASPSX of version 2.80 or later** (2.81 ships with PSY-Q 4.5), not the 2.79 that comes with 4.4: a
 mixed toolchain. SNRELMOD.OBJ (SN's relocation stub) alone was built at `-O0`. `cc-psx.sh` defaults to all
 of that.
@@ -88,6 +88,9 @@ The x/8 columns are from the first 8 calibration functions. What settles it:
   source is long: `ProcessPortalWibble` compiles to 3 instructions but has 170 lines of dead code after a
   `return`. Inlining only reaches functions defined *earlier* in the file, so in a calib file put callers
   before callees unless the original inlined them.
+- **`-g`.** The game shipped with debug info, and `-g` changes code here: it moves where CSE flushes its
+  table, which decides which register holds a reused constant (`InitialisePlayerSounds` only matches with
+  it). Every other calib function matches either way.
 - **`-G8`.** 8-byte objects (`ScreenDisplay[2]`, `MissionRect`, `WaterMoves[2]`, `lightorder[4]`) are
   `$gp`-relative, nothing larger is, and 8 is ccpsx's default. `-G0` loses every `$gp` access.
 - **`$gp` only for symbols defined in the same file.** No ASPSX (2.77 to 2.86, checked under wine) makes an
