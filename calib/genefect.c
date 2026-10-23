@@ -94,8 +94,12 @@ void GeneralG4Sort(struct POLY_G4 *OldPoly, struct VECT *Centre, struct SHORTPAI
     struct VECT *Pos;
 
     Pos = (struct VECT *)GetNextGlobalMemory(sizeof(struct VECT));
-    if (!Pos)
-        return;
+    /* do{}while(0): weights Pos's refs so that, inlined into Draw3dLine, Pos
+       outranks the caller's OldPoly in global allocation (Pos s2, OldPoly s3) */
+    do {
+        if (!Pos)
+            return;
+    } while (0);
     Sort = GetNextSortData();
     if (!Sort)
         return;
@@ -110,6 +114,179 @@ void GeneralG4Sort(struct POLY_G4 *OldPoly, struct VECT *Centre, struct SHORTPAI
         OrderedSort(Sort, &AreaData[AreaWin.a].Data[AreaWin.b].QuickSortLink);
     } else
         FreeLastSortData();
+}
+
+extern int MaxWindows;
+extern struct WINDOW GameWindows[];
+extern struct WINDOW *CurrWin;
+extern struct VECT *CurrCamPos;
+extern struct MATRIX *CurrCamMat;
+extern int CurrWinIndx;
+extern struct SCRPNT CurrScreenSize;
+extern struct SCRPNT CurrScreenMin;
+extern unsigned long *CurrOt;
+extern struct DB *currdb;
+extern struct POLY_G4 *LastGeneralG4;
+extern struct COLLHEADER CollMap;
+void *memset(void *s, int c, unsigned int n);
+void SetGeomOffset(long ofx, long ofy);
+void SetGeomScreen(long h);
+void SetRotMatrix(struct MATRIX *m);
+int Visable3d(struct COLLHEADER *Map, struct VECT *Old, struct VECT *New, int Space);
+int VectorNormal(struct VECT *v0, struct VECT *v1);
+void GenerateCrossSection(struct SVECTOR *HxPnts, struct VECT *Rel, struct SHORTPAIR WidthSect);
+int AreaValid(int Win, int Area);
+void SetupScreenGivenArea(int Win, int Area);
+int SquareRoot0(int a);
+struct POLY_G4 *HH_SimpleModel_(struct SIMPOL *Model, struct SIMPOL *ModelEnd, struct SCRPNT *ScrPnts, struct POLY_G4 *Poly);
+
+#define gte_mvr_d(reg, r0) __asm__ volatile("move $" #reg ",%0" : : "r"(r0) : "$" #reg)
+#define gte_op_d(s) __asm__ volatile(s)
+#define gte_st_d(s) __asm__ volatile(s : : : "memory")
+#define gte_ldv0_d(r0) { gte_mvr_d(12, r0); gte_op_d("lwc2 $0,0($12)"); gte_op_d("lwc2 $1,4($12)"); }
+#define gte_rtv0_d() { gte_op_d("nop"); gte_op_d("nop"); gte_op_d(".word 0x4A486012"); }
+#define gte_mvlvtr_d() __asm__ volatile("mfc2 $12,$25\nmfc2 $13,$26\nmfc2 $14,$27\nctc2 $12,$5\nctc2 $13,$6\nctc2 $14,$7" : : : "$12", "$13", "$14", "$15")
+#define gte_ldv3c_d(r0) { gte_mvr_d(12, r0); \
+    gte_op_d("lwc2 $0,0($12)"); gte_op_d("lwc2 $1,4($12)"); gte_op_d("lwc2 $2,8($12)"); \
+    gte_op_d("lwc2 $3,12($12)"); gte_op_d("lwc2 $4,16($12)"); gte_op_d("lwc2 $5,20($12)"); }
+#define gte_rtpt_d() { gte_op_d("nop"); gte_op_d("nop"); gte_op_d(".word 0x4A280030"); }
+#define gte_stsxy3c_d(r0) { gte_mvr_d(12, r0); \
+    gte_st_d("swc2 $12,0($12)"); gte_st_d("swc2 $13,4($12)"); gte_st_d("swc2 $14,8($12)"); }
+#define gte_stsz_d(r0) { gte_mvr_d(12, r0); gte_st_d("swc2 $19,0($12)"); }
+
+void Draw3dLine(struct THICKLINE *ThickLine)
+{
+    struct AREAINTERSECT *AreaIntersect;
+    struct SVECTOR HxPnts[6];
+    struct SCRPNT ScrPnts[12];
+    struct POLY_G4 *OldPoly;
+    struct VECT Rel;
+    struct SVECT Base;
+    struct VECT Direction;
+    int AreasDone;
+    struct SHORTPAIR AreaWin;
+    int i;
+
+    memset(&AreaWin, 0, sizeof(AreaWin));
+    for (i = 0; i < MaxWindows; i++) {
+        AreaWin.b = i;
+        CurrWin = &GameWindows[AreaWin.b];
+        CurrCamPos = &CurrWin->CamPos;
+        CurrCamMat = &CurrWin->CamMat;
+        CurrWinIndx = AreaWin.b;
+        CurrOt = currdb->Ot[AreaWin.b];
+        CurrScreenSize = CurrWin->Size;
+        memset(&CurrScreenMin, 0, sizeof(CurrScreenMin));
+        SetGeomOffset(CurrWin->Geom.sx, CurrWin->Geom.sy);
+        SetGeomScreen(CurrWin->Focal);
+        SetRotMatrix(CurrCamMat);
+        Visable3d(&CollMap, &ThickLine->Start, &ThickLine->Stop, ThickLine->Space);
+        Rel.vx = ThickLine->Stop.vx - ThickLine->Start.vx;
+        Rel.vy = ThickLine->Stop.vy - ThickLine->Start.vy;
+        Rel.vz = ThickLine->Stop.vz - ThickLine->Start.vz;
+        VectorNormal(&Rel, &Direction);
+        Direction.vx = Direction.vx * 640 >> 12;
+        Direction.vy = Direction.vy * 640 >> 12;
+        Direction.vz = Direction.vz * 640 >> 12;
+        GenerateCrossSection(HxPnts, &Rel, (struct SHORTPAIR){ThickLine->Width, 6});
+        {
+        struct VECT Centre;
+        int Za;
+        int Zb;
+        int DrawArea;
+        int LastDrawArea;
+
+        Za = 0;
+        DrawArea = 0;
+        for (AreasDone = 0, AreaIntersect = CollMap.AreaIntersects; AreaIntersect < CollMap.AreaIntersectLast; AreaIntersect++, AreasDone++) {
+            LastDrawArea = DrawArea;
+            AreaWin.a = AreaIntersect->Area;
+            DrawArea = AreaValid(AreaWin.b, AreaWin.a);
+            if (!DrawArea)
+                continue;
+            SetupScreenGivenArea(AreaWin.b, AreaWin.a);
+            if (!LastDrawArea) {
+                Base.vx = AreaIntersect->Intersect.vx - CurrCamPos->vx;
+                Base.vy = AreaIntersect->Intersect.vy - CurrCamPos->vy;
+                Base.vz = AreaIntersect->Intersect.vz - CurrCamPos->vz;
+                gte_ldv0_d(&Base);
+                gte_rtv0_d();
+                gte_mvlvtr_d();
+            }
+            gte_ldv3c_d(HxPnts);
+            gte_rtpt_d();
+            gte_stsxy3c_d(ScrPnts);
+            gte_ldv3c_d(&HxPnts[3]);
+            gte_rtpt_d();
+            gte_stsxy3c_d(&ScrPnts[3]);
+            gte_stsz_d(&Za);
+            {
+                struct VECT Temp;
+                int NumSections;
+                int a;
+                int s;
+
+                if (!AreasDone) {
+                    if (NextGeneralG4 > LastGeneralG4 - 2)
+                        return;
+                    OldPoly = NextGeneralG4;
+                    NextGeneralG4 = HH_SimpleModel_(ThickLine->EndModelB, ThickLine->EndModelB + 1, ScrPnts, OldPoly);
+                    GeneralG4Sort(OldPoly, &AreaIntersect->Intersect, AreaWin, Za);
+                }
+                Temp.vx = AreaIntersect->Intersect.vx - AreaIntersect[1].Intersect.vx;
+                Temp.vy = AreaIntersect->Intersect.vy - AreaIntersect[1].Intersect.vy;
+                Temp.vz = AreaIntersect->Intersect.vz - AreaIntersect[1].Intersect.vz;
+                NumSections = (SquareRoot0(Temp.vx * Temp.vx + Temp.vy * Temp.vy + Temp.vz * Temp.vz) + 639) / 640;
+                Centre.vx = AreaIntersect->Intersect.vx - Direction.vx / 2;
+                Centre.vy = AreaIntersect->Intersect.vy - Direction.vy / 2;
+                Centre.vz = AreaIntersect->Intersect.vz - Direction.vz / 2;
+                for (s = NumSections - 1; s >= 0; s--) {
+                    if (NextGeneralG4 > LastGeneralG4 - 6)
+                        return;
+                    for (a = 0; a < 6; a++)
+                        *(long *)&ScrPnts[a + 6] = *(long *)&ScrPnts[a];
+                    Zb = Za;
+                    if (s) {
+                        Base.vx += Direction.vx;
+                        Base.vy += Direction.vy;
+                        Base.vz += Direction.vz;
+                        Centre.vx += Direction.vx;
+                        Centre.vy += Direction.vy;
+                        Centre.vz += Direction.vz;
+                    } else {
+                        Temp.vx = AreaIntersect[1].Intersect.vx - CurrCamPos->vx;
+                        Temp.vy = AreaIntersect[1].Intersect.vy - CurrCamPos->vy;
+                        Temp.vz = AreaIntersect[1].Intersect.vz - CurrCamPos->vz;
+                        Centre.vx += (Direction.vx + Temp.vx - Base.vx) / 2;
+                        Centre.vy += (Direction.vy + Temp.vy - Base.vy) / 2;
+                        Centre.vz += (Direction.vz + Temp.vz - Base.vz) / 2;
+                        Base = (struct SVECT){Temp.vx, Temp.vy, Temp.vz};
+                    }
+                    gte_ldv0_d(&Base);
+                    gte_rtv0_d();
+                    gte_mvlvtr_d();
+                    gte_ldv3c_d(HxPnts);
+                    gte_rtpt_d();
+                    gte_stsxy3c_d(ScrPnts);
+                    gte_ldv3c_d(&HxPnts[3]);
+                    gte_rtpt_d();
+                    gte_stsxy3c_d(&ScrPnts[3]);
+                    gte_stsz_d(&Za);
+                    OldPoly = NextGeneralG4;
+                    NextGeneralG4 = HH_SimpleModel_(ThickLine->Model, ThickLine->Model + 5, ScrPnts, OldPoly);
+                    GeneralG4Sort(OldPoly, &Centre, AreaWin, Za + Zb / 2);
+                }
+            }
+        }
+        if (DrawArea) {
+            if (NextGeneralG4 > LastGeneralG4 - 2)
+                return;
+            OldPoly = NextGeneralG4;
+            NextGeneralG4 = HH_SimpleModel_(ThickLine->EndModelA, ThickLine->EndModelA + 1, ScrPnts, OldPoly);
+            GeneralG4Sort(OldPoly, &Centre, AreaWin, Za);
+        }
+        }
+    }
 }
 
 extern short rcossin_tbl[][2];
