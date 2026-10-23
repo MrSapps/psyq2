@@ -384,3 +384,221 @@ char *GetStringFromStringtable(struct IDENTITYNAME StringName)
         ReturnString = FindStringInTable(StringName);
     return ReturnString;
 }
+
+/* GTE macros in the PSY-Q inline_c.h style: one asm statement per instruction, so that each
+   counts as one insn for gcc's register allocation (DrawVectBox needs this to match) */
+#define gte_mvr(reg, r0) __asm__ volatile("move $" #reg ",%0" : : "r"(r0) : "$" #reg, "memory")
+#define gte_op(s) __asm__ volatile(s)
+#define gte_st(s) __asm__ volatile(s : : : "memory")
+#define gte_ldv0_s(r0) { gte_mvr(12, r0); gte_op("lwc2 $0,0($12)"); gte_op("lwc2 $1,4($12)"); }
+#define gte_ldv3_s(r0, r1, r2) { gte_mvr(12, r0); gte_mvr(13, r1); gte_mvr(14, r2); \
+    gte_op("lwc2 $0,0($12)"); gte_op("lwc2 $1,4($12)"); gte_op("lwc2 $2,0($13)"); \
+    gte_op("lwc2 $3,4($13)"); gte_op("lwc2 $4,0($14)"); gte_op("lwc2 $5,4($14)"); }
+#define gte_ldv3c_s(r0) { gte_mvr(12, r0); \
+    gte_op("lwc2 $0,0($12)"); gte_op("lwc2 $1,4($12)"); gte_op("lwc2 $2,8($12)"); \
+    gte_op("lwc2 $3,12($12)"); gte_op("lwc2 $4,16($12)"); gte_op("lwc2 $5,20($12)"); }
+#define gte_rtv0_s() { gte_op("nop"); gte_op("nop"); gte_op(".word 0x4A486012"); }
+#define gte_rtpt_s() { gte_op("nop"); gte_op("nop"); gte_op(".word 0x4A280030"); }
+#define gte_stsxy3_s(r0, r1, r2) { gte_mvr(12, r0); gte_mvr(13, r1); gte_mvr(14, r2); \
+    gte_st("swc2 $12,0($12)"); gte_st("swc2 $13,0($13)"); gte_st("swc2 $14,0($14)"); }
+#define gte_stsxy3c_s(r0) { gte_mvr(12, r0); \
+    gte_st("swc2 $12,0($12)"); gte_st("swc2 $13,4($12)"); gte_st("swc2 $14,8($12)"); }
+#define gte_stlvnl_s(r0) { gte_mvr(12, r0); \
+    gte_st("swc2 $25,0($12)"); gte_st("swc2 $26,4($12)"); gte_st("swc2 $27,8($12)"); }
+/* translation vector = last rtv0 result (MAC1-3 -> TRX/TRY/TRZ) */
+#define gte_mac2tr_s() __asm__ volatile("mfc2 $12,$25\nmfc2 $13,$26\nmfc2 $14,$27\nctc2 $12,$5\nctc2 $13,$6\nctc2 $14,$7" : : : "$12", "$13", "$14")
+#define gte_SetTransMatrix_s(r0) __asm__ volatile("move $12,%0\nlw $13,20($12)\nlw $14,24($12)\nctc2 $13,$5\nlw $15,28($12)\nctc2 $14,$6\nctc2 $15,$7" : : "r"(r0) : "$12", "$13", "$14", "$15")
+
+extern struct POLY_G4 *LastGeneralG4;
+extern struct POLY_G4 *NextGeneralG4;
+extern struct LINE_F2 *NextLineF2;
+extern struct LINE_F2 *LastLineF2;
+extern struct VECT *CurrCamPos;
+extern struct MATRIX *CurrCamMat;
+extern unsigned long *CurrOt;
+extern struct DB *currdb;
+static struct CROSSDATA CrossList[32];
+void AddPrim_(void *ot, void *p);
+void dprintf();
+void *memset();
+void SetRotMatrix(struct MATRIX *m);
+struct POLY_G4 *HH_SimpleModel_(struct SIMPOL *Model, struct SIMPOL *ModelEnd, struct SCRPNT *ScrPnts, struct POLY_G4 *Poly);
+
+void DrawCrossesCurrWin(void)
+{
+    struct CROSSDATA *Cross;
+    struct VECT Tran;
+    struct VECT Temp;
+    struct SVECTOR Points[6];
+    int Rad;
+    struct SVECTOR Rel;
+
+    SetRotMatrix(CurrCamMat);
+    for (Cross = CrossList; Cross < CrossPntr; Cross++) {
+        if (NextLineF2 + 3 > LastLineF2)
+            continue;
+        Temp.vx = Cross->Pos.vx - CurrCamPos->vx;
+        Temp.vy = Cross->Pos.vy - CurrCamPos->vy;
+        Temp.vz = Cross->Pos.vz - CurrCamPos->vz;
+        if (Temp.vx < -32000 || Temp.vx > 32000)
+            continue;
+        if (Temp.vy < -32000 || Temp.vy > 32000)
+            continue;
+        if (Temp.vz < -32000 || Temp.vz > 32000)
+            continue;
+        Rel = (struct SVECTOR){Temp.vx, Temp.vy, Temp.vz};
+        gte_ldv0_s(&Rel);
+        gte_rtv0_s();
+        gte_stlvnl_s(&Tran);
+        if (Tran.vz < 0x80)
+            continue;
+        gte_SetTransMatrix_s((struct MATRIX *)((char *)&Tran - 20));
+        Rad = Cross->Radius;
+        Points[0] = (struct SVECTOR){Rad, 0, 0};
+        Points[1] = (struct SVECTOR){-Rad, 0, 0};
+        Points[2] = (struct SVECTOR){0, Rad, 0};
+        Points[3] = (struct SVECTOR){0, -Rad, 0};
+        Points[4] = (struct SVECTOR){0, 0, Rad};
+        Points[5] = (struct SVECTOR){0, 0, -Rad};
+        gte_ldv3_s(&Points[0], &Points[1], &Points[2]);
+        gte_rtpt_s();
+        gte_stsxy3_s(&NextLineF2[0].x0, &NextLineF2[0].x1, &NextLineF2[1].x0);
+        gte_ldv3_s(&Points[3], &Points[4], &Points[5]);
+        gte_rtpt_s();
+        gte_stsxy3_s(&NextLineF2[1].x1, &NextLineF2[2].x0, &NextLineF2[2].x1);
+        *(struct RGB3 *)&NextLineF2[0].r0 = *(struct RGB3 *)&Cross->Colour;
+        *(struct RGB3 *)&NextLineF2[1].r0 = *(struct RGB3 *)&Cross->Colour;
+        *(struct RGB3 *)&NextLineF2[2].r0 = *(struct RGB3 *)&Cross->Colour;
+        ((unsigned char *)&NextLineF2[0].tag)[3] = 3;
+        NextLineF2[0].code = 0x40;
+        ((unsigned char *)&NextLineF2[1].tag)[3] = 3;
+        NextLineF2[1].code = 0x40;
+        ((unsigned char *)&NextLineF2[2].tag)[3] = 3;
+        NextLineF2[2].code = 0x40;
+        AddPrim_(&CurrOt[50], &NextLineF2[0]);
+        AddPrim_(&CurrOt[50], &NextLineF2[1]);
+        AddPrim_(&CurrOt[50], &NextLineF2[2]);
+        NextLineF2 += 3;
+    }
+}
+
+void DrawCylinder(struct VECT *Location, short Radius, short MinY, short MaxY)
+{
+    static struct SIMPOL CylinderModel[10] = {
+    {{0, 1, 6, 7}, {{0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}}},
+    {{1, 2, 7, 8}, {{0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}}},
+    {{2, 3, 8, 9}, {{0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}}},
+    {{3, 4, 9, 10}, {{0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}}},
+    {{4, 5, 10, 11}, {{0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}}},
+    {{5, 0, 11, 6}, {{0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}}},
+    {{1, 0, 2, 3}, {{0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}}},
+    {{4, 3, 5, 0}, {{0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}}},
+    {{6, 7, 9, 8}, {{0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}}},
+    {{9, 10, 6, 11}, {{0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}}},
+    };
+    struct SCRPNT ScrPnts[12];
+    struct SVECTOR Points[12];
+    struct SVECT Rel;
+    struct VECT Tran;
+    struct POLY_G4 *OldPoly;
+    struct POLY_G4 *Poly;
+
+    if (NextGeneralG4 <= LastGeneralG4 - 10) {
+        Rel.vx = Location->vx - GameWindows[0].CamPos.vx;
+        Rel.vy = Location->vy - GameWindows[0].CamPos.vy;
+        Rel.vz = Location->vz - GameWindows[0].CamPos.vz;
+        {
+            int a;
+            int y;
+            int ValA;
+            int ValB;
+
+            y = MinY;
+            ValA = Radius / 2;
+            ValB = Radius * 3547 / 4096;
+            for (a = 0; a < 12; a += 6) {
+                Points[a + 0] = (struct SVECTOR){ValA, y, -ValB};
+                Points[a + 1] = (struct SVECTOR){Radius, y, 0};
+                Points[a + 2] = (struct SVECTOR){ValA, y, ValB};
+                Points[a + 3] = (struct SVECTOR){-ValA, y, ValB};
+                Points[a + 4] = (struct SVECTOR){-Radius, y, 0};
+                Points[a + 5] = (struct SVECTOR){-ValA, y, -ValB};
+                y = MaxY;
+            }
+        }
+        gte_ldv0_s(&Rel);
+        gte_rtv0_s();
+        gte_mac2tr_s();
+        {
+            int a;
+
+            for (a = 0; a < 12; a += 3) {
+                gte_ldv3c_s(&Points[a]);
+                gte_rtpt_s();
+                gte_stsxy3c_s(&ScrPnts[a]);
+            }
+        }
+        OldPoly = NextGeneralG4;
+        NextGeneralG4 = HH_SimpleModel_(CylinderModel, &CylinderModel[9], ScrPnts, OldPoly);
+        for (Poly = OldPoly; Poly < NextGeneralG4; Poly++)
+            AddPrim_(&currdb->Ot[0][48], Poly);
+    } else
+        dprintf(GameWindows, "Failed to draw Cylinder \n");
+}
+
+void DrawVectBox(struct VECTBOX *VectBox)
+{
+    static struct SIMPOL ModelData[8] = {
+    {{0, 1, 2, 3}, {{0xff, 0x0, 0x0, 0x3a}, {0xff, 0x0, 0x0, 0x3a}, {0xff, 0x0, 0x0, 0x3a}, {0xff, 0x0, 0x0, 0x3a}}},
+    {{0, 4, 1, 5}, {{0xff, 0x0, 0x0, 0x3a}, {0x0, 0x0, 0xff, 0x3a}, {0xff, 0x0, 0x0, 0x3a}, {0x0, 0x0, 0xff, 0x3a}}},
+    {{1, 5, 3, 7}, {{0xff, 0x0, 0x0, 0x3a}, {0x0, 0x0, 0xff, 0x3a}, {0xff, 0x0, 0x0, 0x3a}, {0x0, 0x0, 0xff, 0x3a}}},
+    {{3, 7, 2, 6}, {{0xff, 0x0, 0x0, 0x3a}, {0x0, 0x0, 0xff, 0x3a}, {0xff, 0x0, 0x0, 0x3a}, {0x0, 0x0, 0xff, 0x3a}}},
+    {{2, 6, 0, 4}, {{0xff, 0x0, 0x0, 0x3a}, {0x0, 0x0, 0xff, 0x3a}, {0xff, 0x0, 0x0, 0x3a}, {0x0, 0x0, 0xff, 0x3a}}},
+    {{5, 4, 7, 6}, {{0x0, 0x0, 0xff, 0x3a}, {0x0, 0x0, 0xff, 0x3a}, {0x0, 0x0, 0xff, 0x3a}, {0x0, 0x0, 0xff, 0x3a}}},
+    {{0, 0, 0, 0}, {{0x0, 0x0, 0x0, 0x0}, {0x0, 0x0, 0x0, 0x0}, {0x0, 0x0, 0x0, 0x0}, {0x0, 0x0, 0x0, 0x0}}},
+    {{0, 0, 0, 0}, {{0x0, 0x0, 0x0, 0x0}, {0x0, 0x0, 0x0, 0x0}, {0x0, 0x0, 0x0, 0x0}, {0x0, 0x0, 0x0, 0x0}}},
+    };
+    struct SCRPNT ScrPnts[9];
+    struct SVECTOR Points[9];
+    struct SVECT Rel;
+    struct VECT Tran;
+    int X;
+    int Y;
+    int Z;
+    struct POLY_G4 *OldPoly;
+    struct POLY_G4 *Poly;
+
+    if (NextGeneralG4 <= LastGeneralG4 - 6) {
+        X = VectBox->Max.vx - VectBox->Min.vx;
+        Y = VectBox->Max.vy - VectBox->Min.vy;
+        Z = VectBox->Max.vz - VectBox->Min.vz;
+        Rel.vx = VectBox->Min.vx - GameWindows[0].CamPos.vx;
+        Rel.vy = VectBox->Min.vy - GameWindows[0].CamPos.vy;
+        Rel.vz = VectBox->Min.vz - GameWindows[0].CamPos.vz;
+        Points[0] = (struct SVECTOR){0, 0, 0};
+        Points[1] = (struct SVECTOR){X, 0, 0};
+        Points[2] = (struct SVECTOR){0, 0, Z};
+        Points[3] = (struct SVECTOR){X, 0, Z};
+        Points[4] = (struct SVECTOR){0, Y, 0};
+        Points[5] = (struct SVECTOR){X, Y, 0};
+        Points[6] = (struct SVECTOR){0, Y, Z};
+        Points[7] = (struct SVECTOR){X, Y, Z};
+        gte_ldv0_s(&Rel);
+        gte_rtv0_s();
+        gte_mac2tr_s();
+        gte_ldv3_s(&Points[0], &Points[1], &Points[2]);
+        gte_rtpt_s();
+        gte_stsxy3_s(&ScrPnts[0], &ScrPnts[1], &ScrPnts[2]);
+        gte_ldv3_s(&Points[3], &Points[4], &Points[5]);
+        gte_rtpt_s();
+        gte_stsxy3_s(&ScrPnts[3], &ScrPnts[4], &ScrPnts[5]);
+        gte_ldv3_s(&Points[6], &Points[7], &Points[8]);
+        gte_rtpt_s();
+        gte_stsxy3_s(&ScrPnts[6], &ScrPnts[7], &ScrPnts[8]);
+        OldPoly = NextGeneralG4;
+        NextGeneralG4 = HH_SimpleModel_(ModelData, &ModelData[5], ScrPnts, OldPoly);
+        for (Poly = OldPoly; Poly < NextGeneralG4; Poly++)
+            AddPrim_(&currdb->Ot[0][48], Poly);
+    } else
+        dprintf(GameWindows, "Failed to draw a VectBox\n");
+}

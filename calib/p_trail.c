@@ -18,6 +18,76 @@ int SnapPointToBoxFace(struct VECT *point, struct VECTBOX *Box, struct VECT *sna
 struct VECTBOX *PointInCreatureBlocker(struct VECT *point, int space);
 long vectoyaw(struct VECT *vec);
 
+extern struct COLLHEADER MoveCollMap;
+int Visable3d(struct COLLHEADER *Map, struct VECT *Start, struct VECT *End, int S0);
+int abs(int);
+
+int SnapPointToBoxFace(struct VECT *point, struct VECTBOX *Box, struct VECT *snapped_point, int space)
+{
+    unsigned char marked;
+    int best;
+    int bestdist;
+
+    marked = 0;
+    do {
+        best = -1;
+        bestdist = 99999999;
+        if (!(marked & 1) && abs(point->vx - Box->Min.vx) < bestdist) {
+            bestdist = abs(point->vx - Box->Min.vx);
+            best = 0;
+        }
+        if (!(marked & 2) && abs(Box->Max.vx - point->vx) < bestdist) {
+            bestdist = abs(Box->Max.vx - point->vx);
+            best = 1;
+        }
+        if (!(marked & 0x10) && abs(point->vz - Box->Min.vz) < bestdist) {
+            bestdist = abs(point->vz - Box->Min.vz);
+            best = 4;
+        }
+        if (!(marked & 0x20) && abs(Box->Max.vz - point->vz) < bestdist) {
+            bestdist = abs(Box->Max.vz - point->vz);
+            best = 5;
+        }
+        snapped_point->vx = point->vx;
+        snapped_point->vy = point->vy;
+        snapped_point->vz = point->vz;
+        switch (best) {
+        case 0:
+            snapped_point->vx = Box->Min.vx - 1;
+            marked |= 1;
+            break;
+        case 1:
+            snapped_point->vx = Box->Max.vx + 1;
+            marked |= 2;
+            break;
+        case 2:
+            snapped_point->vy = Box->Min.vy - 1;
+            marked |= 4;
+            break;
+        case 3:
+            snapped_point->vy = Box->Max.vy + 1;
+            marked |= 8;
+            break;
+        case 4:
+            snapped_point->vz = Box->Min.vz - 1;
+            marked |= 0x10;
+            break;
+        case 5:
+            snapped_point->vz = Box->Max.vz + 1;
+            marked |= 0x20;
+            break;
+        default:
+            return 0;
+        }
+        if (Visable3d(&MoveCollMap, point, snapped_point, space) && !PointInCreatureBlocker(snapped_point, MoveCollMap.ReturnSpaceNum))
+            return 1;
+    } while (marked != 0x3f);
+    snapped_point->vx = point->vx;
+    snapped_point->vy = point->vy;
+    snapped_point->vz = point->vz;
+    return 0;
+}
+
 void PlayerTrail_Add(struct VECT spot, int space)
 {
     struct VECT temp;

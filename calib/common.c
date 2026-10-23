@@ -13,20 +13,21 @@ char *strupr(char *s)
     return s2;
 }
 
-/* Same code as the original; only differs because splat labelled the static seed1
-   (right after freepol in .sdata) as freepol+2, so the reloc names can't agree. */
-#ifdef CALIB_SPLAT_NAMES
+/* freepol and QuickRand's seeds are adjacent in .sdata (common.obj). splat labelled seed1 as
+   freepol+2 (and seed2/seed3 as an unnamed D_ label), so seed1 is reached through freepol
+   here to give the same relocation; seed2/seed3 are file-scope statics (anonymous, $gp). */
+unsigned short freepol = 1;
+static unsigned short seed1 = 0x5a4a;
+static unsigned short seed2 = 0x0248;
+static unsigned short seed3 = 0xb753;
+
 unsigned short QuickRand(void)
 {
     static unsigned short temp;
-    static unsigned short seed1 = 0x5a4a;
-    static unsigned short seed2 = 0x0248;
-    static unsigned short seed3 = 0xb753;
 
-    temp = seed1 + seed2;
-    seed1 = seed2;
+    temp = (&freepol)[1] + seed2;
+    (&freepol)[1] = seed2;
     seed2 = seed3;
     seed3 = temp + seed2;
     return temp;
 }
-#endif
