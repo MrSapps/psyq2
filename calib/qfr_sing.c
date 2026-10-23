@@ -337,6 +337,180 @@ void FrontEndDrawCursor(struct STRING_TABLE *fetString, struct POLY_FT4 **poly)
     *poly += 1;
 }
 
+extern unsigned char CharUVs8[];
+extern short alltpages[];
+extern short palette[];
+void FrontEndGetTextCoords(char letter, short *u, short *v, short fontSize);
+
+void FrontEndDrawText(struct STRING_TABLE *fetString, struct POLY_FT4 **poly)
+{
+    struct POLY_FT4 *pActualPoly;
+    char *pChar;
+    short x;
+    short y;
+    short clut;
+    short tpage;
+    short forceDim;
+    short forceGrey;
+    short forceUnderline;
+    char myChar;
+    char NumWins;
+    short u;
+    short v;
+    short w;
+    long *Ot;
+    short fontSizeX;
+    short fontSizeY;
+
+    pChar = fetString->message;
+    pActualPoly = *poly;
+    if (fetString->fontSize == 8)
+        tpage = alltpages[15];
+    else
+        tpage = alltpages[13];
+    forceDim = 0;
+    forceGrey = 0;
+    forceUnderline = 0;
+    NumWins = 1;
+    if (!Paused)
+        NumWins = MaxWindows;
+    switch (fetString->fontSize) {
+    case 32:
+        fontSizeX = 32;
+        fontSizeY = 20;
+        if (fetString->cursorItem)
+            clut = palette[71];
+        else
+            clut = palette[68];
+        break;
+    case 16:
+        fontSizeX = 16;
+        fontSizeY = 11;
+        break;
+    case 8:
+        fontSizeX = 8;
+        fontSizeY = 8;
+        clut = palette[72];
+        break;
+    }
+    x = fetString->x - ((FrontEndGetMessageLength(fetString->message) * fontSizeX) >> 1);
+    y = fetString->y - (fontSizeY >> 1);
+    if (NumWins >= 2) {
+        if (fetString->window != 4)
+            Ot = (long *)&currdb->Ot[fetString->window][50];
+        else
+            Ot = (long *)&currdb->BigOt[5];
+    } else if (fetString->window == 4) {
+        Ot = (long *)&currdb->BigOt[5];
+    } else if (fetString->fontSize != 16) {
+        Ot = (long *)&currdb->BigOt[5];
+    } else {
+        Ot = (long *)&currdb->BigOt[7];
+    }
+    w = fontSizeX;
+    while (*pChar) {
+        myChar = *pChar;
+        if (myChar == 'd') {
+            forceDim = 1;
+        } else if (myChar == 'b') {
+            forceDim = 0;
+            forceGrey = 0;
+            forceUnderline = 0;
+        } else if (myChar == 'g') {
+            forceGrey = 1;
+            forceDim = 1;
+        } else if (myChar == 'u') {
+            forceUnderline = 1;
+        } else {
+            if (myChar != ' ') {
+                setPolyFT4(pActualPoly);
+                w = fontSizeX;
+                switch (fetString->fontSize) {
+                case 8:
+                    u = CharUVs8[(unsigned char)(myChar - ' ') * 2];
+                    v = CharUVs8[(unsigned char)(myChar - ' ') * 2 + 1];
+                    pActualPoly->clut = clut;
+                    break;
+                case 16:
+                    FrontEndGetTextCoords(myChar, &u, &v, 16);
+                    u *= fontSizeX;
+                    v = v * fontSizeY + 100;
+                    if (fetString->cursorItem && !forceDim)
+                        pActualPoly->clut = palette[70];
+                    else
+                        pActualPoly->clut = palette[68];
+                    break;
+                case 32:
+                    FrontEndGetTextCoords(myChar, &u, &v, 32);
+                    pActualPoly->clut = clut;
+                    u *= fontSizeX;
+                    v *= fontSizeY;
+                    break;
+                }
+                setUVWH(pActualPoly, u, v, w, fontSizeY);
+                setXYWH(pActualPoly, x, y, w, fontSizeY);
+                if (forceGrey)
+                    setRGB0(pActualPoly, 0x20, 0x20, 0x20);
+                else
+                    setRGB0(pActualPoly, 0x80, 0x80, 0x80);
+                pActualPoly->tpage = tpage;
+                AddPrim_(Ot, pActualPoly++);
+                *poly += 1;
+                if (forceUnderline) {
+                    u = 0;
+                    v = fontSizeY * 2 + 100;
+                    setPolyFT4(pActualPoly);
+                    setUVWH(pActualPoly, u, v, w, fontSizeY);
+                    setXYWH(pActualPoly, x, y + 8, w, fontSizeY);
+                    if (forceGrey)
+                        setRGB0(pActualPoly, 0x20, 0x20, 0x20);
+                    else
+                        setRGB0(pActualPoly, 0x80, 0x80, 0x80);
+                    pActualPoly->tpage = tpage;
+                    if (fetString->fontSize == 16) {
+                        if (fetString->cursorItem)
+                            pActualPoly->clut = palette[71];
+                        else
+                            pActualPoly->clut = palette[68];
+                    } else {
+                        pActualPoly->clut = clut;
+                    }
+                    AddPrim_(Ot, pActualPoly++);
+                    *poly += 1;
+                }
+                /* x += fontSizeX is written in both branches (jump2 cross-jumps them into one);
+                   the extra ref lifts fontSizeX above fetString in global-alloc priority */
+                x += fontSizeX;
+            } else {
+                if (forceUnderline) {
+                    u = 0;
+                    v = fontSizeY * 2 + 100;
+                    setPolyFT4(pActualPoly);
+                    setUVWH(pActualPoly, u, v, w, fontSizeY);
+                    setXYWH(pActualPoly, x, y + 8, w, fontSizeY);
+                    if (forceGrey)
+                        setRGB0(pActualPoly, 0x20, 0x20, 0x20);
+                    else
+                        setRGB0(pActualPoly, 0x80, 0x80, 0x80);
+                    pActualPoly->tpage = tpage;
+                    if (fetString->fontSize == 16) {
+                        if (fetString->cursorItem)
+                            pActualPoly->clut = palette[71];
+                        else
+                            pActualPoly->clut = palette[68];
+                    } else {
+                        pActualPoly->clut = clut;
+                    }
+                    AddPrim_(Ot, pActualPoly++);
+                    *poly += 1;
+                }
+                x += fontSizeX;
+            }
+        }
+        pChar++;
+    }
+}
+
 short FrontEndGetMessageLength(char *pMessage)
 {
     short count = 0;
