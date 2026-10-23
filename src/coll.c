@@ -84,7 +84,6 @@ char *PrintBool(int Bool);
 int SquareRootNR(int a);
 void DoDamage(struct CREATURE *Cre, struct CREATURE *Target, int Damage, int DamageType, struct VECT *Centre);
 
-extern struct COLLISIONRETURNDATA CollisionReturnData;
 int VisableSolidBoxMove(struct VECT *P, struct VECT *Q, struct VECT *Stop, short Flags);
 
 extern struct COLLHEADER TrigBoundCollMap;

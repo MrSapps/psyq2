@@ -198,7 +198,6 @@ int LoadImage(struct RECT *rect, unsigned long *p);
 int DrawSync(int mode);
 void *MY_malloc_namehb(int s, char *name);
 extern struct PALLIST pallist0[];
-extern short palette[];
 
 void DownloadPals(void)
 {

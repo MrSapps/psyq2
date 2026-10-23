@@ -668,7 +668,6 @@ struct PARTICLE *Particles SBSS;
 struct SPARK SparkList[16] BSS;
 
 
-extern struct SPARK SparkList[];
 int AddLight(struct VECT *Location, struct COLOUR Colour, struct POWER Power, struct SHORTPAIR FlareTypeSize);
 
 extern struct WINDOW GameWindows[];

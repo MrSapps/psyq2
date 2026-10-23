@@ -101,7 +101,6 @@ int CreCollideAsPoint(struct CREATURE *Cre, struct CREATURE *CreIgnore, int Boun
 void UpdateBoxStuff(struct COLLBOX3D *Box, int AreaSource);
 void KillModel(struct CREATURE *Cre);
 
-extern struct SHIELDGLINT ReactorShieldGlints[];
 extern struct WINDOW *CurrWin;
 extern struct MATRIX *CurrCamMat;
 void MulMatrix2(struct MATRIX *m0, struct MATRIX *m1);

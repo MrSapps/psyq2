@@ -92,7 +92,8 @@ int AnyoneFireGrenadeL(struct CREATURE *Aggressor, struct VECT *Start, struct SV
 void monster_fire_bullet(struct edict_s *self, struct VECT *start, struct VECT *dir, int damage, int kick, int hspread, int vspread, int flashtype)
 {
     struct CREATURE *SelfCre;
-    static struct SVECT BasicDir;
+    /* the original also declared an unused `static struct SVECT BasicDir;` here (it is in
+       the debug info), but its object has no storage for it, so it is left out */
     struct SVECT Dir;
     short start_space;
 

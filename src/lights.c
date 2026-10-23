@@ -55,9 +55,16 @@ struct LENSFLARE LensFlare_TypeD[6] = {
     { 2, 512, 6144, 1024 },
     { 0, 0, 0, 0 },
 };
-short NumFlashLights SBSS;
-short NumFixedLights SBSS;
-struct LIGHTBACK *LightBackEnd2[2] SBSS;
+/* LightBackEnd2[2]: the code only ever sees the extern [] declaration above (which is what
+   keeps InitLights from being deferred and gives it %hi/%lo addressing), and gcc drops the
+   section attribute of a definition that follows a declaration, so it is defined in asm.
+   gcc emits a top-level asm at once but the uninitialised variables later, so the two
+   before it in .sbss are defined in the same asm */
+extern short NumFlashLights;
+extern short NumFixedLights;
+__asm__(".globl NumFlashLights\n\t.section .sbss\n\t.align 2\nNumFlashLights:\n\t.space 4\n"
+        "\t.globl NumFixedLights\n\t.align 2\nNumFixedLights:\n\t.space 4\n"
+        "\t.globl LightBackEnd2\n\t.align 2\nLightBackEnd2:\n\t.space 8");
 struct LIGHTS *LightListCurrent SBSS;
 struct LIGHTS *HeavenlyLightListCurrent SBSS;
 short *SceneFlashData SBSS;
