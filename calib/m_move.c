@@ -142,3 +142,83 @@ void SV_NewChaseDir(struct edict_s *actor, struct edict_s *enemy, long dist)
     if (!M_CheckBottom(actor))
         SV_FixCheckBottom(actor);
 }
+
+/* do-while(0) wrappers found by decomp-permuter; they change gcc's block layout */
+int SV_StepDirection(struct edict_s *ent, long yaw, long dist)
+{
+  struct VECT move;
+  struct VECT oldorigin;
+  long delta;
+  ent->ideal_yaw = yaw;
+  {
+    {
+      long speed;
+      long total_move;
+      long move;
+      long current;
+      long ideal;
+      current = anglemod(ent->sangles.vz);
+      ideal = ent->ideal_yaw;
+      if (current != ideal)
+      {
+        move = ideal - current;
+        speed = ent->yaw_speed;
+        if (ideal > current)
+        {
+          if (move >= 0x800)
+          {
+            move -= 0x1000;
+          }
+        }
+        else
+          if (move <= (-0x800))
+        {
+          move += 0x1000;
+        }
+        total_move = move;
+        if (move > 0)
+        {
+          if (move > speed)
+          {
+            move = speed;
+          }
+        }
+        else
+          if (move < (-speed))
+        {
+ do { move = -speed; } while (0);
+        }
+        if ((ent->monsterinfo.turn_threshold && (abs(total_move) > ent->monsterinfo.turn_threshold)) && ent->monsterinfo.turn)
+        {
+          ent->monsterinfo.turn(ent);
+        }
+        else
+        {
+          ((struct CREATURE *) (&ent->Extra)->Creature)->IdealYaw = (ent->sangles.vz = (long long) anglemod(current + move));
+        }
+      }
+    }
+  }
+  move.vx = (rcossin_tbl[yaw & 0xfff][0] * dist) / 4096;
+  move.vz = (rcossin_tbl[yaw & 0xfff][1] * dist) / 4096;
+  move.vy = 0;
+  oldorigin.vx = ent->sorigin.vx;
+  oldorigin.vy = ent->sorigin.vy;
+  oldorigin.vz = ent->sorigin.vz;
+  if (SV_movestep(ent, &move, 0))
+  {
+    delta = ent->sangles.vz - ent->ideal_yaw;
+    if ((delta > 0x200) && (delta < 0xe00))
+    {
+      ent->sorigin.vx = oldorigin.vx;
+      ent->sorigin.vy = oldorigin.vy;
+      ent->sorigin.vz = oldorigin.vz;
+    }
+    linkentity(ent, 0x85);
+    G_TouchTriggers(ent);
+    return 1;
+  }
+  linkentity(ent, 0x85);
+  G_TouchTriggers(ent);
+  return 0;
+}

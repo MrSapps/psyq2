@@ -105,6 +105,131 @@ short PrimaryWeaponMovement(struct CREATURE *Gun, struct PLAYERCONTROLS *Control
     return VCFire.b;
 }
 
+extern struct WINDOW GameWindows[];
+extern int (*WeaponFireFunctions[])();
+extern unsigned int LevelTicks;
+extern struct IDENTITYNAME GunModels[];
+extern int Sound_QuadDamage;
+struct SOUNDINFO Quad_SoundInfo;
+struct GLOBMODHDR *GetModelHdr(struct IDENTITYNAME Name);
+void FreeModelPackets(struct CREATURE *Cre);
+int SoundTestRunning(struct SOUNDINFO *SoundInfo);
+int SoundHere(int SFXNumber, struct VECT *loc, struct SOUNDINFO *SoundInfo);
+void NoAmmoWeaponChange(struct PLAYER *Player);
+char QWeapon_NextPrev(struct PLAYER *Player, int Weapon_Type, int Next);
+
+struct GLOBMODHDR *GetModelHdr(struct IDENTITYNAME Name);
+void FreeModelPackets(struct CREATURE *Cre);
+void NoAmmoWeaponChange(struct PLAYER *Player);
+
+/* do-while(0) wrappers found by decomp-permuter; they change gcc's block layout */
+struct SHORTPAIR Weapon_Generic(struct CREATURE *Gun, struct WEAPON_ANIM *Cur_GunState, struct WEAPON_ANIM *End_GunState, struct PLAYERCONTROLS *Controls)
+{
+  struct CREATURE *Cre;
+  struct PLAYER *Player;
+  struct PTIMERS *PTimers;
+  int Is_Quad;
+  short FireStatus;
+  int WinNo;
+  int (*Func)();
+  Cre = (struct CREATURE *) Gun->Params[0];
+  Player = Cre->Player;
+  WinNo = Player->Window - GameWindows;
+  FireStatus = 0;
+  PTimers = &Player->Extras.PTimers;
+  Is_Quad = LevelTicks < PTimers->QuadTimer;
+  if (!Gun->Params[3])
+  {
+    Gun->Params[2]++;
+  }
+  if (Gun->Params[1] == 3)
+  {
+    if ((&Cur_GunState[Gun->Params[2]]) == End_GunState)
+    {
+      if (((signed char) PTimers->WeapChange_Timer) <= 0)
+      {
+        Gun->Params[1] = 0;
+        Gun->Params[2] = 0;
+        Gun->WayOld = 0;
+        Player->Extras.Current_WeaponSelected = (Gun->WayPres = Gun->WayDest);
+        Gun->ModelHdr = GetModelHdr(GunModels[Gun->WayPres]);
+        FreeModelPackets(Gun);
+        if (Gun->WayPres == 9)
+        {
+          Gun->AnimFrame = WinNo * 10;
+        }
+        else
+        {
+          Gun->AnimFrame = 0;
+        }
+      }
+      else
+      {
+        Gun->Params[2]--;
+        return (struct SHORTPAIR){1, 0};
+      }
+    }
+  }
+  else
+    if ((Gun->Params[1] == 0) && ((&Cur_GunState[Gun->Params[2]]) == End_GunState))
+  {
+    Gun->Params[1] = 2;
+    Gun->IdealLocation.vx = (int) WeaponFireFunctions[Player->Extras.Current_WeaponSelected];
+    Gun->Params[2] = 0;
+    return (struct SHORTPAIR){0, FireStatus};
+  }
+  else
+    if ((Gun->WayPres != Player->Extras.FastWeaponSelect) && (Gun->Params[1] != 1))
+  {
+    Gun->Params[1] = 3;
+    Gun->Params[2] = 0;
+    return (struct SHORTPAIR){0, FireStatus};
+  }
+  else
+  {
+    if (Gun->Params[1] == 2)
+    {
+      if (Controls->FireHeld || Gun->WayOld)
+      {
+        Func = (int (*)()) Gun->IdealLocation.vx;
+        Gun->Params[2] = 0;
+        if (!Gun->WayOld)
+        {
+          FireStatus = Func(Cre);
+        }
+        if ((FireStatus == 2) || Gun->WayOld)
+        {
+          Gun->WayOld = 0;
+          NoAmmoWeaponChange(Player);
+          Player->Extras.Next_WeaponSelected = QWeapon_NextPrev(Player, Player->Extras.FastWeaponSelect, 1);
+          Player->Extras.Previous_WeaponSelected = QWeapon_NextPrev(Player, Player->Extras.FastWeaponSelect, 0);
+        }
+        else
+        {
+          if (Is_Quad && (!SoundTestRunning(&Quad_SoundInfo)))
+          {
+            SoundHere(Sound_QuadDamage, (struct VECT *) (&Cre->Box), &Quad_SoundInfo);
+          }
+          Gun->Params[1] = 1;
+        }
+      }
+      else
+        if ((&Cur_GunState[Gun->Params[2]]) == End_GunState)
+      {
+        Gun->Params[1] = 2;
+        Gun->Params[2] = 0;
+        return (struct SHORTPAIR){0, FireStatus};
+      }
+    }
+    if ((Gun->Params[1] == 1) && ((&Cur_GunState[Gun->Params[2]]) == End_GunState))
+    {
+      Gun->Params[1] = 2;
+ do { Gun->Params[2] = 0; return (struct SHORTPAIR){0, FireStatus}; } while (0);
+    }
+  }
+  return (struct SHORTPAIR){0, FireStatus};
+}
+
 void QuakeWeaponChange(struct CREATURE *Cre, struct PLAYERCONTROLS *Controls)
 {
     struct PLAYER *Player;
