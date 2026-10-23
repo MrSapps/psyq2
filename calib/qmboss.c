@@ -42,3 +42,59 @@ void PrintMissionDetails_80024F94(void)
     PrintBool(BossData->Stairs1Pressed);
     PrintBool(BossData->HelpCompStatus);
 }
+
+extern char GameDeathWatchA;
+extern char GameDeathWatchB;
+extern char GameDeathWatchC;
+extern struct IDENTITYNAME LastObjective;
+extern struct IDENTITYNAME LastOrders;
+struct SAVEFILEHDR *OpenSaveMemory(struct IDENTITYNAME Name, int Writeable);
+void CloseWritableSaveMemoryFile(struct IDENTITYNAME Name, short Flags);
+void HelpComputer_SetMessages(struct IDENTITYNAME Orders, struct IDENTITYNAME Objective);
+void HelpComputer_GetMessages(struct IDENTITYNAME *Orders, struct IDENTITYNAME *Objective);
+int HelpComputer_Reset(void);
+void *memset(void *s, int c, unsigned int n);
+
+static const struct IDENTITYNAME MissionName = {"Mission 5"};
+
+void MissionLoadSaveHub_80024918(int Write)
+{
+    struct SAVEFILEHDR *FileHdr;
+    struct BOSSDATA *ThisData;
+
+    FileHdr = OpenSaveMemory(MissionName, Write);
+    if (FileHdr) {
+        ThisData = (struct BOSSDATA *)(FileHdr + 1);
+        if (Write) {
+            HelpComputer_GetMessages(&BossData->HelpOrders, &BossData->HelpObjective);
+            if (GameDeathWatchB)
+                BossData->KilledMakron = 0;
+            else
+                BossData->KilledMakron = 1;
+            *ThisData = *BossData;
+            FileHdr->Size = sizeof(struct BOSSDATA);
+            CloseWritableSaveMemoryFile(MissionName, 1);
+        } else {
+            *BossData = *ThisData;
+            if (BossData->KilledMakron)
+                GameDeathWatchB = 0;
+            else
+                GameDeathWatchB = 1;
+            HelpComputer_SetMessages(BossData->HelpOrders, BossData->HelpObjective);
+        }
+    } else {
+        memset(BossData, 0, sizeof(struct BOSSDATA));
+        GameDeathWatchC = 0;
+        GameDeathWatchB = 0;
+        GameDeathWatchA = 0;
+        if (!BossData->KilledMakron)
+            GameDeathWatchB = 1;
+        BossData->HelpObjective = LastObjective;
+        BossData->HelpOrders = LastOrders;
+        if (!NextLevelName.Name[0]) {
+            NextLevelName = *(struct IDENTITYNAME *)"Boss1";
+            MainStartName = *(struct IDENTITYNAME *)"Default";
+            HelpComputer_Reset();
+        }
+    }
+}

@@ -235,3 +235,79 @@ void MemoryCardPostProcessDir(void)
     totalsize /= 8192;
     memcard_data.numFreeFiles = 15 - totalsize;
 }
+
+struct SAVEFILEHDR *OpenSaveMemory(struct IDENTITYNAME Name, int Writeable);
+void CloseWritableSaveMemoryFile(struct IDENTITYNAME Name, short Flags);
+void FrontEndResetPlayerDefaults(void);
+void FrontEndResetSoundDefaults(void);
+void FrontEndResetVideoDefaults(void);
+void FrontEndResetMultiplayerDefaults(void);
+void Config_InstallVideo(void);
+
+void LoadSaveGameConfigData(int Write)
+{
+    struct SAVEFILEHDR *FileHdr;
+    struct QGAMECONFIG *ThisGameConfig;
+
+    FileHdr = OpenSaveMemory(*&(struct IDENTITYNAME){"Game Config"}, Write);
+    if (FileHdr) {
+        ThisGameConfig = (struct QGAMECONFIG *)(FileHdr + 1);
+        if (Write) {
+            *ThisGameConfig = Engine.GameConfig;
+            FileHdr->Size = sizeof(struct QGAMECONFIG);
+            CloseWritableSaveMemoryFile(*&(struct IDENTITYNAME){"Game Config"}, 4);
+            return;
+        }
+        Engine.GameConfig = *ThisGameConfig;
+    } else {
+        FrontEndResetPlayerDefaults();
+        FrontEndResetSoundDefaults();
+        FrontEndResetVideoDefaults();
+        FrontEndResetMultiplayerDefaults();
+    }
+    Config_InstallVideo();
+}
+
+extern short MultiTapExists[];
+/* "SLOT 1" sits in .sdata right after coop, and splat names it coop+0xC */
+extern char coop[];
+int sprintf(char *s, const char *format, ...);
+
+void MemoryCardGetCardnameFromPortNum(long index, char *buf2)
+{
+    char buf[12];
+
+    switch (index) {
+    case 0:
+        if (MultiTapExists[0])
+            sprintf(buf, "SLOT 1-A");
+        else
+            sprintf(buf, coop + 0xc);
+        break;
+    case 1:
+        sprintf(buf, "SLOT 1-B");
+        break;
+    case 2:
+        sprintf(buf, "SLOT 1-C");
+        break;
+    case 3:
+        sprintf(buf, "SLOT 1-D");
+        break;
+    case 4:
+        if (MultiTapExists[1])
+            sprintf(buf, "SLOT 2-A");
+        else
+            sprintf(buf, "SLOT 2");
+        break;
+    case 5:
+        sprintf(buf, "SLOT 2-B");
+        break;
+    case 6:
+        sprintf(buf, "SLOT 2-C");
+        break;
+    case 7:
+        sprintf(buf, "SLOT 2-D");
+        break;
+    }
+    sprintf(buf2, "MEMORY CARD %s", buf);
+}

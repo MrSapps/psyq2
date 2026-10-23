@@ -48,3 +48,52 @@ void VBlankLoading(void)
     ClearOTag(currdb->Ot[0], 50);
     VBlankMainLoop();
 }
+
+extern int VDbFrame;
+extern struct COLOUR SkyColour;
+extern char SkyClear;
+extern int MaxWindows;
+extern void (*LevelSpecific)();
+extern void (*VBlankSpecific)();
+extern struct WINDOW GameWindows[];
+void QuakeLoadingSpecific(void);
+void QuakeCameraLoading(int Win);
+void VBlankLoading(void);
+struct DRAWENV *SetDefDrawEnv(struct DRAWENV *env, int x, int y, int w, int h);
+struct DISPENV *SetDefDispEnv(struct DISPENV *env, int x, int y, int w, int h);
+
+void InitialiseVBlankLoading(void)
+{
+    int a;
+
+    VDbFrame = 1;
+    ClearOTag(db[0].Ot[0], 3);
+    ClearOTag(db[1].Ot[0], 3);
+    SetDefDrawEnv(&db[0].DrawEnv[0], 0, 0, 512, 256);
+    SetDefDrawEnv(&db[1].DrawEnv[0], 512, 0, 512, 256);
+    SetDefDispEnv(&db[0].DispEnv, 512, 0, 512, 256);
+    SetDefDispEnv(&db[1].DispEnv, 0, 0, 512, 256);
+    db[0].DispEnv.screen.y = 0;
+    db[1].DispEnv.screen.y = 0;
+    db[0].DrawEnv[0].isbg = 0;
+    db[1].DrawEnv[0].isbg = 0;
+    db[0].DrawEnv[0].isbg = 1;
+    db[1].DrawEnv[0].isbg = 1;
+    db[0].DrawEnv[0].r0 = 255;
+    db[0].DrawEnv[0].g0 = 8;
+    db[0].DrawEnv[0].b0 = 32;
+    db[1].DrawEnv[0].r0 = 8;
+    db[1].DrawEnv[0].g0 = 255;
+    db[1].DrawEnv[0].b0 = 32;
+    InitEveryLevel();
+    InitCreFreeList();
+    SkyColour = (struct COLOUR){0};
+    SkyClear = 0;
+    SetupScreenLoading();
+    AquireGt4s(512, 32);
+    LevelSpecific = QuakeLoadingSpecific;
+    for (a = 0; a < MaxWindows; a++)
+        GameWindows[a].CameraRoutine = QuakeCameraLoading;
+    VSync(0);
+    VBlankSpecific = VBlankLoading;
+}
