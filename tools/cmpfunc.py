@@ -5,8 +5,8 @@ usage: cmpfunc.py ASMFILE FUNC COMPILED.o [--relax] [--cross mipsel-linux-gnu-]
 
 Relocations against data C can't name the same way compare equal: unnamed data (string literals, switch
 tables: `D_`/`jtbl_` labels in the original, section symbols such as `.rodata`, `$LC` labels) all become
-`<anon>` with the addend in the instruction ignored, and gcc's numbered function-local statics
-(`Temp.100`) compare by base name. References to globals listed in config/symbol_addrs.txt compare by
+`<anon>` with the addend in the instruction ignored, as do gcc's numbered function-local statics
+(`Temp.100`), which splat names inconsistently. References to globals listed in config/symbol_addrs.txt compare by
 the address they reach, since splat names an address after the symbol it falls in (`LastObjective`
 for `&FlyPicks[4]`). Use --strict to compare every symbol and addend exactly.
 
@@ -60,9 +60,11 @@ def imm_of(ins):
 
 def normalise_symbol(sym):
     """Return (symbol, is_anonymous_data) with names C can't reproduce made comparable."""
-    if ANON.match(sym):
+    # function-local statics (gcc's `Temp.100`) too: splat names some after SYM (`Temp.7`) and leaves
+    # others unnamed (`D_800AE890`)
+    if ANON.match(sym) or re.match(r"^\w+\.\d+([+-]0x[0-9a-f]+)?$", sym):
         return "<anon>", True
-    return re.sub(r"^(\w+)\.\d+", r"\1.N", sym), False
+    return sym, False
 
 
 def listing(path, only=None):
@@ -94,23 +96,29 @@ def listing(path, only=None):
                 ins = ins[:t.start()] + "@T" + ins[t.end():]
             lines.append([int(m.group(1), 16), ins, target, "", []])
     if not strict:
-        resolve_addresses(lines)
+        # a file-local symbol can share its name with another file's global: never look those up
+        local = {f[-1] for f in (l.split() for l in subprocess.run(
+            [cross + "objdump", "-t", path], capture_output=True, text=True).stdout.splitlines())
+            if len(f) >= 5 and f[1] == "l"}
+        resolve_addresses(lines, local)
     start = lines[0][0] if lines else 0
     return [(ins.replace("@T", hex(target - start)) if target is not None else ins) + rel
             for _, ins, target, rel, _ in lines]
 
 
-def resolve_addresses(lines):
+def resolve_addresses(lines, local):
     """Rewrite %hi/%lo/%gp_rel references to known globals as the address they reach."""
     for i, line in enumerate(lines):
         for kind, sym in line[4]:
-            if sym not in SYMADDR or kind not in ("HI16", "LO16", "GPREL16"):
+            if sym not in SYMADDR or sym in local or kind not in ("HI16", "LO16", "GPREL16") or normalise_symbol(sym)[1]:
                 continue
             imm = imm_of(line[1])
             if kind == "HI16":
                 lo = next((imm_of(l[1]) for l in lines[i + 1:] for k, s in l[4] if k == "LO16" and s == sym), 0)
                 addr = SYMADDR[sym] + ((imm << 16) & 0xffffffff) + lo
                 text = f"HI16 %hi({(addr + 0x8000) >> 16 << 16:#x})"
+            elif kind == "LO16":  # the low half only: any carry is in the paired %hi
+                text = f"LO16 %lo({(SYMADDR[sym] + imm) & 0xffff:#x})"
             else:
                 imm = imm - 0x10000 if imm >= 0x8000 else imm
                 text = f"{kind} {SYMADDR[sym] + imm:#x}"
