@@ -113,6 +113,20 @@ in (`LastObjective` for `&FlyPicks[4]`, `D_800B2C4C` for `gDarkBoxRect.w`). `--s
 wrong where the asm says otherwise (fields loaded with `lb` are signed char, some `int` parameters and
 locals are `short`); the calib files cast or redeclare around them.
 
+## Permuter
+
+For register-allocation and scheduling near misses, [decomp-permuter](https://github.com/simonlindholm/decomp-permuter)
+randomises the source and keeps what scores closer:
+
+    tools/permute-setup.py asm/sort.s GenerateSortOrder near.c perm/GenerateSortOrder
+    python3 ~/decomp-permuter/permuter.py perm/GenerateSortOrder -j 4 --stop-on-zero
+
+`near.c` is a whole calib-style file (so inlining is right); only the named function is scored and edited.
+Its scoring ignores symbol names, so confirm a zero with `tools/cmpfunc.py`. Keep wine's server resident
+(`wineserver -p`) or every compile pays wine's start-up. `CC1=` makes `cc-psx.sh` run a native cc1
+instead (decompals' old-gcc 2.8.1 build matches cc1psx 4.4 on all but 2 calib functions), but use cc1psx
+for anything you keep.
+
 ## Matching techniques
 
 Found while matching `calib/`; the files show each in use.
