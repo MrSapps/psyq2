@@ -768,3 +768,220 @@ void DrawBorder(struct RECT Rect, long *Ot, int OffsetY)
     BORDERPOLY(81, 241, 11, 14, Rect.x - 10, Rect.y + 22 + OffsetY, 12, Rect.h - 44);
     BORDERPOLY(81, 241, 11, 14, Rect.x + Rect.w - 1, Rect.y + 22 + OffsetY, 11, Rect.h - 44);
 }
+
+/* GameCheckPaused */
+int Pauser;
+short Console_Flags;
+extern int ClearingNecessary;
+extern short SceneValid;
+extern int LastLevelComplete;
+extern short targetcdvol;
+int SnapShotPadViolation(short Port, char *PortId);
+void InGame_GOTO_WANT_TO_SAVE(void);
+void InGame_GOTO_REINSERT_CONTROLLER(int Violation, int PortId, int Win);
+void InGame_GOTO_PAUSED(void);
+void InGame_GOTO_RESUME(void);
+void killallsounds(void);
+void HelpComputer_StopDisplay(int a);
+
+/* The original keeps the two `return Paused` tails after InGame_GOTO_REINSERT_CONTROLLER and
+   InGame_GOTO_WANT_TO_SAVE as separate `lw v0,Paused; j epilogue`, instead of cross-jumping them
+   into the final `return Paused` (jump.c find_cross_jump, which compares SYMBOL_REF names by
+   pointer). Only a second SYMBOL_REF for Paused with its own name string does that: an asm-label
+   alias of the same symbol. Plain C forms (inline GameIsPaused(), volatile, block-scope extern,
+   temporaries, gotos) all get merged. */
+extern int PausedSym2 __asm__("Paused");
+
+int GameCheckPaused(void)
+{
+    struct WINDOW *Window;
+    static int OldPaused;
+    static int OldOldPaused;
+    int a;
+    static int OldLevel = -2;
+    char dummyPortId;
+    short Violation;
+
+    if (Paused)
+        Console_Flags |= 0x10;
+    else
+        Console_Flags &= ~0x10;
+    if (OldOldPaused || OldPaused || Paused)
+        ClearingNecessary = 1;
+    OldOldPaused = OldPaused;
+    OldPaused = Paused;
+    for (a = 0; a < MaxWindows; a++) {
+        short configSelected;
+
+        switch (GameWindows[a].Input.Method) {
+        case 9:
+        case 10:
+            configSelected = (signed char)Engine.GameConfig.MultiPlayerParams[a].mouseConfigSelected;
+            break;
+        case 5:
+        case 7:
+            configSelected = (signed char)Engine.GameConfig.MultiPlayerParams[a].analogConfigSelected;
+            break;
+        case 4:
+        case 6:
+        case 8:
+        default:
+            configSelected = (signed char)Engine.GameConfig.MultiPlayerParams[a].standardConfigSelected;
+            break;
+        }
+        Engine.GameConfig.MultiPlayerParams[a].controllerSelected = configSelected;
+    }
+    if (Engine.CantPause || !SceneValid) {
+        Paused = 0;
+        return 0;
+    }
+    if (Paused && Engine.CantUnPause)
+        return Engine.CantUnPause;
+    for (a = 0; a < MaxWindows; a++) {
+        Violation = SnapShotPadViolation(a, &dummyPortId);
+        if (Violation) {
+            targetcdvol = 0;
+            Paused = 1;
+            Pauser = a;
+            killallsounds();
+            InGame_GOTO_REINSERT_CONTROLLER(Violation, dummyPortId, a);
+            return PausedSym2;
+        }
+    }
+    if (LevelChange != OldLevel && !LevelIsMultiPlayer) {
+        OldLevel = LevelChange;
+        if (LastLevelComplete == 2 || LastLevelComplete == 4) {
+            targetcdvol = 0;
+            Paused = 1;
+            Pauser = 0;
+            InGame_GOTO_WANT_TO_SAVE();
+            return PausedSym2;
+        }
+    }
+    if (!Paused) {
+        for (a = 0; a < MaxWindows; a++) {
+            Window = &GameWindows[a];
+            if ((Window->Input.Padd & 8) && !(Window->Input.OPadd & 8)) {
+                targetcdvol = 0;
+                Paused = 1;
+                Pauser = a;
+                InGame_GOTO_PAUSED();
+                return 1;
+            }
+        }
+    } else {
+        Window = &GameWindows[Pauser];
+        if ((Window->Input.Padd & 8) && !(Window->Input.OPadd & 8)) {
+            if (Engine.currentscreen >= 16 && Engine.currentscreen <= 18)
+                return Paused;
+            Paused = 0;
+            HelpComputer_StopDisplay(0);
+            InGame_GOTO_RESUME();
+        }
+    }
+    return Paused;
+}
+
+/* GameInitStuff */
+extern struct LEVELDATA *ThisLevelData;
+extern char GlobalPerFrameMemory[];
+extern char *GameEveryFrameMemory;
+extern char *GameEveryFrameLast;
+extern void (*MainLoop)();
+void InitBlurPoints(void);
+void SetupScreen1by1(void (*PanelRoutine)());
+void SetupScreen1by2(void (*PanelRoutine)());
+void SetupScreen2by1(void (*PanelRoutine)());
+void SetupScreen2by2(void (*PanelRoutine)());
+void ProcessQuakePanel1by1();
+void ProcessQuakePanel1by2();
+void ProcessQuakePanel2by1();
+void ProcessQuakePanel2by2();
+void MoveQuakeCamera();
+void MallocEdictTList(int NumEdicts, int NumClients);
+void MallocPathTList(int Num);
+void ResetAllCameras(void);
+void Init_PickupSounds(void);
+void QuakeLoop();
+
+static void InitGameWindowMemory(int NumEdicts, short NumClientT, int NumPaths)
+{
+    int a;
+
+    GameEveryFrameMemory = GlobalPerFrameMemory;
+    GameEveryFrameLast = GlobalPerFrameMemory + 0xc00;
+    for (a = 0; a < MaxWindows; a++) {
+        GameWindows[a].Items.Health = 0;
+        GameWindows[a].FadeTime = 0;
+    }
+    MallocEdictTList(NumEdicts, NumClientT);
+    MallocPathTList(NumPaths);
+}
+
+void GameInitStuff(void)
+{
+    int a;
+    int OldsNumPlayers;
+
+    InitBlurPoints();
+    OldsNumPlayers = Engine.GameConfig.sNumPlayers;
+    if (!LevelIsMultiPlayer) {
+        if (ThisLevelData->MaxPlayers)
+            Engine.GameConfig.sNumPlayers = 1;
+        else
+            Engine.GameConfig.sNumPlayers = 0;
+    }
+    switch (Engine.GameConfig.sNumPlayers) {
+    case 0:
+        SetupScreen1by1(0);
+        InitGameWindowMemory(0, 0, 0);
+        /* Original allocation: the %hi(GameWindows+0x12C) pseudo gets $v0 ahead of the
+           MoveQuakeCamera pair ($v1), the reverse of case 1, so the two tails don't
+           cross-jump. That needs the high part to weigh more in local-alloc's priority
+           (refs weighted by loop depth): computing the address inside nested
+           do{}while(0)s does it; the original's actual form is unknown. */
+        {
+            void (**p)();
+
+            do { do { do { do {
+                p = &GameWindows[0].CameraRoutine;
+            } while (0); } while (0); } while (0); } while (0);
+            *p = MoveQuakeCamera;
+        }
+        break;
+    case 1:
+        SetupScreen1by1(ProcessQuakePanel1by1);
+        InitGameWindowMemory(64, MaxWindows, 32);
+        GameWindows[0].CameraRoutine = MoveQuakeCamera;
+        break;
+    case 2:
+        if (Engine.GameConfig.bSplitHoriz)
+            SetupScreen1by2(ProcessQuakePanel1by2);
+        else
+            SetupScreen2by1(ProcessQuakePanel2by1);
+        InitGameWindowMemory(0, 0, 0);
+        for (a = 0; a < MaxWindows; a++)
+            GameWindows[a].CameraRoutine = MoveQuakeCamera;
+        break;
+    case 3:
+        SetupScreen2by2(ProcessQuakePanel2by2);
+        MaxWindows = 3;
+        InitGameWindowMemory(0, 0, 0);
+        for (a = 0; a < MaxWindows; a++)
+            GameWindows[a].CameraRoutine = MoveQuakeCamera;
+        break;
+    case 4:
+        SetupScreen2by2(ProcessQuakePanel2by2);
+        InitGameWindowMemory(0, 0, 0);
+        for (a = 0; a < MaxWindows; a++)
+            GameWindows[a].CameraRoutine = MoveQuakeCamera;
+        break;
+    default:
+        goto end; /* skips the shared tail below, straight to the restore */
+    }
+    ResetAllCameras();
+    Init_PickupSounds();
+    MainLoop = QuakeLoop;
+end:
+    Engine.GameConfig.sNumPlayers = OldsNumPlayers;
+}
