@@ -215,6 +215,42 @@ void unfreechanoff(int chan)
     SoundControlBuffers[chan].SoundID = 0;
 }
 
+static int VagCount;
+static char *SoundNames;
+static int CommonVagCount;
+char *CreatureVagPntr;
+void *memset(void *s, int c, unsigned int n);
+char *strcpy(char *d, const char *s);
+long SfxTransEffect(void *pVagPtr, void *pImgPtr);
+void InitSampleInfoTable(int First, int Count);
+int FlagIfLoopingSample(char *VagPntr, int SampleIndex);
+
+int DownloadVAB(unsigned char *Unused, int *VAB_BadDr)
+{
+    int a;
+    char *pntr;
+
+    if (!VAB_BadDr)
+        return 0;
+    VagCount = VAB_BadDr[0] / 4 - 1;
+    if (VagCount > 96)
+        VagCount = 96;
+    SampleCount = VagCount + 1;
+    CommonVagCount = VagCount;
+    memset(SoundNames, 0, 0x60c);
+    strcpy(SoundNames, "Null sound");
+    InitSampleInfoTable(0, 128);
+    for (a = 0; a < VagCount; a++) {
+        pntr = (char *)VAB_BadDr + VAB_BadDr[a];
+        FlagIfLoopingSample(pntr, a);
+        SfxTransEffect(pntr, 0);
+        strcpy(SoundNames + (a + 1) * 12, pntr + 0x20);
+    }
+    pntr = (char *)VAB_BadDr + VAB_BadDr[a];
+    CreatureVagPntr = pntr;
+    return 0;
+}
+
 void InitSampleInfoTable(int First, int Count)
 {
     int a;
@@ -251,6 +287,46 @@ int SfxFreeEffect(long VagNumber)
 }
 
 /* static in the original (only called from functions not in this file) */
+int SFXCurrDist;
+extern struct VECTOR SFXRotCoord;
+void CalcSFXCurrDist(struct VECT *loc);
+void SendPitch(int chan, int pitch);
+
+void ReCalcPitch(int chan, struct SNDCTRL *sbuf)
+{
+    struct SpuVoiceAttr voiceAttr;
+    int dwMulti;
+    int d;
+
+    dwMulti = VAGList[sbuf->samplenum].dwMulti;
+    switch (sbuf->pitchflag) {
+    case 0:
+        break;
+    case 1:
+    default:
+        if (sbuf->currpitch != sbuf->lastpitch) {
+            sbuf->lastpitch = sbuf->currpitch;
+            SendPitch(chan, sbuf->currpitch * dwMulti / 256);
+        }
+        break;
+    case 2:
+        if (!SFXCurrDist) {
+            if (*(signed char *)&sbuf->type == 1)
+                CalcSFXCurrDist(&((struct CREATURE *)sbuf->pntr)->Draw.Location);
+            else
+                CalcSFXCurrDist(sbuf->pntr);
+        }
+        d = sbuf->lastdist - SFXCurrDist;
+        sbuf->lastdist = SFXCurrDist;
+        sbuf->currpitch = sbuf->basepitch + d / 256;
+        if (sbuf->currpitch != sbuf->lastpitch) {
+            sbuf->lastpitch = sbuf->currpitch;
+            SendPitch(chan, sbuf->currpitch * dwMulti / 256);
+        }
+        break;
+    }
+}
+
 void SendPitch(int chan, int pitch)
 {
     static struct SpuVoiceAttr voiceAttr;
@@ -276,3 +352,154 @@ int FlagIfLoopingSample(char *VagPntr, int SampleIndex)
 }
 
 
+
+int SFXMasterVolume;
+extern int *AllIffPics;
+int Read_File_Alloc(char *path, char *name2, void **Pntr);
+void MyFreeRep(void **Addr, char *Name);
+
+/* SNDCTRL with the signed char type/chain fields of the original */
+struct SNDCTRL_S {
+    void *pntr;
+    struct VECT pos;
+    int lastdist;
+    signed char type;
+    signed char chain;
+    char pad[0x38 - 0x16];
+};
+
+int MYSFXInit(void)
+{
+    int a;
+    SFXMasterVolume = 256;
+    chanfreepntr = chanfreelist;
+    for (a = 0; a < 24; a++) {
+        chanfreelist[a] = a;
+        ((struct SNDCTRL_S *)SoundControlBuffers)[a].type = 0;
+        ((struct SNDCTRL_S *)SoundControlBuffers)[a].chain = -1;
+    }
+    return 1;
+}
+
+void freesound(void)
+{
+    int v;
+    for (v = VagCount - 1; v >= 0; v--)
+        SfxFreeEffect(v);
+    MyFreeRep((void **)&SndVramFile, "SndVram");
+}
+
+int ReadSoundVideoFile(char *levelpath)
+{
+    int a;
+    a = Read_File_Alloc(levelpath, "sndvram.dat", (void **)&SndVramFile);
+    if (a) {
+        AllIffPics = (int *)((char *)SndVramFile + SndVramFile->vramhdr);
+        SndBody = (unsigned char *)SndVramFile + SndVramFile->vabbody;
+    } else {
+        AllIffPics = 0;
+        SndHdr = 0;
+        SndBody = 0;
+    }
+    return a;
+}
+
+/* The original's bound is &chanfreelist[24], which the linker resolves to the next symbol, NameBuffer
+   (same address); written against NameBuffer so cmpfunc's relocation check passes. */
+char NameBuffer[16];
+
+int GetFreeChannel(void)
+{
+    if (chanfreepntr < (unsigned char *)NameBuffer) {
+        chanfreepntr++;
+        return chanfreepntr[-1];
+    }
+    return -1;
+}
+
+void SpuSetKey(long on_off, unsigned long voice_bit);
+
+void killallsounds(void)
+{
+    SpuSetKey(0, 0xffffff);
+    MYSFXInit();
+}
+
+static char pbSpuMallocRec[1032];
+void SpuInit(void);
+long SpuInitMalloc(long num, char *top);
+void SpuSetCommonAttr(struct SpuCommonAttr *attr);
+long SpuSetTransferMode(long mode);
+
+void SfxInit(unsigned char bMode)
+{
+    struct SpuCommonAttr commonAttr;
+    int wSampleId;
+
+    MYSFXInit();
+    SpuInit();
+    SpuInitMalloc(128, pbSpuMallocRec);
+    commonAttr.mask = 3;
+    commonAttr.mvol.left = 0x3fc0;
+    commonAttr.mvol.right = 0x3fc0;
+    SpuSetCommonAttr(&commonAttr);
+    SpuSetTransferMode(0);
+    for (wSampleId = 0; wSampleId < 97; wSampleId++) {
+        VAGList[wSampleId].dwAddr = 0;
+        VAGList[wSampleId].dwSize = 0;
+        VAGList[wSampleId].dwImgAddr = 0;
+        VAGList[wSampleId].dwImgSize = 0;
+    }
+}
+
+void *MYrealloc(void *p, int s, int HiFlag);
+void MyFree(void **Addr);
+void *MY_malloc_namehb(int s, char *name);
+void *memcpy(void *dst, const void *src, unsigned int n);
+
+void RemoveVram(void)
+{
+    char *Temp;
+    int Length;
+
+    if (SndVramFile) {
+        Length = SndVramFile->vramhdr;
+        SndVramFile = MYrealloc(SndVramFile, Length, 1);
+        Temp = MY_malloc_namehb(Length, "SndVram -- High");
+        if ((char *)SndVramFile < Temp) {
+            memcpy(Temp, SndVramFile, Length);
+            MyFree((void **)&SndVramFile);
+            SndVramFile = (struct SNDVRAM *)Temp;
+        } else
+            MyFree((void **)&Temp);
+    }
+}
+
+
+extern int MaxWindows;
+extern struct WINDOW GameWindows[];
+void Rotate(struct MATRIX *m, struct SVECT *v1, struct VECT *v2);
+long SquareRoot0(long a);
+struct VECTOR SFXRotCoord;
+
+void CalcSFXCurrDist(struct VECT *loc)
+{
+    struct SVECTOR s;
+    int x;
+    int z;
+    int a;
+
+    SFXCurrDist = 0;
+    for (a = 0; a < MaxWindows; a++) {
+        s.vx = loc->vx - GameWindows[a].CamPos.vx;
+        s.vy = loc->vy - GameWindows[a].CamPos.vy;
+        s.vz = loc->vz - GameWindows[a].CamPos.vz;
+        Rotate(&GameWindows[a].CamMatNorm, (struct SVECT *)&s, (struct VECT *)&SFXRotCoord);
+        x = SFXRotCoord.vx;
+        z = SFXRotCoord.vz;
+        SFXCurrDist += SquareRoot0(x * x + z * z);
+    }
+    SFXCurrDist /= MaxWindows;
+    if (SFXCurrDist <= 0)
+        SFXCurrDist = 1;
+}
