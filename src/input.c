@@ -24,7 +24,12 @@ int TestShock = 1;
 char EolString[3] = { 13, 10, 0 };
 char EolLength = 2;
 short NumPadds SBSS;
-short MultiTapExists[2] SBSS;
+/* The original had a header's `extern short MultiTapExists[];` ahead of the tentative definition,
+   so gcc never treated it as small data: the code reaches it with lui/%lo although the variable
+   is in .sbss. The definition has to be spelt as a separate (asm-named) declaration here, as a
+   redeclaration would lose the section attribute that bss.h needs. */
+extern short MultiTapExists[];
+short MultiTapExists_[2] __asm__("MultiTapExists") SBSS;
 int LastInputTime SBSS;
 int NoInputTime SBSS;
 short gStopFindingPads SBSS;
@@ -41,8 +46,6 @@ extern struct WINDOW GameWindows[];
 extern int MaxWindows;
 extern int ChrisCount;
 extern struct IDENTITYNAME MainStartName;
-int (*NoInputTimeOutRoutine)();
-extern short MultiTapExists[];
 extern struct QENGINELEVINTERFACE Engine;
 extern int Paused;
 extern int InSelfPlayMode;
@@ -481,7 +484,7 @@ void SelfPlayOn(int Win, short *Pntr, int (*SelfPlayComplete)())
     FrontEndResetSoundDefaults();
     FrontEndResetVideoDefaults();
     Config_InstallVideo();
-    MainStartName = *(struct IDENTITYNAME *)"Default";
+    MainStartName = (struct IDENTITYNAME){"Default"};
     Input = &GameWindows[Win].Input;
     Input->SelfPlayMode = 1;
     Input->SelfPlayPntr = Pntr;

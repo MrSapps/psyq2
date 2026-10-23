@@ -457,6 +457,12 @@ void NoLocalAiTable(struct edict_s *self)
     dprintf(GameWindows, "No local ai table for class %i\n", self->classname);
 }
 
+/* nothing uses it, so gcc drops it, but its string is in the original's .rdata */
+static void NoLocalAiFunc(struct edict_s *self)
+{
+    dprintf(GameWindows, "No local ai func from class %i\n", self->classname);
+}
+
 void SetMyAiTable(int classname, struct ai_local_table_t *table)
 {
     ai_local_tables[classname].table = table;

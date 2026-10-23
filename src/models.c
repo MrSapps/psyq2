@@ -43,7 +43,6 @@ struct LIGHTS tempgloblight = { { 0, 0, 0 }, { 48, 48, 48, 0 }, 0, 0, 0, 32767, 
 int NumLights = 0;
 int ZeroData = 0;
 int CurrWinSizeX = 0;
-static short ShortTerminator[1] = { -1 };
 int PrintOutStuff SBSS;
 char *PolsToFreeListPntr SBSS;
 struct GLOBMODHDR **CastListLinkAddr SBSS;
@@ -88,8 +87,6 @@ static int MyAcos(int c)
 extern struct CREATURE Creatures[];
 extern struct CREATURE *CreFreeList[];
 extern struct CREATURE **CurrFreeCre;
-extern struct GLOBMODHDR **CastListLinkAddr;
-extern struct GLOBMODHDR *CastList;
 
 extern unsigned char DbFrame[];
 extern struct CREATURE *MissColList[2][32];
@@ -273,59 +270,6 @@ void PackedEulerToCamQuat(struct PACKEDEULER Ang, struct QUAT *Res);
 int QuatSlerp(struct QUAT *From, struct QUAT *To, int T, struct QUAT *Res);
 void dprintf(struct WINDOW *Window, char *_format, ...);
 extern struct WINDOW GameWindows[];
-
-static inline void TweenQuatFrame(struct QUATANIMFRAME *BaseFrame, struct ANIMFRAME *KeyFrameA, struct ANIMFRAME *KeyFrameB, int ToDo, int Count)
-{
-    int Scale;
-    int Scale2;
-
-    if (ToDo == Count) {
-        PackedEulerToCamQuat(KeyFrameA[1].Ang, &BaseFrame->Orient);
-        BaseFrame->Tran.vx = KeyFrameA[1].Tran.x << 1;
-        BaseFrame->Tran.vy = KeyFrameA[1].Tran.y << 2;
-        BaseFrame->Tran.vz = KeyFrameA[1].Tran.z << 1;
-    } else if (ToDo <= Count) {
-        struct QUAT Orient1;
-        struct QUAT Orient2;
-
-        Scale = ((ToDo << 12) + (Count >> 1)) / Count;
-        if (Scale < 0)
-            dprintf(GameWindows, "ToDo>Count or Scale<0!");
-        PackedEulerToCamQuat(KeyFrameA->Ang, &Orient1);
-        PackedEulerToCamQuat(KeyFrameB->Ang, &Orient2);
-        QuatSlerp(&Orient1, &Orient2, Scale, &BaseFrame->Orient);
-        Scale2 = KeyFrameA->Tran.x << 1;
-        BaseFrame->Tran.vx = ((((KeyFrameB->Tran.x << 1) - Scale2) * Scale) >> 12) + Scale2;
-        Scale2 = KeyFrameA->Tran.y << 2;
-        BaseFrame->Tran.vy = ((((KeyFrameB->Tran.y << 2) - Scale2) * Scale) >> 12) + Scale2;
-        Scale2 = KeyFrameA->Tran.z << 1;
-        BaseFrame->Tran.vz = ((((KeyFrameB->Tran.z << 1) - Scale2) * Scale) >> 12) + Scale2;
-    }
-}
-
-static inline int TweenLerp(int A, int B, int Scale)
-{
-    return (((B - A) * Scale) >> 12) + A;
-}
-
-static inline void TweenQuatFrameScaled(struct QUATANIMFRAME *BaseFrame, struct ANIMFRAME *KeyFrameA, struct ANIMFRAME *KeyFrameB, int ToDo, int Count)
-{
-    {
-        struct QUAT Orient1;
-        struct QUAT Orient2;
-        int Scale;
-
-        Scale = ((ToDo << 12) + (Count >> 1)) / Count;
-        if (ToDo > Count || Scale < 0)
-            dprintf(GameWindows, "ToDo>Count or Scale<0!");
-        PackedEulerToCamQuat(KeyFrameA->Ang, &Orient1);
-        PackedEulerToCamQuat(KeyFrameB->Ang, &Orient2);
-        QuatSlerp(&Orient1, &Orient2, Scale, &BaseFrame->Orient);
-        BaseFrame->Tran.vx = TweenLerp(KeyFrameA->Tran.x << 1, KeyFrameB->Tran.x << 1, Scale);
-        BaseFrame->Tran.vy = TweenLerp(KeyFrameA->Tran.y << 2, KeyFrameB->Tran.y << 2, Scale);
-        BaseFrame->Tran.vz = TweenLerp(KeyFrameA->Tran.z << 1, KeyFrameB->Tran.z << 1, Scale);
-    }
-}
 
 void QuatToMat(struct QUAT *Quat, struct MATRIX *Mat);
 void MYRotMatrixANIM(struct SVECT *ang, struct MATRIX *m);
@@ -899,6 +843,59 @@ int LastFrameFromSequenceNum(struct ANIMFRAMEHDRHDR *FrameHdrHdr, int SequenceNu
     return FrameNum;
 }
 
+static inline void TweenQuatFrame(struct QUATANIMFRAME *BaseFrame, struct ANIMFRAME *KeyFrameA, struct ANIMFRAME *KeyFrameB, int ToDo, int Count)
+{
+    int Scale;
+    int Scale2;
+
+    if (ToDo == Count) {
+        PackedEulerToCamQuat(KeyFrameA[1].Ang, &BaseFrame->Orient);
+        BaseFrame->Tran.vx = KeyFrameA[1].Tran.x << 1;
+        BaseFrame->Tran.vy = KeyFrameA[1].Tran.y << 2;
+        BaseFrame->Tran.vz = KeyFrameA[1].Tran.z << 1;
+    } else if (ToDo <= Count) {
+        struct QUAT Orient1;
+        struct QUAT Orient2;
+
+        Scale = ((ToDo << 12) + (Count >> 1)) / Count;
+        if (Scale < 0)
+            dprintf(GameWindows, "ToDo>Count or Scale<0!");
+        PackedEulerToCamQuat(KeyFrameA->Ang, &Orient1);
+        PackedEulerToCamQuat(KeyFrameB->Ang, &Orient2);
+        QuatSlerp(&Orient1, &Orient2, Scale, &BaseFrame->Orient);
+        Scale2 = KeyFrameA->Tran.x << 1;
+        BaseFrame->Tran.vx = ((((KeyFrameB->Tran.x << 1) - Scale2) * Scale) >> 12) + Scale2;
+        Scale2 = KeyFrameA->Tran.y << 2;
+        BaseFrame->Tran.vy = ((((KeyFrameB->Tran.y << 2) - Scale2) * Scale) >> 12) + Scale2;
+        Scale2 = KeyFrameA->Tran.z << 1;
+        BaseFrame->Tran.vz = ((((KeyFrameB->Tran.z << 1) - Scale2) * Scale) >> 12) + Scale2;
+    }
+}
+
+static inline int TweenLerp(int A, int B, int Scale)
+{
+    return (((B - A) * Scale) >> 12) + A;
+}
+
+static inline void TweenQuatFrameScaled(struct QUATANIMFRAME *BaseFrame, struct ANIMFRAME *KeyFrameA, struct ANIMFRAME *KeyFrameB, int ToDo, int Count)
+{
+    {
+        struct QUAT Orient1;
+        struct QUAT Orient2;
+        int Scale;
+
+        Scale = ((ToDo << 12) + (Count >> 1)) / Count;
+        if (ToDo > Count || Scale < 0)
+            dprintf(GameWindows, "ToDo>Count or Scale<0!");
+        PackedEulerToCamQuat(KeyFrameA->Ang, &Orient1);
+        PackedEulerToCamQuat(KeyFrameB->Ang, &Orient2);
+        QuatSlerp(&Orient1, &Orient2, Scale, &BaseFrame->Orient);
+        BaseFrame->Tran.vx = TweenLerp(KeyFrameA->Tran.x << 1, KeyFrameB->Tran.x << 1, Scale);
+        BaseFrame->Tran.vy = TweenLerp(KeyFrameA->Tran.y << 2, KeyFrameB->Tran.y << 2, Scale);
+        BaseFrame->Tran.vz = TweenLerp(KeyFrameA->Tran.z << 1, KeyFrameB->Tran.z << 1, Scale);
+    }
+}
+
 void GetAnimFramesForAnim(struct ANIMFRAMEHDRHDR *FrameHdrHdr, struct ANIMFRAMEHDRHDR *NextKeyFrameHdrHdr, int ToDo300FPSUnClipped, int NumSubMods)
 {
     struct QUATANIMFRAME *BaseFrame;
@@ -1304,6 +1301,8 @@ void BodgeAnimData(struct GLOBMODHDR *Hdr)
     }
 }
 
+static short ShortTerminator[1] = { -1 };
+
 void InitialiseModelFile(struct GLOBMODHDR *Hdr)
 {
     TotalModelsLoaded = 0;
@@ -1326,7 +1325,7 @@ void InitialiseModelFile(struct GLOBMODHDR *Hdr)
 /* matches modulo the static's name (Temp.100 in the original) */
 char *PrintIdentityName(struct IDENTITYNAME Name)
 {
-    static char Temp[13];
+    static char Temp[13] BSS;
     int *Data2;
 
     Data2 = (int *)Temp;

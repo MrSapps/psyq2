@@ -141,9 +141,8 @@ int DrawSync(int mode);
 int VSync(int mode);
 struct DISPENV *PutDispEnv(struct DISPENV *env);
 
-/* the label the splat config puts on 0x800ae870 is __SN_GP_BASE (start of sdata); the variable there is
-   the usual PSY-Q _ramsize = 2MB */
-unsigned long __SN_GP_BASE = 0x00200000;
+/* The original reads "__SN_GP_BASE" here, the symbol psylink (/gp .sdata) puts at the start of
+   .sdata: that is _ramsize, which is used instead (an extern __SN_GP_BASE would lose $gp). */
 extern unsigned long __bss; /* linker section table word: start of bss */
 extern unsigned int GameTimeOutTime;
 extern unsigned int GameNoInputTime;
@@ -241,10 +240,11 @@ void DoubleTrebleBuffer(void)
     olddb = &db[DbFrame[1]];
 }
 
-/* The function-local static ScrShot is unnamed (D_800AE890) in the original. */
+/* The function-local static ScrShot is unnamed (D_800AE890) in the original; initialised, so in
+   .sdata after aab. */
 int MainGameLoop(void)
 {
-    static int ScrShot;
+    static int ScrShot = 0;
 
     LevelComplete = 0;
     quitgame = 0;
@@ -482,7 +482,7 @@ int main(void)
     GameNoInputTime = 0;
     GameTimeOutTime = 0;
     GameTime = 0;
-    a = -(_stacksize + 0x80000000) + __SN_GP_BASE;
+    a = -(_stacksize + 0x80000000) + _ramsize;
     a -= __bss;
     EnterCriticalSection();
     heap = (int *)__bss;

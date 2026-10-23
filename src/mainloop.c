@@ -84,12 +84,14 @@ void InitLoadingAnim(void)
 
 void SpriteAnim(int Mode)
 {
-    static struct DR_MOVE DrMoves[2];
-    static struct DR_MOVE *DrMove;
-    static struct SPRT Sprites[2];
-    static struct SPRT *Sprt;
-    static struct DR_TPAGE TPages[2];
-    static struct DR_TPAGE *SetTPage;
+    static struct DR_MOVE DrMoves[2] BSS;
+    static struct DR_MOVE *DrMove SBSS;
+    static struct SPRT Sprites[2] BSS;
+    static struct SPRT *Sprt SBSS;
+    /* the original has 8 unnamed bytes here, between Sprites (0x800c7e90) and TPages (0x800c7ec0) */
+    static struct DR_TPAGE UnusedTPage BSS;
+    static struct DR_TPAGE TPages[2] BSS;
+    static struct DR_TPAGE *SetTPage SBSS;
     int TPage;
     static short Frame = 0;
     static short DemoFrame = 0;

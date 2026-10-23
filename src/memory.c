@@ -18,9 +18,6 @@ struct _MEMCARD_HEADER MemoryCardHeader BSS;
 char SaveMemory[7168] BSS;
 
 
-extern char SaveMemory[7168];
-extern char LevelRestartMemory[7168];
-
 /* the save area is copied as a whole */
 struct MEMBLK {
     char m[7168];
@@ -178,5 +175,24 @@ void DeleteAllMatchingMemory(short Mask)
 void ClearSaveMemory(void)
 {
     /* empty name terminates the file list */
-    memcpy(SaveMemory, "\0\0\0\0\0\0\0\0\0\0\0", 12);
+    ((struct SAVEFILEHDR *)SaveMemory)->Name = (struct IDENTITYNAME){""};
+}
+
+void dprintf(struct WINDOW *Window, char *_format, ...);
+
+/* debug listing, never called: gcc drops the code but its strings were
+   already output to .rdata when it was expanded */
+static inline void PrintSaveMemory(void)
+{
+    struct SAVEFILEHDR *File;
+    int i;
+
+    dprintf(0, "\nContents of Save Memory\n");
+    File = (struct SAVEFILEHDR *)SaveMemory;
+    for (i = 0; *(int *)File; i++) {
+        dprintf(0, "File %d) %s %d bytes %x flags: ", i, PrintIdentityName(File->Name), File->Size, File->Flags);
+        Relocate(&File, (void *)(File->Size + sizeof(struct SAVEFILEHDR)));
+    }
+    dprintf(0, "used %d\n", BytesBetween(SaveMemory, File));
+    dprintf(0, "\nContents Complete\n\n");
 }

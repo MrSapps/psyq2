@@ -21,8 +21,8 @@ void QuakeLoadingSpecific(void)
 
 void QuakeCameraLoading(int Win)
 {
-    /* the original also declared an unused `static struct VECT Pos;` here (it is in the
-       debug info), but its object has no storage for it, so it is left out */
+    /* unused, but the original has it: initialised, so in .data (not bss) */
+    static struct VECT Pos = { 0, -1600, 0 };
     struct WINDOW *Window;
 
     Window = &GameWindows[Win];

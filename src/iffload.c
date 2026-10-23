@@ -34,6 +34,34 @@ int aa SBSS;
 int *AllIffPics SBSS;
 
 
+/* iffload's .rdata in the original holds only what an IFF picture writer leaves there: a
+   malloc tag, the constant FORM/PBM/BMHD header (320x200, 8 planes) and another tag. The
+   game never calls that code, so gcc compiled it (emitting those constants) and dropped
+   it. This stand-in reproduces the constants, not the lost function. */
+void *MY_malloc_name(int s, char *name);
+struct IFFPBMHEADER {
+    char Form[4];
+    int FormSize;
+    char Pbm[4];
+    char Bmhd[4];
+    int BmhdSize;
+    short w, h, x, y;
+    char nPlanes, Masking, Compression, Pad;
+    short TransparentColour;
+    char xAspect, yAspect;
+    short PageWidth, PageHeight;
+};
+static int SavePBM(char *Pixels)
+{
+    char *tempbuf = MY_malloc_name(320 * 200, "IFF tempbuf2 A");
+    {
+        struct IFFPBMHEADER Hdr = { "FORM", 0, "PBM ", "BMHD", 20, 320, 200, 0, 0, 8, 0, 0, 0, 0, 1, 1, 320, 200 };
+        char *ilbmbuf = MY_malloc_name(sizeof(Hdr), "IFF ilbmbuf");
+
+        *(struct IFFPBMHEADER *)ilbmbuf = Hdr;
+    }
+    return tempbuf != Pixels;
+}
 char *strcpy();
 char *strcat();
 char *strupr(char *s);

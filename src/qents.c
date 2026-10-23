@@ -123,14 +123,6 @@ struct SPAWNDETAILS SpawnTables[59] = {
     { 47, { "Dont Match" }, 0, 0, LoadStoreQuakeDeadBody, RememberMe, 0, 0, 0, 0, 0 },
     { 0, { "" }, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 };
-struct cvar_s skillstore = { "", "", "", 0, 0, 0, 0 };
-struct cvar_s deathmatchstore = { "", "", "", 0, 0, 0, 0 };
-struct cvar_s coopstore = { "", "", "", 0, 0, 0, 0 };
-static short QTimerIdentsPal[7] = { 0, 12, 24, 6, 18, -1, -1 };
-static short QTimerIdentsNtsc[7] = { 0, 10, 20, 5, 15, 25, -1 };
-struct cvar_s *skill = (void *)&skillstore;
-struct cvar_s *deathmatch = (void *)&deathmatchstore;
-struct cvar_s *coop = (void *)&coopstore;
 struct VECT *PlayerOldOrigin SBSS;
 short QuakeTimer SBSS;
 struct gclient_s *GClientTList SBSS;
@@ -150,7 +142,6 @@ extern int NewVcounts;
 extern unsigned int QuakeLevelFrame;
 extern unsigned int QuakeLevelTime;
 extern struct CREATURE Creatures[];
-extern struct QCREINTERFACE *QCreInterfaces[];
 extern struct CRESAVE *SaveMemoryWriteAddress;
 
 void PlayerNoise(struct edict_s *who, struct VECT *where, int type);
@@ -208,23 +199,6 @@ static void QuakeCreMove(struct CREATURE *Cre, int ToProcess, int FinalCall)
 extern int MaxWindows;
 extern int PalNtsc;
 
-static short GetQuakeTimerIdent(void)
-{
-    short *IdentsTable;
-    short Ret;
-
-    if (PalNtsc == 5)
-        IdentsTable = QTimerIdentsNtsc;
-    else
-        IdentsTable = QTimerIdentsPal;
-    Ret = IdentsTable[QuakeTimerIdentIndx];
-    if (Ret == -1) {
-        QuakeTimerIdentIndx = 0;
-        Ret = IdentsTable[0];
-    } else
-        QuakeTimerIdentIndx++;
-    return Ret;
-}
 
 extern struct WINDOW GameWindows[];
 
@@ -469,7 +443,7 @@ void QuakeCreatureSmash(struct CREATURE *Cre, struct SVECT *Force)
         Vel.vx = Cre->Vel.vx + Cre->ForceVel.vx;
         Vel.vy = Cre->Vel.vy + Cre->ForceVel.vy;
         Vel.vz = Cre->Vel.vz + Cre->ForceVel.vz;
-        QuakeBlowMeUp(Cre, 5, &Vel, (struct IDENTITYNAME *)"Chest");
+        QuakeBlowMeUp(Cre, 5, &Vel, &(struct IDENTITYNAME){"Chest"});
         break;
     }
     KillModel(Cre);
@@ -629,6 +603,17 @@ struct CREATURE *RespawnQuakeDeadBody(struct CRESAVE *CreSave)
     }
     return 0;
 }
+
+/* defined here, not with the other data: the "" these initialisers put in .sdata follows the
+   constants of RespawnQuakeDeadBody there */
+struct cvar_s skillstore = { "", "", "", 0, 0, 0, 0 };
+struct cvar_s deathmatchstore = { "", "", "", 0, 0, 0, 0 };
+struct cvar_s coopstore = { "", "", "", 0, 0, 0, 0 };
+static short QTimerIdentsPal[7] = { 0, 12, 24, 6, 18, -1, -1 };
+static short QTimerIdentsNtsc[7] = { 0, 10, 20, 5, 15, 25, -1 };
+struct cvar_s *skill = (void *)&skillstore;
+struct cvar_s *deathmatch = (void *)&deathmatchstore;
+struct cvar_s *coop = (void *)&coopstore;
 
 struct CRESAVE *LoadStoreFragment(void *CreV, int Store, struct CRESAVE *CreSave)
 {
@@ -818,6 +803,24 @@ struct pathcorner_s *FindFreePathT(void)
 
 void DrawPathCorners(void)
 {
+}
+
+static short GetQuakeTimerIdent(void)
+{
+    short *IdentsTable;
+    short Ret;
+
+    if (PalNtsc == 5)
+        IdentsTable = QTimerIdentsNtsc;
+    else
+        IdentsTable = QTimerIdentsPal;
+    Ret = IdentsTable[QuakeTimerIdentIndx];
+    if (Ret == -1) {
+        QuakeTimerIdentIndx = 0;
+        Ret = IdentsTable[0];
+    } else
+        QuakeTimerIdentIndx++;
+    return Ret;
 }
 
 struct edict_s *FindFreeEdictT(void)

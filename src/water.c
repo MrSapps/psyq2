@@ -21,6 +21,7 @@ struct DR_MOVE *WaterMove SBSS;
 
 
 extern struct WINDOW GameWindows[];
+void dprintf(struct WINDOW *Window, char *_format, ...);
 extern struct DB *currdb;
 extern int NewVcounts;
 extern struct SCRPNT ScreenSize;
@@ -219,6 +220,9 @@ void ProcessPortalWibble(struct PORTALDATA *PortalData, struct SCREENCHANGE *SCh
         AddPrim(CurrOt, WaterMove++);
     }
     LastFrame = y;
+    /* the original's .rdata has this message right after "Water Moves" */
+    if (WaterMove >= LastWaterMove)
+        dprintf(CurrWin, "Used lots frame %d\n", LastFrame);
 }
 
 void PortalTestWibble(struct SCREENCHANGE *SChange, struct SCENE2 *Scene2)

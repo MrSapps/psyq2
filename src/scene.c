@@ -482,6 +482,17 @@ void InitialiseScreenIndxStuff(void)
         ScreenChangeIndx[Win] = 0;
 }
 
+/* A debug printer the game never calls: gcc drops it, but its strings are in the original's
+   .rdata ahead of AlterScreenClipping's. The body is a stand-in that only reproduces them. */
+static void PrintAreaHiddenData(int Area)
+{
+    int a;
+
+    dprintf(GameWindows, "@02030Area Hidden Data for %d", Area);
+    for (a = 0; a < 3; a++)
+        dprintf(GameWindows, "@%03x%02x%d", a, a * 8, AreaNotHiddenData[a]);
+}
+
 int AlterScreenClipping(struct SCRPNT Min, struct SCRPNT Max, struct SCRPNT Offset, struct SHORTPAIR OtArea, struct SHORTPAIR ObjClip)
 {
     struct SCRPNT Size;

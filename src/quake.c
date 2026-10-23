@@ -299,7 +299,6 @@ enum QuakeWeaponTypes StartWeapon = 1;
 struct QMULTIFLAGS MultiPlayerFlags = { 0, 10, 1, 0, 1, 0, 1, 0, 0 };
 int Paused = 0;
 int Pauser = 0;
-static struct IDENTITYNAME *SelfPlayMapNamePntr = 0;
 static int StillDataDualShock SBSS;
 int GlobalKey SBSS;
 int VBLevelTicks SBSS;
@@ -477,13 +476,14 @@ void HelpComputer_StopDisplay(int a);
    into the final `return Paused` (jump.c find_cross_jump, which compares SYMBOL_REF names by
    pointer). Only a second SYMBOL_REF for Paused with its own name string does that: an asm-label
    alias of the same symbol. Plain C forms (inline GameIsPaused(), volatile, block-scope extern,
-   temporaries, gotos) all get merged. It is an array of unknown size so that gcc emits no
-   `.extern Paused,4` for it, which would make ASPSX treat this file's own Paused as external. */
-extern int PausedSym2[] __asm__("Paused");
+   temporaries, gotos) all get merged. The section attribute keeps gcc from listing it for an
+   `.extern Paused,4` (mips_output_external skips decls placed in a section other than
+   .sdata/.sbss), which would make ASPSX treat this file's own Paused as external and drop $gp;
+   gcc still sees a 4-byte variable and addresses it as small data. */
+extern int PausedSym2 __asm__("Paused") __attribute__((section(".data")));
 
 /* GameInitStuff */
 extern struct LEVELDATA *ThisLevelData;
-extern char GlobalPerFrameMemory[];
 extern char *GameEveryFrameMemory;
 extern char *GameEveryFrameLast;
 extern void (*MainLoop)();
@@ -585,8 +585,8 @@ int GameIsPaused(void)
 int GameCheckPaused(void)
 {
     struct WINDOW *Window;
-    static int OldPaused;
-    static int OldOldPaused;
+    static int OldPaused SBSS;
+    static int OldOldPaused SBSS;
     int a;
     static int OldLevel = -2;
     char dummyPortId;
@@ -635,7 +635,7 @@ int GameCheckPaused(void)
             Pauser = a;
             killallsounds();
             InGame_GOTO_REINSERT_CONTROLLER(Violation, dummyPortId, a);
-            return PausedSym2[0];
+            return PausedSym2;
         }
     }
     if (LevelChange != OldLevel && !LevelIsMultiPlayer) {
@@ -645,7 +645,7 @@ int GameCheckPaused(void)
             Paused = 1;
             Pauser = 0;
             InGame_GOTO_WANT_TO_SAVE();
-            return PausedSym2[0];
+            return PausedSym2;
         }
     }
     if (!Paused) {
@@ -960,6 +960,8 @@ void SetupGameSpecific(void)
     db[1].GameStuff = &QuakeGameBuffs[1];
 }
 
+static struct IDENTITYNAME *SelfPlayMapNamePntr = 0;
+
 void GameSelfPlay(void)
 {
     if (GameRunningMode) {
@@ -979,6 +981,17 @@ void GameSelfPlay(void)
     InSelfPlayMode = 1;
     if (*(int *)SelfPlayMapNamePntr++[1].Name == 0)
         SelfPlayMapNamePntr = SelfPlayMapNames;
+}
+
+/* never called: gcc drops the code, but the "Dummy" name it builds had already been
+   output to .rdata when it was expanded */
+static inline void GameDummy(void)
+{
+    NewMission = 1;
+    DirectAccessLevelName = IDNAME("Dummy");
+    DirectAccessZoneName = IDNAME("Default");
+    NextMission = 0;
+    LevelComplete = 6;
 }
 
 void GameDemoExit(void)
@@ -1052,6 +1065,16 @@ void GameExtro(void)
     LevelComplete = 6;
 }
 
+/* never called, like GameDummy: only its "MagazineIntr" name is left in .rdata */
+static inline void GameMagIntro(void)
+{
+    NewMission = 1;
+    DirectAccessLevelName = IDNAME("MagazineIntr");
+    DirectAccessZoneName = IDNAME("Default");
+    NextMission = 0;
+    LevelComplete = 6;
+}
+
 void GameReRunMPLevel(void)
 {
     NextMission = 7;
@@ -1094,8 +1117,8 @@ void ReloadAutoSave(void)
     {
         struct IDENTITYNAME SaveName;
 
-        SaveName = *(struct IDENTITYNAME *)"PlayerSave0";
         ReloadStartPosition = *&(struct STARTPOSITION){{"Reload Start"}};
+        SaveName = *(struct IDENTITYNAME *)"PlayerSave0";
         FileHdr = OpenSaveMemory(SaveName, 0);
     }
     if (FileHdr) {
