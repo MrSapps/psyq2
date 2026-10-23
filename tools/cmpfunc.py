@@ -50,6 +50,10 @@ SYMADDR = {}
 for _l in open(os.path.join(root, "config", "symbol_addrs.txt")):
     if (_m := re.match(r"(\w+) = (0x[0-9A-Fa-f]+);", _l)) and "type:func" not in _l:
         SYMADDR[_m.group(1)] = int(_m.group(2), 16)
+FUNCADDR = {}  # %hi/%lo of a function's address: splat leaves an orphaned %hi as a bare `lui` constant
+for _l in open(os.path.join(root, "config", "symbol_addrs.txt")):
+    if (_m := re.match(r"(\w+) = (0x[0-9A-Fa-f]+);", _l)) and "type:func" in _l:
+        FUNCADDR[_m.group(1)] = int(_m.group(2), 16)
 RESOLVE_D = False  # second rendering: D_ labels as the address in their name (a field of a variable)
 IMM = re.compile(r"(-?(?:0x)?[0-9a-f]+)(\(\w+\))?$")
 
@@ -114,6 +118,17 @@ def resolve_addresses(lines, local):
     """Rewrite %hi/%lo/%gp_rel references to known globals as the address they reach."""
     for i, line in enumerate(lines):
         for kind, sym in line[4]:
+            if sym in FUNCADDR and sym not in local and kind in ("HI16", "LO16"):
+                imm = imm_of(line[1])
+                if kind == "HI16":
+                    lo = next((imm_of(l[1]) for l in lines[i + 1:] for k, s in l[4] if k == "LO16" and s == sym), 0)
+                    val = hex((FUNCADDR[sym] + ((imm << 16) & 0xffffffff) + lo + 0x8000) >> 16)
+                else:
+                    v = (FUNCADDR[sym] + imm) & 0xffff
+                    val = str(v - 0x10000 if v >= 0x8000 else v)
+                line[1] = IMM.sub(val + r"\2", line[1])  # as the plain constant it is
+                line[3] = re.sub(rf"\s+{kind} {re.escape(sym)}\b", "", line[3])
+                continue
             if sym not in SYMADDR or sym in local or kind not in ("HI16", "LO16", "GPREL16") or normalise_symbol(sym)[1]:
                 continue
             imm = imm_of(line[1])
