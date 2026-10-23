@@ -14,7 +14,7 @@ void ai_walk(struct edict_s *self, long dist);
 void ai_run(struct edict_s *self, long dist);
 void ai_charge(struct edict_s *self, long dist);
 void ai_move(struct edict_s *self, long dist);
-void monster_start(struct edict_s *self);
+int monster_start(struct edict_s *self);
 void walkmonster_start_go(struct edict_s *self);
 void swimmonster_start_go(struct edict_s *self);
 void flymonster_start_go(struct edict_s *self);
@@ -131,4 +131,251 @@ void monster_triggered_spawn_use(struct edict_s *self, struct edict_s *other, st
     if (activator->client)
         self->enemy = activator;
     self->use = monster_use;
+}
+
+extern struct WINDOW GameWindows[];
+void dprintf(struct WINDOW *Window, char *_format, ...);
+int AnyoneFireBFG(struct CREATURE *Aggressor, int Damage);
+int AnyoneFireRocketL(struct CREATURE *Aggressor, struct VECT *Start, struct SVECT *Dir, int Damage);
+
+void monster_fire_rocket(struct edict_s *self, struct VECT *start, struct VECT *dir, int damage, int speed, int flashtype)
+{
+    struct CREATURE *SelfCre;
+    struct SVECT Dir;
+
+    SelfCre = self->Extra.Creature;
+    Dir.vx = (short)((dir->vx << 1) + dir->vx) >> 1;
+    Dir.vy = (short)((dir->vy << 1) + dir->vy) >> 1;
+    Dir.vz = (short)((dir->vz << 1) + dir->vz) >> 1;
+    AnyoneFireRocketL(SelfCre, start, &Dir, damage);
+}
+
+void monster_fire_bfg(struct edict_s *self, struct VECT *start, struct VECT *aimdir, int damage, int speed, int kick, long damage_radius, int flashtype)
+{
+    self->pos1 = *start;
+    AnyoneFireBFG(self->Extra.Creature, damage);
+}
+
+void monster_triggered_spawn(struct edict_s *self)
+{
+}
+
+void NoGlobalAiFunc(struct edict_s *self, long dist)
+{
+    dprintf(GameWindows, "No global ai func from class %i\n", self->classname);
+}
+
+void NoLocalAiTable(struct edict_s *self)
+{
+    dprintf(GameWindows, "No local ai table for class %i\n", self->classname);
+}
+
+void monster_start_go(struct edict_s *self);
+int M_walkmove(struct edict_s *ent, long yaw, long dist);
+
+void walkmonster_start_go(struct edict_s *self)
+{
+    if (!self->yaw_speed)
+        self->yaw_speed = 228;
+    self->viewheight = ~((struct CREATURE *)self->Extra.Creature)->HeightOffset;
+    monster_start_go(self);
+    if (self->spawnflags & 2)
+    {
+        self->solid = 0;
+        self->movetype = 0;
+        self->svflags |= 1;
+        self->nextthink = 0;
+        self->use = monster_triggered_spawn_use;
+    }
+}
+
+void flymonster_start_go(struct edict_s *self)
+{
+    M_walkmove(self, 0, 0);
+    if (!self->yaw_speed)
+        self->yaw_speed = 114;
+    self->viewheight = -250;
+    monster_start_go(self);
+    if (self->spawnflags & 2)
+    {
+        self->solid = 0;
+        self->movetype = 0;
+        self->svflags |= 1;
+        self->nextthink = 0;
+        self->use = monster_triggered_spawn_use;
+    }
+}
+
+void swimmonster_start_go(struct edict_s *self)
+{
+    if (!self->yaw_speed)
+        self->yaw_speed = 114;
+    self->viewheight = -100;
+    monster_start_go(self);
+    if (self->spawnflags & 2)
+    {
+        self->solid = 0;
+        self->movetype = 0;
+        self->svflags |= 1;
+        self->nextthink = 0;
+        self->use = monster_triggered_spawn_use;
+    }
+}
+
+extern struct COLLHEADER CollMap;
+extern int SoundMachinegunFire;
+int Visable3d(struct COLLHEADER *Map, struct VECT *Start, struct VECT *End, int S0);
+void AnyoneFireInstantBullet(struct CREATURE *Cre, struct VECT *Start, struct SVECT *Dir, int Damage, int Space, int BulletType);
+int SoundByCreature(int SFXNumber, struct CREATURE *Cre);
+
+void monster_fire_bullet(struct edict_s *self, struct VECT *start, struct VECT *dir, int damage, int kick, int hspread, int vspread, int flashtype)
+{
+    struct CREATURE *SelfCre;
+    static struct SVECT BasicDir;
+    struct SVECT Dir;
+    short start_space;
+
+    SelfCre = self->Extra.Creature;
+    SelfCre->Control |= 0x80000000;
+    Dir.vx = dir->vx * 4;
+    Dir.vy = dir->vy * 4;
+    Dir.vz = dir->vz * 4;
+    if (Visable3d(&CollMap, &SelfCre->Box.Location, start, SelfCre->Box.PrimarySpace))
+        start_space = CollMap.ReturnSpaceNum;
+    else
+        start_space = -1;
+    AnyoneFireInstantBullet(SelfCre, start, &Dir, damage, start_space, 3);
+    SoundByCreature(SoundMachinegunFire, SelfCre);
+}
+
+extern int SoundBlasterFire;
+void GetFireLocSpace(struct CREATURE *Cre, struct VECT *FirePosition, short *FireSpace);
+int AnyoneFireBlaster(struct CREATURE *Self, struct VECT *FirePosition, struct SVECT *Dir, int Damage, int Flags, int DamageType, int FireSpace);
+
+void monster_fire_blaster(struct edict_s *self, struct VECT *Start, struct VECT *dir, int damage, int speed, int flashtype, int effect)
+{
+    struct CREATURE *SelfCre;
+    short FireSpace;
+    struct SVECT Dir;
+    struct VECT FirePosition;
+
+    FirePosition = *Start;
+    SelfCre = self->Extra.Creature;
+    Dir.vx = dir->vx / 64;
+    Dir.vy = dir->vy / 64;
+    Dir.vz = dir->vz / 64;
+    SoundByCreature(SoundBlasterFire, SelfCre);
+    GetFireLocSpace(SelfCre, &FirePosition, &FireSpace);
+    if (effect & 0x40)
+        AnyoneFireBlaster(SelfCre, &FirePosition, &Dir, damage, 14, 5, FireSpace);
+    else
+        AnyoneFireBlaster(SelfCre, &FirePosition, &Dir, damage, 11, 6, FireSpace);
+}
+
+extern int SoundShotgunFire;
+int rand(void);
+
+void monster_fire_shotgun(struct edict_s *self, struct VECT *start, struct VECT *aimdir, int damage, int kick, int hspread, int vspread, int count, int flashtype)
+{
+    struct CREATURE *SelfCre;
+    int a;
+    struct SVECT Dir;
+    short start_space;
+
+    SelfCre = self->Extra.Creature;
+    SoundByCreature(SoundShotgunFire, SelfCre);
+    SelfCre->Control |= 0x80000000;
+    Dir.vx = aimdir->vx * 4;
+    Dir.vy = aimdir->vy * 4;
+    Dir.vz = aimdir->vz * 4;
+    if (Visable3d(&CollMap, &SelfCre->Box.Location, start, SelfCre->Box.PrimarySpace))
+        start_space = CollMap.ReturnSpaceNum;
+    else
+        start_space = -1;
+    for (a = 0; a < 5; a++)
+    {
+        Dir.vx += ((rand() - 0x4000) << 10) >> 14;
+        Dir.vy += ((rand() - 0x4000) << 10) >> 14;
+        AnyoneFireInstantBullet(SelfCre, start, &Dir, damage, start_space, 1);
+    }
+}
+
+struct edict_s *G_PickTarget(int targetname);
+long vectoyaw(struct VECT *vec);
+void linkentity(struct edict_s *ent, int flags);
+void UpdateEntity(struct edict_s *ent, int flags);
+void M_MoveFrame(struct edict_s *self);
+
+void monster_start_go(struct edict_s *self)
+{
+    struct VECT v;
+
+    if (((struct CREATURE *)self->Extra.Creature)->Health <= 0)
+        return;
+    if (self->target > 0)
+    {
+        self->goalentity = self->movetarget = G_PickTarget(self->target);
+        if (!self->movetarget)
+        {
+            self->target = 0;
+            self->monsterinfo.pausetime = 1000000000;
+            self->monsterinfo.stand(self);
+        }
+        else if (self->movetarget->classname == 0x72)
+        {
+            UpdateEntity(self, 1);
+            v.vx = self->goalentity->sorigin.vx - self->sorigin.vx;
+            v.vy = self->goalentity->sorigin.vy - self->sorigin.vy;
+            v.vz = self->goalentity->sorigin.vz - self->sorigin.vz;
+            self->ideal_yaw = self->sangles.vz = vectoyaw(&v);
+            linkentity(self, 4);
+            self->monsterinfo.walk(self);
+            self->target = 0;
+        }
+        else
+        {
+            self->goalentity = self->movetarget = 0;
+            self->monsterinfo.pausetime = 1000000000;
+            self->monsterinfo.stand(self);
+        }
+    }
+    else
+    {
+        self->ideal_yaw = self->sangles.vz;
+        linkentity(self, 4);
+        self->monsterinfo.pausetime = 1000000000;
+        self->monsterinfo.stand(self);
+    }
+    self->think = M_MoveFrame;
+    self->nextthink = level.time + 1;
+}
+
+int M_CheckAttack(struct edict_s *self);
+void SetInitialCreAnimFrame(struct CREATURE *Cre);
+
+int monster_start(struct edict_s *self)
+{
+    if ((self->spawnflags & 4) && !(self->monsterinfo.aiflags & 0x100)) {
+        self->spawnflags &= ~4;
+        self->spawnflags |= 1;
+    }
+    if (!(self->monsterinfo.aiflags & 0x100))
+        level.total_monsters++;
+    self->nextthink = level.time + 1;
+    self->svflags |= 4;
+    self->takedamage = 2;
+    self->air_finished = level.time + 120;
+    self->use = monster_use;
+    self->max_health = ((struct CREATURE *)self->Extra.Creature)->Health;
+    self->clipmask = 0x2020003;
+    self->s.skinnum = 0;
+    self->deadflag = 0;
+    self->svflags &= ~2;
+    if (!self->monsterinfo.checkattack)
+        self->monsterinfo.checkattack = M_CheckAttack;
+    if (self->monsterinfo.currentmove) {
+        self->s.frame = self->monsterinfo.currentmove->firstframe + (rand() % (self->monsterinfo.currentmove->lastframe - self->monsterinfo.currentmove->firstframe + 1));
+        SetInitialCreAnimFrame(self->Extra.Creature);
+    }
+    return 1;
 }
