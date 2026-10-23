@@ -72,8 +72,8 @@ void MissionLoadSaveHub_80024918(int Write)
         BossData->HelpObjective = LastObjective;
         BossData->HelpOrders = LastOrders;
         if (!NextLevelName.Name[0]) {
-            NextLevelName = *(struct IDENTITYNAME *)"Boss1";
-            MainStartName = *(struct IDENTITYNAME *)"Default";
+            NextLevelName = (struct IDENTITYNAME){"Boss1"};
+            MainStartName = (struct IDENTITYNAME){"Default"};
             HelpComputer_Reset();
         }
     }

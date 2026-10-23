@@ -22,7 +22,6 @@ static struct MISSIONEVENT ThisMissionEvents[4] = {
 };
 struct POWERDATA *PowerData SBSS;
 
-
 #define IDNAME(s) ((struct IDENTITYNAME){s})
 
 void HelpComputer_NewMessage(struct IDENTITYNAME Orders, struct IDENTITYNAME Objective, int FrameDelay);
@@ -51,8 +50,6 @@ void HelpComputer_SetMessages(struct IDENTITYNAME Orders, struct IDENTITYNAME Ob
 void HelpComputer_GetMessages(struct IDENTITYNAME *Orders, struct IDENTITYNAME *Objective);
 int HelpComputer_Reset(void);
 void *memset(void *s, int c, unsigned int n);
-
-static const struct IDENTITYNAME MissionName = {"Mission 3"};
 
 void Power_NextPump(void)
 {
@@ -91,7 +88,7 @@ void MissionLoadSaveHub_80023978(int Write)
     struct SAVEFILEHDR *FileHdr;
     struct POWERDATA *ThisData;
 
-    FileHdr = OpenSaveMemory(MissionName, Write);
+    FileHdr = OpenSaveMemory(IDNAME("Mission 3"), Write);
     if (FileHdr) {
         ThisData = (struct POWERDATA *)(FileHdr + 1);
         if (Write) {
@@ -103,7 +100,7 @@ void MissionLoadSaveHub_80023978(int Write)
             HelpComputer_GetMessages(&PowerData->HelpOrders, &PowerData->HelpObjective);
             *ThisData = *PowerData;
             FileHdr->Size = sizeof(struct POWERDATA);
-            CloseWritableSaveMemoryFile(MissionName, 2);
+            CloseWritableSaveMemoryFile(IDNAME("Mission 3"), 2);
         } else {
             *PowerData = *ThisData;
             if (PowerData->KilledRocketGirl)
@@ -123,8 +120,8 @@ void MissionLoadSaveHub_80023978(int Write)
         PowerData->DestroyedCore = 0;
         GameDeathWatchA = 1;
         if (!NextLevelName.Name[0]) {
-            NextLevelName = *(struct IDENTITYNAME *)"Power1";
-            MainStartName = *(struct IDENTITYNAME *)"Default";
+            NextLevelName = (struct IDENTITYNAME){"Power1"};
+            MainStartName = (struct IDENTITYNAME){"Default"};
             HelpComputer_Reset();
         }
     }

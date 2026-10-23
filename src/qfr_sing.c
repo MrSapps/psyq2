@@ -354,16 +354,12 @@ void CHECK_FOR_SLIDER(void);
 void CHECK_FOR_MCFILEWINDOW(void);
 
 extern struct QENGINELEVINTERFACE Engine;
-extern struct CURSOR_MEMORY CursorMemory[];
 void FrontEndInitText(void);
 void MoveBottomPoly(short polyNum, short y);
 
-extern struct STRING_TABLE MyStringTable[];
 void FrontEndAddText(struct STRING_TABLE *fetString, char *message, short x, short y, short fontSize, unsigned short window);
 
 extern struct WINDOW GameWindows[];
-extern struct STRING_TABLE MyStringTable[];
-extern struct CURSOR_MEMORY CursorMemory[];
 extern int LevelIsMultiPlayer;
 extern int Paused;
 extern struct FET_MESSAGE FET_INGAME_RESTART[];
@@ -494,7 +490,6 @@ long MemoryCardGetStatus(void);
 long MemoryCardGetNumFreeBlocks(void);
 
 extern struct QENGINELEVINTERFACE Engine;
-extern struct STRING_TABLE MyStringTable[];
 void FrontEndDrawText(struct STRING_TABLE *fetString, struct POLY_FT4 **poly);
 void FrontEndDrawSlider(struct STRING_TABLE *fetString, struct POLY_FT4 **poly, short isCursor);
 void FrontEndDrawCursor(struct STRING_TABLE *fetString, struct POLY_FT4 **poly);
@@ -2256,8 +2251,8 @@ void CHECK_FOR_MCFILEWINDOW(void)
     int Gap;
     int OffsetY;
     char *pChar;
-    static short TopFileId;
-    static short ScrollPos;
+    static short TopFileId = 0;
+    static short ScrollPos = 0;
     struct SCRPNT Pos;
     struct DRAWENV *ThisDrawEnv;
     struct DRAWENV *ThisDrawEnv2;

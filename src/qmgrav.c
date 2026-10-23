@@ -63,8 +63,8 @@ void MissionLoadSaveHub_800241A8(int Write)
         GameDeathWatchB = 0;
         GameDeathWatchA = 0;
         if (!NextLevelName.Name[0]) {
-            NextLevelName = *(struct IDENTITYNAME *)"Command";
-            MainStartName = *(struct IDENTITYNAME *)"Default";
+            NextLevelName = (struct IDENTITYNAME){"Command"};
+            MainStartName = (struct IDENTITYNAME){"Default"};
             HelpComputer_Reset();
         }
     }

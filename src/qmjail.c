@@ -73,8 +73,8 @@ void MissionLoadSaveHub(int Write)
         JailData->HelpObjective = LastObjective;
         JailData->HelpOrders = LastOrders;
         if (!NextLevelName.Name[0]) {
-            NextLevelName = *(struct IDENTITYNAME *)"Jail2";
-            MainStartName = *(struct IDENTITYNAME *)"Default";
+            NextLevelName = (struct IDENTITYNAME){"Jail2"};
+            MainStartName = (struct IDENTITYNAME){"Default"};
             HelpComputer_Reset();
         }
     }

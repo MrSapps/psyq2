@@ -36,8 +36,6 @@ struct ARMOUR_TYPE Armour_Types[3] = {
 };
 static short QM4PosX[44] = { 56, 16, 30, 44, 142, 100, 114, 128, 198, 212, 238, 208, 168, 182, 196, 112, 70, 84, 98, 6, 20, 34, 56, 16, 30, 44, 142, 100, 114, 128, 198, 212, 238, 208, 168, 182, 196, 112, 70, 84, 98, 6, 20, 34 };
 static short QPanel_PrevNext[8] = { 388, 201, 458, 201, 381, 95, 419, 95 };
-static short QM4PosY[4] = { 106, 106, 1, 1 };
-static char BCDNo[3] = "";
 static int Sound_Pickup SBSS;
 static int Sound_Weapons SBSS;
 static int Sound_Ammo SBSS;
@@ -110,17 +108,6 @@ extern int LevelIsMultiPlayer;
 extern unsigned int LevelTicks;
 extern short MaxAmmo[];
 extern struct ARMOUR_TYPE Armour_Types[];
-extern int Sound_Pickup;
-extern int Sound_Weapons;
-extern int Sound_Ammo;
-extern int Sound_MegaHealth;
-extern int Sound_LargeHealth;
-extern int Sound_NormalHealth;
-extern int Sound_Armour;
-extern int Sound_ArmourShard;
-extern int Sound_PowerArmour;
-extern int Sound_QuadDamage;
-extern int Sound_Invulnerability;
 short Pickup_Value(short Max_Value, short Current_Value, short AddOn_Value);
 int Pickup_Weapon(struct PLAYER *Player, int WeaponBit, short WeaponNo);
 void Pickup_Ammo(struct PLAYER *Player);
@@ -370,6 +357,8 @@ void ProcessQuakePanel2by1(struct WINDOW *GameWin)
     }
 }
 
+static short QM4PosY[4] = { 106, 106, 1, 1 };
+
 void ProcessQuakePanel2by2(struct WINDOW *GameWin)
 {
     int WinNo = GameWin - GameWindows;
@@ -427,6 +416,8 @@ void ProcessQuakePanel2by2(struct WINDOW *GameWin)
         Draw_Panel(GameWin, QPanel, *&(struct SHORTPAIR){ 11, 2 }, 0);
     }
 }
+
+static char BCDNo[3] = "";
 
 void BCD_Numbers(short Num, int Minus_Sign)
 {
@@ -678,7 +669,9 @@ void Display_Pickup(struct WINDOW *Window, struct CREATURE *Cre, struct SPRITEDA
     struct PLAYER *Player = Cre->Player;
     struct PTIMERS *PTimers = &Player->Extras.PTimers;
     char String[42];
-    char *Icon_Text[57] = { "", "Blaster", "Shotgun", "Super Shotgun", "Machinegun", "Chaingun", "Grenades", "Grenade Launcher", "Rocket Launcher", "HyperBlaster", "Railgun", "BFG10K", "IonRipper", "Plasma Beam", "Discharger", "FlameGun", "Tesla", "A-M Bomb", "Shells", "Bullets", "Grenades", "Rockets", "Cells", "Slugs", "Fuel", "Tesla", "Body Armor", "Combat Armor", "Jacket Armor", "Armor Shard", "Power Shield", "Power Screen", "Mega Health", "Adrenaline", "Health", "Health", "Health", "Ammo Pack", "Bandolier", "Silencer", "Quad Damage", "Invulnerability", "Environment Suit", "Rebreather", "Blue Key", "Red Key", "Security Pass", "AntiMatter Core", "Commander's Head", "Power Cube", "Purple Pyramid Key", "Red Pyramid Key", "Data CD", "Data Spinner", "Green Key", "Yellow Key", "White Key" };
+    /* every name carries an extra "\0": in the original each string is strlen+2 bytes ("Blaster"
+       takes 9 bytes and lands in .rdata, not .sdata; "Rocket Launcher" is padded to 20) */
+    char *Icon_Text[57] = { "\0", "Blaster\0", "Shotgun\0", "Super Shotgun\0", "Machinegun\0", "Chaingun\0", "Grenades\0", "Grenade Launcher\0", "Rocket Launcher\0", "HyperBlaster\0", "Railgun\0", "BFG10K\0", "IonRipper\0", "Plasma Beam\0", "Discharger\0", "FlameGun\0", "Tesla\0", "A-M Bomb\0", "Shells\0", "Bullets\0", "Grenades\0", "Rockets\0", "Cells\0", "Slugs\0", "Fuel\0", "Tesla\0", "Body Armor\0", "Combat Armor\0", "Jacket Armor\0", "Armor Shard\0", "Power Shield\0", "Power Screen\0", "Mega Health\0", "Adrenaline\0", "Health\0", "Health\0", "Health\0", "Ammo Pack\0", "Bandolier\0", "Silencer\0", "Quad Damage\0", "Invulnerability\0", "Environment Suit\0", "Rebreather\0", "Blue Key\0", "Red Key\0", "Security Pass\0", "AntiMatter Core\0", "Commander's Head\0", "Power Cube\0", "Purple Pyramid Key\0", "Red Pyramid Key\0", "Data CD\0", "Data Spinner\0", "Green Key\0", "Yellow Key\0", "White Key\0" };
 
     if (Player->Extras.Pickup_NewIcon) {
         if (LevelTicks > PTimers->Pickup_Timer)

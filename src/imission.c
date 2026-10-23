@@ -81,7 +81,7 @@ char AddLevelInterMission(char *CurrentMapTitle)
     for (Count = 0; Count < 6; Count++, MissionInfo++) {
         if (!strcmp(MissionInfo->MapTitle, CurrentMapTitle))
             return 0;
-        if (!strcmp(MissionInfo->MapTitle, "")) {
+        if (!strcmp(MissionInfo->MapTitle, "\0")) {
             strcpy(MissionInfo->MapTitle, CurrentMapTitle);
             MissionInfo->SecretsFound = GlobalSecretsFound;
             MissionInfo->SecretsTotal = GlobalSecretsCount;
@@ -296,7 +296,7 @@ short CentreText(char *String, short X1, short X2)
     int Spaces;
 
     Spaces = 0;
-    if (String == "")
+    if (String == "\0")
         return 0;
     TString = String;
     while (*TString++) {

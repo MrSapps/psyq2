@@ -66,7 +66,7 @@ void InitMissionTribute(void)
     SelfPlay = 0;
     InitMissionState();
     if (!*(int *)&NextLevelName) {
-        NextLevelName = *(struct IDENTITYNAME *)"HalfLife";
-        MainStartName = *(struct IDENTITYNAME *)"Default";
+        NextLevelName = (struct IDENTITYNAME){"HalfLife"};
+        MainStartName = (struct IDENTITYNAME){"Default"};
     }
 }

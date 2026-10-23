@@ -108,13 +108,14 @@ void HelpComputer_StopDisplay(int DoPad)
 
 int HelpComputer_Reset(void)
 {
-    LastOrders = *(struct IDENTITYNAME *)"";
-    LastObjective = *(struct IDENTITYNAME *)"";
+    LastOrders = (struct IDENTITYNAME){""};
+    LastObjective = (struct IDENTITYNAME){""};
     HelpComputer_StopDisplay(0);
 }
 
 void HelpComputer_DoDisplay(void)
 {
+    static int Unused = 0; /* never referenced; the original has 4 unreferenced zero bytes here in .sdata */
     static int ThisLevel = -2;
     struct SCRPNT Pos;
     static struct RECT Rect = {0x60, 0x20, 0x150, 0x64};

@@ -25,7 +25,6 @@ void PrimaryQuakePickup(struct CREATURE *Cre);
 
 extern struct PLAYER Players[];
 extern char WeaponTypeMap[];
-extern struct CREATURE FlyPickCre;
 int GenerateQuakeFlyingPickup(int PickupType, int Angle, struct SVECT *Force, struct VECT *Location, short MoveSpace);
 
 extern struct COLLHEADER MoveCollMap;
