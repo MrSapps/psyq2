@@ -66,3 +66,131 @@ long vectoyaw(struct VECT *vec)
         yaw = ratan2(vec->vx, vec->vz);
     return yaw;
 }
+
+void vectoangles(struct VECT *value1, struct SVECT *angles)
+{
+    long yaw;
+    long pitch;
+
+    if (value1->vx == 0 && value1->vz == 0) {
+        yaw = 0;
+        if (value1->vy > 0)
+            pitch = 0x400;
+        else
+            pitch = 0xc00;
+    } else {
+        if (value1->vx)
+            yaw = ratan2(value1->vx, value1->vz);
+        else if (value1->vz > 0)
+            yaw = 0x400;
+        else
+            yaw = 0xc00;
+        if (yaw < 0)
+            yaw += 0x1000;
+        pitch = ratan2(value1->vy, SquareRoot0(value1->vx * value1->vx + value1->vz * value1->vz));
+        if (pitch < 0)
+            pitch += 0x1000;
+    }
+    angles->vx = pitch;
+    angles->vz = yaw;
+    angles->vy = 0;
+}
+
+struct edict_s *FirstEdict(void)
+{
+    return EdictTList;
+}
+
+extern struct CREATURE Creatures[];
+extern struct CREATURE *CreFreeList[];
+long VectorLength2(struct VECT *v);
+
+void G_ProjectSourceNM(struct VECT *point, struct SVECT *distance, struct VECT *forward, struct VECT *right, struct VECT *result)
+{
+    result->vx = point->vx + forward->vx * distance->vx / 4096 + right->vx * distance->vz / 4096;
+    result->vy = point->vy + forward->vy * distance->vx / 4096 + right->vy * distance->vz / 4096 + distance->vy;
+    result->vz = point->vz + forward->vz * distance->vx / 4096 + right->vz * distance->vz / 4096;
+}
+
+/* Creatures + 48 is CreFreeList to splat */
+struct CREATURE *CreFindRadius(struct CREATURE *from, struct VECT org, long rad)
+{
+    struct VECT eorg;
+    int rad2;
+
+    rad2 = rad * rad;
+    if (!from)
+        from = Creatures;
+    else
+        from++;
+    for (; from < (struct CREATURE *)CreFreeList; from++) {
+        if (from->Life <= 0)
+            continue;
+        if (!from->ModelHdr)
+            continue;
+        eorg.vx = org.vx - from->Box.Location.vx;
+        eorg.vy = org.vy - from->Box.Location.vy;
+        eorg.vz = org.vz - from->Box.Location.vz;
+        if (VectorLength2(&eorg) > rad2)
+            continue;
+        return from;
+    }
+}
+
+void path_corner_touch(struct edict_s *self, struct edict_s *other, struct cplane_s *plane, struct csurface_s *surf);
+
+void G_TouchTriggers(struct edict_s *ent)
+{
+    int i;
+    int num;
+    struct edict_s *touch[MaxEdictT];
+    struct edict_s *hit;
+    struct VECTBOX VectBox;
+
+    if ((ent->client || (ent->svflags & 4)) && ((struct CREATURE *)ent->Extra.Creature)->Health <= 0)
+        return;
+    neilserver(ent, 0x4001);
+    CalcAbsFromCreBox(ent, &VectBox);
+    num = BoxEdicts(&VectBox, touch, MaxEdictT, 2);
+    for (i = 0; i < num; i++) {
+        hit = touch[i];
+        if (!hit->inuse)
+            continue;
+        if (hit->classname == 0x72)
+            path_corner_touch(hit, ent, 0, 0);
+        else if (hit->touch)
+            hit->touch(hit, ent, 0, 0);
+    }
+}
+
+static struct edict_s *G_Find(struct edict_s *from, int match)
+{
+    do { from = NextEdict(from); if (!from) return 0; if (!from->inuse) continue; if (from->targetname == match) return from; } while (from); return 0;
+}
+
+
+
+
+
+struct edict_s *G_PickTarget(int targetname)
+{
+    struct edict_s *ent;
+    int num_choices;
+    struct edict_s *choice[8];
+
+    ent = 0;
+    num_choices = 0;
+    if (targetname <= 0)
+        return 0;
+    while (1) {
+        ent = G_Find(ent, targetname);
+        if (!ent)
+            break;
+        choice[num_choices++] = ent;
+        if (num_choices == 8)
+            break;
+    }
+    if (!num_choices)
+        return 0;
+    return choice[rand() % num_choices];
+}

@@ -51,3 +51,19 @@ void SetCDVolume(int a)
     }
     CdMix(&cdVol);
 }
+
+void PlayThisXA(int XANumber)
+{
+    static char Trax[2];
+    return;
+    {
+        unsigned char param[4];
+        param[0] = Trax[XANumber];
+        CdControl(0xd, param, 0);
+    }
+}
+
+
+void RestartXA(void)
+{
+}
