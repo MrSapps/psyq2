@@ -10,6 +10,27 @@ short Event_GlobalEVOFFSET;
 short ggg;
 int Event_DoFromSub(int eventhdroffset, struct CREATURE *Cre, struct PSXSUBEVENT *subevent2);
 
+void DoSolidBoxEventDamage(struct SOLIDBOX *solidbox, short damage, struct VECT *Location)
+{
+    int a;
+    struct PSXSUBEVENT *subevent;
+
+    MoveBuf = BrushMoveBufs;
+    for (a = 0; a < numbrushes; a++, MoveBuf++) {
+        if (MoveBuf->SolidBox == solidbox) {
+            subevent = (struct PSXSUBEVENT *)(BrushMoveBufs[a].EvOffset + (int)eventlistbase);
+            MoveBuf->DamageLoc = *Location;
+            if (MoveBuf->DamageFunction(subevent, MoveBuf->Obj, damage)) {
+                /* reusing subevent (two sets) keeps sched1 from boosting its first set */
+                subevent = (struct PSXSUBEVENT *)((char *)subevent + subevent->evsize);
+                Event_GlobalEVOFFSET = BrushMoveBufs[a].EvHdrOffset;
+                Event_DoFromSub(Event_GlobalEVOFFSET, 0, subevent);
+            }
+            return;
+        }
+    }
+}
+
 int RestoreEvents(void)
 {
     usp = SetSp(0x1f8003fc);

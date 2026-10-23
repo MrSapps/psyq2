@@ -54,3 +54,29 @@ void PSXINSECRET_T(struct PSXSUBEVENT *subevent)
 {
     GlobalSecretsCount++;
 }
+
+extern struct COLLHEADER TrigBoundCollMap;
+extern short TelePortData[];
+short NumTelePorts;
+short Event_GlobalEVOFFSET;
+
+void PSXTELEPORT_T(struct PSXSUBEVENT *subevent)
+{
+    struct COLLHEADER *Hdr;
+    struct COLL3DSPACE *Space;
+    short a;    /* never initialised: the original reads it from $a0 */
+    short n;    /* not in SYM, but needed so the bound is hoisted past the TelePortData store */
+
+    Hdr = &TrigBoundCollMap;
+    Space = Hdr->Coll3dSpace;
+    n = Hdr->TotalNumSpaces;
+    for (; a < n; a++, Space++) {
+        if (*(signed char *)&Space->Area != -1) {
+            if (Space->StartJoin == Event_GlobalEVOFFSET) {
+                TelePortData[NumTelePorts] = (char *)Space - (char *)Hdr->Coll3dSpace;
+                NumTelePorts++;
+                return;
+            }
+        }
+    }
+}

@@ -39,7 +39,7 @@ void PreInitWeaponExtras(void);
 void RotateS(struct MATRIX *m, struct SVECT *v1, struct SVECT *o2);
 void PlayerNoise(struct edict_s *who, struct VECT *where, int type);
 int AnyoneFireGrenadeL(struct CREATURE *Aggressor, struct VECT *Start, struct SVECT *Dir, int Damage, int Life);
-int AnyoneFireBlaster(struct CREATURE *Self, struct VECT *FirePosition, struct SVECT *Dir, int Damage, int Flags, int DamageType, int FireSpace);
+int AnyoneFireBlaster();
 int AnyoneFireInstantRail(struct CREATURE *Cre, struct VECT *Start, struct SVECT *Dir, int Damage);
 int AnyoneFireRocketL(struct CREATURE *Aggressor, struct VECT *Start, struct SVECT *Dir, int Damage);
 struct CREATURE *GetNextCre(int UseExpendable);
@@ -1172,5 +1172,374 @@ GAHold:
                 Gun->AnimFlags = (Gun->AnimFlags | 1) & ~2;
             }
         }
+    }
+}
+
+struct MISSILE *FindFreeMissile(void);
+void FreeMissile(struct MISSILE *Missile);
+int SquareRootNR(int a);
+long ratan2(long y, long x);
+int InitCol3dMove(struct COLLHEADER *Map, struct COL3DMOVE *Move3d, struct VECT *Location, short SpaceNum);
+
+/* SYM says int Flags/DamageType/FireSpace, but they are loaded with lhu: short parameters.
+   Old-style definition so the callers (int arguments, matched) are unaffected. */
+int AnyoneFireBlaster(Self, FirePosition, Dir, Damage, Flags, DamageType, FireSpace)
+    struct CREATURE *Self;
+    struct VECT *FirePosition;
+    struct SVECT *Dir;
+    int Damage;
+    unsigned short Flags;
+    unsigned short DamageType;
+    unsigned short FireSpace;
+{
+    struct MISSILE *Bullet;
+    struct SVECT BullVel;
+    struct SVECT Ang;
+    struct MATRIX m;
+    static struct SVECT Points[8] = {
+        {-10, -10, -50}, {10, -10, -50}, {-10, -10, 50}, {10, -10, 50},
+        {-10, 10, -50}, {10, 10, -50}, {-10, 10, 50}, {10, 10, 50},
+    };
+
+    /* The do-while(0) and the empty loop leave loop notes in the RTL: the empty loop
+       splits cse's block, so the short parameters keep their own (lhu-loaded)
+       pseudos, and the outer loop depth weights the register-allocation priorities. */
+    do {
+    if ((Bullet = FindFreeMissile())) {
+        Bullet->Instigator = Self;
+        { int i; for (i = 0; i < 0; i++); }
+        Bullet->Location = *FirePosition;
+        Bullet->Col3dMove.Vel = *Dir;
+        Bullet->Col3dMove.Scale = 1;
+        Bullet->Damage = Damage;
+        Bullet->DamageType = DamageType;
+        Bullet->Life = 0xa00;
+        Bullet->Trail = 1;
+        Bullet->TrailDensity = 6;
+        Bullet->Flags = Flags;
+        if (Flags & 4) {
+            Ang = (struct SVECT){-ratan2(Dir->vy, SquareRootNR(Dir->vx * Dir->vx + Dir->vz * Dir->vz)), ratan2(Dir->vx, Dir->vz), 0};
+            RotMatrixYXZ(&Ang, &m);
+            RotateS(&m, &Points[0], &Bullet->P0);
+            RotateS(&m, &Points[1], &Bullet->P1);
+            RotateS(&m, &Points[2], &Bullet->P2);
+            RotateS(&m, &Points[3], &Bullet->P3);
+            RotateS(&m, &Points[4], &Bullet->P4);
+            RotateS(&m, &Points[5], &Bullet->P5);
+            RotateS(&m, &Points[6], &Bullet->P6);
+            RotateS(&m, &Points[7], &Bullet->P7);
+        }
+        if (!InitCol3dMove(&CollMap, &Bullet->Col3dMove, &Bullet->Location, FireSpace)) {
+            FreeMissile(Bullet);
+            return 0;
+        }
+        SoundByCreature(SoundBlasterFire, Self);
+        return 1;
+    }
+    return 0;
+    } while (0);
+}
+
+extern long *DummyMemory;
+extern int MaxWindows;
+struct PARTICLE *AddParticlesSL0(struct VECT *Pos, struct SVECT *Off, struct SVECT *Vel, struct PARTCOLOURS *PColour0, struct PARTCOLOURS *PColour1, int NumToDraw, int Timer, int Size, int Area);
+
+int AnyoneFireInstantRail(struct CREATURE *Cre, struct VECT *Start, struct SVECT *Dir, int Damage)
+{
+    struct CREATURE *Target;
+    int AreasCrossed;
+    int CurrentArea;
+    int DotP;
+    struct SVECT *Loc;
+    long Length;
+    int c;
+    int Angle;
+    int AngleStep;
+    int sin;
+    int cos;
+    int Units;
+    int a;
+    int PartsPerTwist;
+    int TwistsPerPacket;
+    short FireSpace;
+    struct RAILEXTRA *RailExtra;
+    struct AREAINTERSECT *AI;  /* not in SYM: a pointer whose constant value reload rematerialises (la CollMap+0x2C) */
+
+    RailExtra = (struct RAILEXTRA *)DummyMemory;
+    GetFireLocSpace(Cre, Start, &FireSpace);
+    RailExtra->Stop.vx = Start->vx + Dir->vx * 4;
+    RailExtra->Stop.vy = Start->vy + Dir->vy * 4;
+    RailExtra->Stop.vz = Start->vz + Dir->vz * 4;
+    if (!Visable3d(&CollMap, Start, &RailExtra->Stop, FireSpace))
+        RailExtra->Stop = CollMap.AreaIntersectLast->Intersect;
+    if (!VisableSolidBoxLine(Start, &RailExtra->Stop, &RailExtra->Stop)) {
+        if (CollisionReturnData.IdentType) {
+            if (SolidBoxs[CollisionReturnData.Ident].Flags & 4) {
+                SolidBoxs[CollisionReturnData.Ident].Flags |= 8;
+                DoSolidBoxEventDamage(&SolidBoxs[CollisionReturnData.Ident], Damage, &RailExtra->Stop);
+            }
+        }
+    }
+    Target = LineIntersectCreCylinder(Start, &RailExtra->Stop, Cre, &RailExtra->ISect, ThisBumpList, ThisBumpListEnd);
+    if (Target)
+        DoDamage(Cre, Target, Damage, 3, &RailExtra->ISect);
+    AI = CollMap.AreaIntersects;
+    AreasCrossed = CollMap.AreaIntersectLast - AI;
+    RailExtra->Vel1.vx = RailExtra->Stop.vx - Start->vx;
+    RailExtra->Vel1.vy = RailExtra->Stop.vy - Start->vy;
+    RailExtra->Vel1.vz = RailExtra->Stop.vz - Start->vz;
+    Length = SquareRootNR(RailExtra->Vel1.vx * RailExtra->Vel1.vx + RailExtra->Vel1.vy * RailExtra->Vel1.vy + RailExtra->Vel1.vz * RailExtra->Vel1.vz);
+    if (LevelIsMultiPlayer) {
+        PartsPerTwist = 15;
+        if (MaxWindows >= 3)
+            TwistsPerPacket = 2;
+        else
+            TwistsPerPacket = 1;
+    } else {
+        TwistsPerPacket = 1;
+        PartsPerTwist = 30;
+    }
+    Loc = &RailExtra->Speed[PartsPerTwist];
+    Units = Length / 1024;
+    Units++;
+    if (!Units)
+        Units = 1;
+    RailExtra->Vel1.vx /= Units;
+    RailExtra->Vel1.vy /= Units;
+    RailExtra->Vel1.vz /= Units;
+    RailExtra->CounterStep.vx = (RailExtra->Vel1.vx << 4) / PartsPerTwist;
+    RailExtra->CounterStep.vy = (RailExtra->Vel1.vy << 4) / PartsPerTwist;
+    RailExtra->CounterStep.vz = (RailExtra->Vel1.vz << 4) / PartsPerTwist;
+    RailExtra->Vel.vx = RailExtra->Vel1.vx;
+    RailExtra->Vel.vy = RailExtra->Vel1.vy;
+    RailExtra->Vel.vz = RailExtra->Vel1.vz;
+    *Loc = (struct SVECT){0, 0, 0};
+    RailExtra->Counter = (struct VECT){0, 0, 0};
+    *Loc = (struct SVECT){0, 0, 0};
+    for (a = 1; a < PartsPerTwist; a++) {
+        Loc[a].vx = Loc[a - 1].vx + RailExtra->CounterStep.vx;
+        Loc[a].vy = Loc[a - 1].vy + RailExtra->CounterStep.vy;
+        Loc[a].vz = Loc[a - 1].vz + RailExtra->CounterStep.vz;
+    }
+    AngleStep = (TwistsPerPacket << 12) / PartsPerTwist;
+    Angle = 0;
+    for (a = 0; a < PartsPerTwist; a++, Angle += AngleStep) {
+        sin = rcossin_tbl[Angle & 0xfff][0];
+        cos = rcossin_tbl[Angle & 0xfff][1];
+        RailExtra->Speed[a] = (struct SVECT){cos, sin, 0};
+        RotateS(&Cre->Matrix, &RailExtra->Speed[a], &RailExtra->Speed[a]);
+        RailExtra->Speed[a].vy = -RailExtra->Speed[a].vy;
+        Loc[a].vx += RailExtra->Speed[a].vx >> 2;
+        Loc[a].vy += RailExtra->Speed[a].vy >> 2;
+        Loc[a].vz += RailExtra->Speed[a].vz >> 2;
+        RailExtra->Speed[a].vx >>= 10;
+        RailExtra->Speed[a].vy >>= 10;
+        RailExtra->Speed[a].vz >>= 10;
+    }
+    CurrentArea = AI[0].Area;
+    a = 1;
+    for (c = 0; c < (Units & ~1); c += 2) {
+        AddParticlesSL0(Start, Loc, RailExtra->Speed, &ParticleColours_Blue, &ParticleColours_Blue, 15, 16, 7000, CurrentArea);
+        if (PartsPerTwist == 30)
+            AddParticlesSL0(Start, Loc + 15, &RailExtra->Speed[15], &ParticleColours_Blue, &ParticleColours_Blue, 15, 16, 7000, CurrentArea);
+        Start->vx += RailExtra->Vel.vx;
+        Start->vy += RailExtra->Vel.vy;
+        Start->vz += RailExtra->Vel.vz;
+        if (AreasCrossed >= 2) {
+            DotP = (AI[a].Intersect.vx - Start->vx) * RailExtra->Vel.vx
+                 + (AI[a].Intersect.vy - Start->vy) * RailExtra->Vel.vy
+                 + (AI[a].Intersect.vz - Start->vz) * RailExtra->Vel.vz;
+            while (DotP < 0) {
+                CurrentArea = AI[a].Area;
+                a++;
+                DotP = (AI[a].Intersect.vx - Start->vx) * RailExtra->Vel.vx
+                     + (AI[a].Intersect.vy - Start->vy) * RailExtra->Vel.vy
+                     + (AI[a].Intersect.vz - Start->vz) * RailExtra->Vel.vz;
+            }
+        }
+    }
+    AddParticlesSL0(Start, Loc, RailExtra->Speed, &ParticleColours_Blue, &ParticleColours_Blue, 15, 16, 6000, CurrentArea);
+    return 1;
+}
+
+extern struct PARTCOLOURS ParticleColours_Green;
+struct ANIMHDR *FindAnimHdr(struct GLOBMODHDR *Hdr, struct IDENTITYNAME Name);
+int ProcessCol3dMove(struct COLLHEADER *Map, struct COL3DMOVE *Move3d, struct VECT *Location, int NumFrames);
+
+void PrimaryBFG(struct CREATURE *Cre)
+{
+    struct CREATURE *Target;
+    struct CREATURE *Aggressor;
+    struct CREATURE *Gun;
+    struct PLAYER *Player;
+    struct PTIMERS *PTimers;
+    struct COL3DMOVE ColMove;
+    struct SHORTPAIR *SPair;
+    struct SVECT Vel[15];
+    struct SVECT Dir;
+    struct VECT Stop;
+    struct VECT FirePosition;
+    struct VECT OriginalLocation;
+    struct ANIMHDR *SetAnim;
+    int a;
+    int b;
+    int Space;
+    int StopArea;
+    int dist1;
+    int dist2;
+    char Win;
+
+    Aggressor = (struct CREATURE *)Cre->SequenceData;
+    if (Aggressor->Health <= 0 || !Aggressor->Life)
+        Aggressor = 0;
+    else {
+        Gun = 0;
+        if (Aggressor->Player)
+            Gun = Aggressor->Player->Extras.Weapon;
+    }
+    if (!Aggressor && Cre->Params[1] != 3) {
+        KillModel(Cre);
+        return;
+    }
+    switch (Cre->Params[1]) {
+    case 1:
+        if (Gun->Params[2] == 6)
+            Cre->Params[1] = 2;
+        return;
+    case 2:
+        for (Win = 0; Win < 4; Win++)
+            Cre->WinData[Win].NoDraw = 0;
+        if (Aggressor->Player) {
+            GetFirePosition(Aggressor, &FirePosition, &(struct SVECT){75, 100, 300});
+            Space = FindNewSpaceFromOld(&CollMap, &FirePosition, &Aggressor->Box.Location,
+                                        GetPrimarySpaceFromSecondary(Aggressor->Box.MoveSpace, &Aggressor->Box.Location));
+        } else {
+            if (!Visable3d(&CollMap, &Aggressor->Box.Location, &Aggressor->EdictT->pos1,
+                           GetPrimarySpaceFromSecondary(Aggressor->Box.MoveSpace, &Aggressor->Box.Location))) {
+                KillModel(Cre);
+                return;
+            }
+            Space = CollMap.ReturnSpaceNum;
+            FirePosition = Aggressor->EdictT->pos1;
+        }
+        Cre->Draw.Location = FirePosition;
+        Cre->Box.Location = Cre->Draw.Location;
+        Cre->Box.PrimarySpace = Space;
+        Cre->Box.Area = CollMap.Coll3dSpace[(short)Space].Area;
+        SetupCollBoxMinMax(&Cre->Box, *&(struct SVECT){20, 20, 20});
+        if (Aggressor->Player)
+            Cre->Ang = (struct SVECT){-Aggressor->Player->Window->CamAng.vx, -Aggressor->Player->Window->CamAng.vy, Aggressor->Player->Window->CamAng.vz};
+        else
+            Cre->Ang = (struct SVECT){-Aggressor->Ang.vx, Aggressor->Ang.vy, Aggressor->Ang.vz};
+        RotMatrixYXZ(&Cre->Ang, &Cre->Matrix);
+        RotateS(&Cre->Matrix, &(struct SVECT){0, 0, 0x300}, &Dir);
+        Cre->Vel = Dir;
+        ColMove.Vel = Dir;
+        Cre->Box.OnFloor = 0;
+        ColMove.Scale = 64;
+        if (!InitCol3dMove(&CollMap, &ColMove, &Cre->Box.Location, Space)) {
+            KillModel(Cre);
+            return;
+        }
+        Cre->Params[3] = ColMove.SpaceTime;
+        ((struct SHORTPAIR *)&Cre->Params[2])->b = ColMove.SpacePlane;
+        SetAnim = FindAnimHdr(Cre->ModelHdr, (struct IDENTITYNAME){"Spin"});
+        Cre->SequenceHdr = SetAnim;
+        Cre->AnimFrame = SetAnim->AnimDetails.Start;
+        Cre->AnimFlags &= ~1;
+        if (Aggressor->Player)
+            SoundByCreature(SoundBFGFire, Gun);
+        else
+            SoundByCreature(SoundBFGFire, Aggressor);
+        Player = Aggressor->Player;
+        if (Player) {
+            if (!(Console_Flags & 1))
+                Player->Extras.AmmoCount[4] -= 50;
+            PTimers = &Player->Extras.PTimers;
+            Player->Extras.Kick_Angles.vx = -91;
+            Player->Extras.Kick_Angles.vz = (((rand() & 0x7fff) - 0x4000) << 4 >> 12) / 5;
+            PTimers->Kick_Timer = LevelTicks + 150;
+        }
+        Cre->Params[1] = 3;
+    }
+    if (Cre->SequenceHdr) {
+        Cre->AnimFrame += NewVcounts;
+        while (Cre->AnimFrame >= Cre->SequenceHdr->AnimDetails.Stop)
+            Cre->AnimFrame -= Cre->SequenceHdr->AnimDetails.Stop;
+    }
+    AddLight(&Cre->Box.Location, *&(struct COLOUR){0, 0xff, 0, 0}, *&(struct POWER){1000, 1400}, *&(struct SHORTPAIR){0, 0});
+    Cre->Draw.Location = Cre->Box.Location;
+    Cre->Life -= NewVcounts;
+    if (Cre->Life <= 0) {
+        KillModel(Cre);
+        return;
+    }
+    ColMove.Vel = Cre->Vel;
+    SPair = (struct SHORTPAIR *)&Cre->Params[2];
+    ColMove.SpaceTime = Cre->Params[3];
+    ColMove.SpacePlane = SPair->b;
+    ColMove.Scale = 64;
+    /* divided by ColMove.Scale (known 64 to cse, but still a real div) */
+    Stop.vx = Cre->Box.Location.vx + ColMove.Vel.vx * NewVcounts / ColMove.Scale;
+    Stop.vy = Cre->Box.Location.vy + ColMove.Vel.vy * NewVcounts / ColMove.Scale;
+    Stop.vz = Cre->Box.Location.vz + ColMove.Vel.vz * NewVcounts / ColMove.Scale;
+    OriginalLocation = Cre->Box.Location;
+    if (!VisableSolidBoxLine(&Cre->Box.Location, &Stop, &Stop) || !ProcessCol3dMove(&CollMap, &ColMove, &Stop, NewVcounts)) {
+        Target = LineIntersectCreCylinder(&Cre->Box.Location, &Stop, Aggressor, &Stop, ThisBumpList, ThisBumpListEnd);
+        if (Target) {
+            dist1 = abs(OriginalLocation.vx - Cre->Box.Location.vx);
+            if (dist1 < abs(OriginalLocation.vy - Cre->Box.Location.vy))
+                dist1 = abs(OriginalLocation.vy - Cre->Box.Location.vy);
+            if (dist1 < abs(OriginalLocation.vz - Cre->Box.Location.vz))
+                dist1 = abs(OriginalLocation.vz - Cre->Box.Location.vz);
+            dist2 = abs(OriginalLocation.vx - Stop.vx);
+            if (dist2 < abs(OriginalLocation.vy - Stop.vy))
+                dist2 = abs(OriginalLocation.vy - Stop.vy);
+            if (dist2 < abs(OriginalLocation.vz - Stop.vz))
+                dist2 = abs(OriginalLocation.vz - Stop.vz);
+            if (dist2 < dist1) {
+                DoDamage(Cre, Target, Cre->Params[0], 1, &Stop);
+                PointHit(Aggressor, GetPrimarySpaceFromSecondary(Target->Box.MoveSpace, &Target->Box.Location), Target, &Target->Box.Location, (struct SHORTPAIR){Cre->Params[0], 1300}, 1, 0);
+                StopArea = Target->Box.Area;
+                KillModel(Cre);
+                goto Glint;
+            }
+        }
+        StopArea = CollMap.Coll3dSpace[SPair->b & 0x7ff].Area;
+        PointHit(Aggressor, SPair->b & 0x7ff, 0, &Cre->Box.Location, (struct SHORTPAIR){Cre->Params[0], 1300}, 1, 0);
+        KillModel(Cre);
+    } else {
+        Target = LineIntersectCreCylinder(&Cre->Box.Location, &Stop, Aggressor, &Stop, ThisBumpList, ThisBumpListEnd);
+        Cre->Box.Location = Stop;
+        Cre->Box.Area = ColMove.Area;
+        if (Target) {
+            DoDamage(Cre, Target, Cre->Params[0], 1, &Stop);
+            PointHit(Aggressor, GetPrimarySpaceFromSecondary(Target->Box.MoveSpace, &Target->Box.Location), Target, &Target->Box.Location, (struct SHORTPAIR){Cre->Params[0], 1300}, 1, 0);
+            StopArea = Target->Box.Area;
+            KillModel(Cre);
+            goto Glint;
+        }
+        Cre->Vel = ColMove.Vel;
+        Cre->Params[3] = ColMove.SpaceTime;
+        SPair->b = ColMove.SpacePlane;
+        Cre->Box.PrimarySpace = ColMove.SpacePlane & 0x7ff;
+        UpdateBoxStuff(&Cre->Box, 2);
+        SPair->a += NewVcounts;
+        BFGSpecial(Aggressor, Cre, Cre->Params[0]);
+        if (SPair->a > 30) {
+            do
+                SPair->a -= 30;
+            while (SPair->a > 30);
+        }
+        return;
+    }
+Glint: /* SYM lists a label "Glint" in this function */
+    for (a = 0; a < 3; a++) {
+        for (b = 0; b < 15; b++) {
+            Vel[b].vx = (rand() - 0x4000) >> 9;
+            Vel[b].vy = (rand() - 0x4000) >> 9;
+            Vel[b].vz = (rand() - 0x4000) >> 9;
+        }
+        AddParticlesSL(&Cre->Box.Location, Vel, &ParticleColours_Green, &ParticleColours_Green, 15, 15, 20000, StopArea);
     }
 }
