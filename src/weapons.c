@@ -443,3 +443,6 @@ struct WEAPON_ANIM *WeaponSeqRailgun[5] = { (void *)Railgun_Activating, (void *)
 struct WEAPON_ANIM *WeaponSeqBFG[5] = { (void *)BFG_Activating, (void *)BFG_Firing, (void *)BFG_Ready, (void *)BFG_Deactivating, (void *)Dummy_Anim };
 struct WEAPON_ANIM **WeaponSequences[12] = { (void *)WeaponSeqBlaster, (void *)WeaponSeqBlaster, (void *)WeaponSeqShotgun, (void *)WeaponSeqSShotgun, (void *)WeaponSeqMachgun, (void *)WeaponSeqChaingun, (void *)WeaponSeqGrenade, (void *)WeaponSeqGLauncher, (void *)WeaponSeqRLauncher, (void *)WeaponSeqHyperB, (void *)WeaponSeqRailgun, (void *)WeaponSeqBFG };
 
+
+/* an int 1 the original has in .sdata after quakegun's data, which nothing refers to */
+static int UnusedWeaponsWord = 1;

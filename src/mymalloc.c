@@ -250,6 +250,15 @@ void *myrealloc2(void *lastp2, int len2, int HiFlag)
     return newp;
 }
 
+/* The original's .sdata has "\n", "%s\n" and "Unknown" ahead of MY_malloc_name's ".opt", and
+   "ModPols" after it, with nothing that refers to them: literals of code the game never
+   calls. These stand-ins only supply them, in that order. */
+static __inline__ void PrintMallocName(char *Name)
+{
+    printf("\n");
+    printf("%s\n", Name ? Name : "Unknown");
+}
+
 void *MY_malloc_name(int s, char *name)
 {
     void *p;
@@ -257,10 +266,15 @@ void *MY_malloc_name(int s, char *name)
     if (p) {
         ((struct NAME16 *)p)[-1] = *(struct NAME16 *)name;
         ((char *)p)[-1] = 0;
-        strstr(name, "");
+        strstr(name, ".opt");
     } else
         printheap();
     return p;
+}
+
+static __inline__ void *MallocModPols(int Size)
+{
+    return MY_malloc_name(Size, "ModPols");
 }
 
 void *MY_malloc_namehb(int s, char *name)

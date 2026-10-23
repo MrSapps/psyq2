@@ -1807,10 +1807,11 @@ void InGame_CHECK_FOR_CONTROLLER(void)
 void InGame_CHECK_FOR_SCREENPOSITION(void)
 {
     short pad;
-    static short TimeLeft SBSS;
-    static short TimeRight SBSS;
-    static short TimeUp SBSS;
-    static short TimeDown SBSS;
+    /* .sbss but not word aligned: the original has these four packed */
+    static short TimeLeft __attribute__((section(".sbss")));
+    static short TimeRight __attribute__((section(".sbss")));
+    static short TimeUp __attribute__((section(".sbss")));
+    static short TimeDown __attribute__((section(".sbss")));
 
     pad = Engine.gFrontEndPad[Pauser];
     if (pad & 0x80) {

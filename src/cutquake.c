@@ -13,6 +13,16 @@ char WaitingCutScene SBSS;
 
 extern struct WINDOW GameWindows[];
 
+/* cutquake's .rdata in the original: a "Quaddamage P" name and a VECT {0,0,1536}, which
+   nothing refers to. Constants of code the game never calls; this stand-in only supplies
+   them. */
+struct GLOBMODHDR *GetModelHdr(struct IDENTITYNAME Name);
+static __inline__ void CutSceneUnused(struct VECT *Pos)
+{
+    GetModelHdr((struct IDENTITYNAME){ "Quaddamage P" });
+    *Pos = (struct VECT){ 0, 0, 1536 };
+}
+
 void QuakeLoadingSpecific(void)
 {
     if (WaitingCutScene)

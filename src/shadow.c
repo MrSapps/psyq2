@@ -164,3 +164,7 @@ void DrawCreShadow(struct CREATURE *Cre, struct MODWIN *WinData)
         }
     }
 }
+
+/* 8 bytes the original has in .sdata here (a zero word, then shorts 1024 and 512), which
+   nothing refers to */
+static short UnusedShadowData[4] = { 0, 0, 1024, 512 };

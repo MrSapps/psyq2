@@ -508,6 +508,14 @@ void DoAddCentredSpriText(struct WINDOW *Window)
     }
 }
 
+/* the original's .sdata has these two control strings after "...", with nothing that refers
+   to them: literals of code the game never calls (this stand-in only supplies them) */
+static __inline__ void UnusedSpriTextCodes(char *Buf)
+{
+    strcpy(Buf, "\177\177n");
+    strcat(Buf, "|0");
+}
+
 /* Not in the SYM and never called (so never emitted): lines 1062-1132 of the original have no
    code, but an unreferenced 4-byte static Pos (Pos.36) sits in .sbss between buf (UpdateMessageText)
    and CharX. A discarded helper's static is a guess at where it came from. */

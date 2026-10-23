@@ -30,6 +30,11 @@ ADDR = {}
 for line in open(f'{R}/src/symbols.txt'):
     a, n = line.split()
     ADDR.setdefault(n, int(a, 16))
+# function-scope statics are only in config/symbol_addrs.txt, as name.N
+for line in open(f'{R}/config/symbol_addrs.txt'):
+    m = re.match(r'(\w+)\.\d+ = 0x([0-9a-fA-F]+);', line)
+    if m:
+        ADDR.setdefault(m.group(1), int(m.group(2), 16))
 for g in json.load(open(f'{R}/src/globals.json')):
     if g['addr']:
         ADDR.setdefault(g['name'], g['addr'])

@@ -4,6 +4,14 @@
 /* defined below; gcc defers these to the end of the file in this order */
 unsigned short QuickRand(void);
 char *strupr(char *s);
+/* common's .rdata in the original is just this name, which nothing refers to: the literal
+   of code the game never calls. This stand-in only supplies it. */
+void *MY_malloc_name(int s, char *name);
+static __inline__ void *MallocParticles(int Size)
+{
+    return MY_malloc_name(Size, "Particles");
+}
+
 /* data */
 struct DISPENV movedisp BSS;
 short allpals[32] BSS;

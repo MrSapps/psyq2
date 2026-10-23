@@ -49,6 +49,8 @@ char xainame5[12] = "QUAKE_E.XAI";
 char *xaifilename[6] = { (void *)xainame1, (void *)xainame2, (void *)xainame3, (void *)xainame4, (void *)xainame5, 0 };
 char QuakeDefaultTrackList[] = { 2, -1 };
 char OneTrackList[] = { 2, -1 };
+/* a pointer to "bad" the original has ahead of MusicCheck, which nothing refers to */
+static char *UnusedBad = "bad";
 int MusicCheck = 0;
 char *CDAudioTrackList = 0;
 int Playing SBSS;
@@ -120,6 +122,14 @@ void GetToc(void)
 }
 
 short cddefvol = 100;
+
+/* the original's .rdata has this message after GetToc's path, with nothing that refers to
+   it: the literal of code the game never calls (this stand-in only supplies it) */
+int printf(char *fmt, ...);
+static __inline__ void PrintXATrack(int Track)
+{
+    printf("XA track %d\n", Track);
+}
 
 void PlayTrackList(char *list)
 {

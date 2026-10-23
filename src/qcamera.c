@@ -194,6 +194,7 @@ void QuakeCameraInterMission(struct WINDOW *Window, struct CREATURE *Cre)
 
 void QGenWindowSortList(struct WINDOW *Window)
 {
+    static int DontBotherMeWithThisStuff SBSS; /* unused, but the original has its storage */
     struct CREATURE *Cre = Window->Creature;
 
     if (Cre) {
