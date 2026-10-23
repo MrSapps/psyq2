@@ -297,6 +297,423 @@ void Display_FragCount(struct WINDOW *Window, int Score, struct SPRITEDATA *Hund
     Assign_NoSprite(Score, Hundred, Ten, One, 1);
 }
 
+/* before the Pickup_* helpers: -O3 would inline them */
+extern short Console_Flags;
+extern int LevelIsMultiPlayer;
+extern unsigned int LevelTicks;
+extern short MaxAmmo[];
+extern struct ARMOUR_TYPE Armour_Types[];
+extern int Sound_Pickup;
+extern int Sound_Weapons;
+extern int Sound_Ammo;
+extern int Sound_MegaHealth;
+extern int Sound_LargeHealth;
+extern int Sound_NormalHealth;
+extern int Sound_Armour;
+extern int Sound_ArmourShard;
+extern int Sound_PowerArmour;
+extern int Sound_QuadDamage;
+extern int Sound_Invulnerability;
+short Pickup_Value(short Max_Value, short Current_Value, short AddOn_Value);
+int Pickup_Weapon(struct PLAYER *Player, int WeaponBit, short WeaponNo);
+void Pickup_Ammo(struct PLAYER *Player);
+short Pickup_Armour(struct PLAYER *Player, char New_Armour);
+int SoundAtLocation(int SFXNumber, struct VECT *loc);
+
+enum PICKUPSTATUS ProcessPickup(struct CREATURE *Cre, unsigned char Item_PickedUp)
+{
+    struct PLAYER *Player;
+    struct PTIMERS *PTimers;
+    int Display_PickupIcon;
+    short MaxAmmo_Type;
+    short Armour_Count;
+    short Ammo_Quantity;
+    short ShouldDestroy;
+
+    Display_PickupIcon = 0;
+    ShouldDestroy = 1;
+    Player = Cre->Player;
+    MaxAmmo_Type = Player->Extras.Max_AmmoType;
+    PTimers = &Player->Extras.PTimers;
+    switch (Item_PickedUp) {
+    case 2:
+        if (Console_Flags & 1)
+            Ammo_Quantity = MaxAmmo[MaxAmmo_Type + 0];
+        else if (LevelIsMultiPlayer)
+            Ammo_Quantity = 20;
+        else
+            Ammo_Quantity = 10;
+        if (Pickup_Weapon(Player, 0x2, 2)) {
+            Player->Extras.AmmoCount[0] = Pickup_Value(MaxAmmo[MaxAmmo_Type + 0], Player->Extras.AmmoCount[0], Ammo_Quantity);
+            Display_PickupIcon = 1;
+            ShouldDestroy = 0;
+            SoundAtLocation(Sound_Weapons, (struct VECT *)&Cre->Box);
+        }
+        break;
+    case 3:
+        if (Console_Flags & 1)
+            Ammo_Quantity = MaxAmmo[MaxAmmo_Type + 0];
+        else if (LevelIsMultiPlayer)
+            Ammo_Quantity = 20;
+        else
+            Ammo_Quantity = 10;
+        if (Pickup_Weapon(Player, 0x4, 3)) {
+            Player->Extras.AmmoCount[0] = Pickup_Value(MaxAmmo[MaxAmmo_Type + 0], Player->Extras.AmmoCount[0], Ammo_Quantity);
+            Display_PickupIcon = 1;
+            ShouldDestroy = 0;
+            SoundAtLocation(Sound_Weapons, (struct VECT *)&Cre->Box);
+        }
+        break;
+    case 4:
+        if (Console_Flags & 1)
+            Ammo_Quantity = MaxAmmo[MaxAmmo_Type + 1];
+        else if (LevelIsMultiPlayer)
+            Ammo_Quantity = 100;
+        else
+            Ammo_Quantity = 50;
+        if (Pickup_Weapon(Player, 0x8, 4)) {
+            Player->Extras.AmmoCount[1] = Pickup_Value(MaxAmmo[MaxAmmo_Type + 1], Player->Extras.AmmoCount[1], Ammo_Quantity);
+            Display_PickupIcon = 1;
+            ShouldDestroy = 0;
+            SoundAtLocation(Sound_Weapons, (struct VECT *)&Cre->Box);
+        }
+        break;
+    case 5:
+        if (Console_Flags & 1)
+            Ammo_Quantity = MaxAmmo[MaxAmmo_Type + 1];
+        else if (LevelIsMultiPlayer)
+            Ammo_Quantity = 100;
+        else
+            Ammo_Quantity = 50;
+        if (Pickup_Weapon(Player, 0x10, 5)) {
+            Player->Extras.AmmoCount[1] = Pickup_Value(MaxAmmo[MaxAmmo_Type + 1], Player->Extras.AmmoCount[1], Ammo_Quantity);
+            Display_PickupIcon = 1;
+            ShouldDestroy = 0;
+            SoundAtLocation(Sound_Weapons, (struct VECT *)&Cre->Box);
+        }
+        break;
+    case 7:
+        if (Console_Flags & 1)
+            Ammo_Quantity = MaxAmmo[MaxAmmo_Type + 2];
+        else if (LevelIsMultiPlayer)
+            Ammo_Quantity = 10;
+        else
+            Ammo_Quantity = 5;
+        if (Pickup_Weapon(Player, 0x20, 7)) {
+            Player->Extras.AmmoCount[2] = Pickup_Value(MaxAmmo[MaxAmmo_Type + 2], Player->Extras.AmmoCount[2], Ammo_Quantity);
+            Display_PickupIcon = 1;
+            ShouldDestroy = 0;
+            Pickup_Weapon(Player, 0x40, 7);
+            SoundAtLocation(Sound_Weapons, (struct VECT *)&Cre->Box);
+        }
+        break;
+    case 8:
+        if (Console_Flags & 1)
+            Ammo_Quantity = MaxAmmo[MaxAmmo_Type + 3];
+        else if (LevelIsMultiPlayer)
+            Ammo_Quantity = 10;
+        else
+            Ammo_Quantity = 5;
+        if (Pickup_Weapon(Player, 0x80, 8)) {
+            Player->Extras.AmmoCount[3] = Pickup_Value(MaxAmmo[MaxAmmo_Type + 3], Player->Extras.AmmoCount[3], Ammo_Quantity);
+            Display_PickupIcon = 1;
+            ShouldDestroy = 0;
+            SoundAtLocation(Sound_Weapons, (struct VECT *)&Cre->Box);
+        }
+        break;
+    case 9:
+        if (Console_Flags & 1)
+            Ammo_Quantity = MaxAmmo[MaxAmmo_Type + 4];
+        else if (LevelIsMultiPlayer)
+            Ammo_Quantity = 100;
+        else
+            Ammo_Quantity = 50;
+        if (Pickup_Weapon(Player, 0x100, 9)) {
+            Player->Extras.AmmoCount[4] = Pickup_Value(MaxAmmo[MaxAmmo_Type + 4], Player->Extras.AmmoCount[4], Ammo_Quantity);
+            Display_PickupIcon = 1;
+            ShouldDestroy = 0;
+            SoundAtLocation(Sound_Weapons, (struct VECT *)&Cre->Box);
+        }
+        break;
+    case 11:
+        if (Console_Flags & 1)
+            Ammo_Quantity = MaxAmmo[MaxAmmo_Type + 4];
+        else if (LevelIsMultiPlayer)
+            Ammo_Quantity = 100;
+        else
+            Ammo_Quantity = 50;
+        if (Pickup_Weapon(Player, 0x400, 11)) {
+            Player->Extras.AmmoCount[4] = Pickup_Value(MaxAmmo[MaxAmmo_Type + 4], Player->Extras.AmmoCount[4], Ammo_Quantity);
+            Display_PickupIcon = 1;
+            ShouldDestroy = 0;
+            SoundAtLocation(Sound_Weapons, (struct VECT *)&Cre->Box);
+        }
+        break;
+    case 10:
+        if (Console_Flags & 1)
+            Ammo_Quantity = MaxAmmo[MaxAmmo_Type + 5];
+        else if (LevelIsMultiPlayer)
+            Ammo_Quantity = 20;
+        else
+            Ammo_Quantity = 10;
+        if (Pickup_Weapon(Player, 0x200, 10)) {
+            Player->Extras.AmmoCount[5] = Pickup_Value(MaxAmmo[MaxAmmo_Type + 5], Player->Extras.AmmoCount[5], Ammo_Quantity);
+            Display_PickupIcon = 1;
+            ShouldDestroy = 0;
+            SoundAtLocation(Sound_Weapons, (struct VECT *)&Cre->Box);
+        }
+        break;
+    case 18:
+        if (Player->Extras.AmmoCount[0] < MaxAmmo[MaxAmmo_Type + 0]) {
+            Player->Extras.AmmoCount[0] = Pickup_Value(MaxAmmo[MaxAmmo_Type + 0], Player->Extras.AmmoCount[0], LevelIsMultiPlayer ? 20 : 10);
+            Display_PickupIcon = 1;
+            Pickup_Ammo(Player);
+            SoundAtLocation(Sound_Ammo, (struct VECT *)&Cre->Box);
+        }
+        break;
+    case 19:
+        if (Player->Extras.AmmoCount[1] < MaxAmmo[MaxAmmo_Type + 1]) {
+            Player->Extras.AmmoCount[1] = Pickup_Value(MaxAmmo[MaxAmmo_Type + 1], Player->Extras.AmmoCount[1], LevelIsMultiPlayer ? 100 : 50);
+            Display_PickupIcon = 1;
+            Pickup_Ammo(Player);
+            SoundAtLocation(Sound_Ammo, (struct VECT *)&Cre->Box);
+        }
+        break;
+    case 20:
+        if (Player->Extras.AmmoCount[2] < MaxAmmo[MaxAmmo_Type + 2]) {
+            Player->Extras.AmmoCount[2] = Pickup_Value(MaxAmmo[MaxAmmo_Type + 2], Player->Extras.AmmoCount[2], LevelIsMultiPlayer ? 10 : 5);
+            Display_PickupIcon = 1;
+            Pickup_Weapon(Player, 0x20, 6);
+            SoundAtLocation(Sound_Ammo, (struct VECT *)&Cre->Box);
+        }
+        break;
+    case 21:
+        if (Player->Extras.AmmoCount[3] < MaxAmmo[MaxAmmo_Type + 3]) {
+            Player->Extras.AmmoCount[3] = Pickup_Value(MaxAmmo[MaxAmmo_Type + 3], Player->Extras.AmmoCount[3], LevelIsMultiPlayer ? 10 : 5);
+            Display_PickupIcon = 1;
+            Pickup_Ammo(Player);
+            SoundAtLocation(Sound_Ammo, (struct VECT *)&Cre->Box);
+        }
+        break;
+    case 22:
+        if ((Player->Extras.ExtraBits & 0x8000) && !Player->Extras.AmmoCount[4])
+            SoundAtLocation(Sound_PowerArmour, (struct VECT *)&Cre->Box);
+        if (Player->Extras.AmmoCount[4] < MaxAmmo[MaxAmmo_Type + 4]) {
+            Player->Extras.AmmoCount[4] = Pickup_Value(MaxAmmo[MaxAmmo_Type + 4], Player->Extras.AmmoCount[4], LevelIsMultiPlayer ? 100 : 50);
+            Display_PickupIcon = 1;
+            Pickup_Ammo(Player);
+            SoundAtLocation(Sound_Ammo, (struct VECT *)&Cre->Box);
+        }
+        break;
+    case 23:
+        if (Player->Extras.AmmoCount[5] < MaxAmmo[MaxAmmo_Type + 5]) {
+            Player->Extras.AmmoCount[5] = Pickup_Value(MaxAmmo[MaxAmmo_Type + 5], Player->Extras.AmmoCount[5], LevelIsMultiPlayer ? 20 : 10);
+            Display_PickupIcon = 1;
+            Pickup_Ammo(Player);
+            SoundAtLocation(Sound_Ammo, (struct VECT *)&Cre->Box);
+        }
+        break;
+    case 26:
+        Armour_Count = Pickup_Armour(Player, 2);
+        if (!(Player->Extras.ExtraBits & 0x4000))
+            Player->Extras.ExtraBits |= 0x4000;
+        if (Player->Extras.Armour_Count < Armour_Types[Player->Extras.Max_ArmourType].Max_Count) {
+            Player->Extras.Armour_Count = Pickup_Value(Armour_Types[Player->Extras.Max_ArmourType].Max_Count, Player->Extras.Armour_Count, Armour_Count);
+            Display_PickupIcon = 1;
+            SoundAtLocation(Sound_Armour, (struct VECT *)&Cre->Box);
+        }
+        break;
+    case 27:
+        Armour_Count = Pickup_Armour(Player, 1);
+        if (!(Player->Extras.ExtraBits & 0x6000))
+            Player->Extras.ExtraBits |= 0x2000;
+        Player->Extras.Armour_Count = Pickup_Value(Armour_Types[Player->Extras.Max_ArmourType].Max_Count, Player->Extras.Armour_Count, Armour_Count);
+        Display_PickupIcon = 1;
+        SoundAtLocation(Sound_Armour, (struct VECT *)&Cre->Box);
+        break;
+    case 28:
+        Armour_Count = Pickup_Armour(Player, 0);
+        if (!(Player->Extras.ExtraBits & 0x7000))
+            Player->Extras.ExtraBits |= 0x1000;
+        if (Player->Extras.Armour_Count < Armour_Types[Player->Extras.Max_ArmourType].Max_Count) {
+            Player->Extras.Armour_Count = Pickup_Value(Armour_Types[Player->Extras.Max_ArmourType].Max_Count, Player->Extras.Armour_Count, Armour_Count);
+            Display_PickupIcon = 1;
+            SoundAtLocation(Sound_Armour, (struct VECT *)&Cre->Box);
+        }
+        break;
+    case 29:
+        if (!(Player->Extras.ExtraBits & 0x7000))
+            Player->Extras.ExtraBits |= 0x1000;
+        Player->Extras.Armour_Count = Pickup_Value(999, Player->Extras.Armour_Count, 2);
+        Display_PickupIcon = 1;
+        SoundAtLocation(Sound_ArmourShard, (struct VECT *)&Cre->Box);
+        break;
+    case 30:
+        Player->Extras.ExtraBits |= 0x8000;
+        if (Player->Extras.AmmoCount[4] < MaxAmmo[MaxAmmo_Type + 4]) {
+            Player->Extras.AmmoCount[4] = Pickup_Value(MaxAmmo[MaxAmmo_Type + 4], Player->Extras.AmmoCount[4], LevelIsMultiPlayer ? 100 : 50);
+            Pickup_Ammo(Player);
+        }
+        Display_PickupIcon = 1;
+        SoundAtLocation(Sound_PowerArmour, (struct VECT *)&Cre->Box);
+        break;
+    case 32:
+        Player->Extras.ExtraBits |= 0x20000;
+        Cre->Health = Pickup_Value(200, Cre->Health, 100);
+        Display_PickupIcon = 1;
+        PTimers->MegaHealth_Timer = LevelTicks + 1500;
+        SoundAtLocation(Sound_MegaHealth, (struct VECT *)&Cre->Box);
+        break;
+    case 33:
+        Player->Extras.Max_Health++;
+        if (Cre->Health < Player->Extras.Max_Health)
+            Cre->Health = Pickup_Value(Player->Extras.Max_Health, Cre->Health, Player->Extras.Max_Health);
+        Display_PickupIcon = 1;
+        SoundAtLocation(Sound_Pickup, (struct VECT *)&Cre->Box);
+        break;
+    case 34:
+        if (Cre->Health < Player->Extras.Max_Health) {
+            Cre->Health = Pickup_Value(Player->Extras.Max_Health, Cre->Health, 10);
+            Display_PickupIcon = 1;
+            SoundAtLocation(Sound_NormalHealth, (struct VECT *)&Cre->Box);
+        }
+        break;
+    case 35:
+        if (Cre->Health < Player->Extras.Max_Health) {
+            Cre->Health = Pickup_Value(Player->Extras.Max_Health, Cre->Health, 25);
+            Display_PickupIcon = 1;
+            SoundAtLocation(Sound_LargeHealth, (struct VECT *)&Cre->Box);
+        }
+        break;
+    case 37:
+        MaxAmmo_Type = 12;
+        Player->Extras.Max_AmmoType = MaxAmmo_Type;
+        Player->Extras.AmmoCount[0] = Pickup_Value(MaxAmmo[MaxAmmo_Type], Player->Extras.AmmoCount[0], LevelIsMultiPlayer ? 20 : 10);
+        Player->Extras.AmmoCount[1] = Pickup_Value(MaxAmmo[MaxAmmo_Type + 1], Player->Extras.AmmoCount[1], LevelIsMultiPlayer ? 100 : 50);
+        Player->Extras.AmmoCount[2] = Pickup_Value(MaxAmmo[MaxAmmo_Type + 2], Player->Extras.AmmoCount[2], LevelIsMultiPlayer ? 10 : 5);
+        Player->Extras.AmmoCount[3] = Pickup_Value(MaxAmmo[MaxAmmo_Type + 3], Player->Extras.AmmoCount[3], LevelIsMultiPlayer ? 10 : 5);
+        Player->Extras.AmmoCount[4] = Pickup_Value(MaxAmmo[MaxAmmo_Type + 4], Player->Extras.AmmoCount[4], LevelIsMultiPlayer ? 100 : 50);
+        Player->Extras.AmmoCount[5] = Pickup_Value(MaxAmmo[MaxAmmo_Type + 5], Player->Extras.AmmoCount[5], LevelIsMultiPlayer ? 20 : 10);
+        Display_PickupIcon = 1;
+        SoundAtLocation(Sound_Pickup, (struct VECT *)&Cre->Box);
+        break;
+    case 38:
+        if (MaxAmmo_Type != 12) {
+            MaxAmmo_Type = 6;
+            Player->Extras.Max_AmmoType = MaxAmmo_Type;
+        }
+        Player->Extras.AmmoCount[0] = Pickup_Value(MaxAmmo[MaxAmmo_Type], Player->Extras.AmmoCount[0], LevelIsMultiPlayer ? 20 : 10);
+        Player->Extras.AmmoCount[1] = Pickup_Value(MaxAmmo[MaxAmmo_Type + 1], Player->Extras.AmmoCount[1], LevelIsMultiPlayer ? 100 : 50);
+        Display_PickupIcon = 1;
+        SoundAtLocation(Sound_Pickup, (struct VECT *)&Cre->Box);
+        break;
+    case 39:
+        Player->Extras.Silencer_Shots += 30;
+        Display_PickupIcon = 1;
+        SoundAtLocation(Sound_Pickup, (struct VECT *)&Cre->Box);
+        break;
+    case 40:
+        if (LevelTicks < PTimers->QuadTimer)
+            PTimers->QuadTimer += LevelTicks + 9000;
+        else
+            PTimers->QuadTimer = LevelTicks + 9000;
+        Display_PickupIcon = 1;
+        SoundAtLocation(Sound_QuadDamage, (struct VECT *)&Cre->Box);
+        break;
+    case 41:
+        if (LevelTicks < PTimers->InvTimer)
+            PTimers->InvTimer += LevelTicks + 9000;
+        else
+            PTimers->InvTimer = LevelTicks + 9000;
+        Display_PickupIcon = 1;
+        SoundAtLocation(Sound_Invulnerability, (struct VECT *)&Cre->Box);
+        break;
+    case 42:
+        if (LevelTicks < PTimers->EnviroTimer)
+            PTimers->EnviroTimer += LevelTicks + 9000;
+        else
+            PTimers->EnviroTimer = LevelTicks + 9000;
+        Display_PickupIcon = 1;
+        SoundAtLocation(Sound_Pickup, (struct VECT *)&Cre->Box);
+        break;
+    case 43:
+        if (LevelTicks < PTimers->BreatherTimer)
+            PTimers->BreatherTimer += LevelTicks + 9000;
+        else
+            PTimers->BreatherTimer = LevelTicks + 9000;
+        Display_PickupIcon = 1;
+        SoundAtLocation(Sound_Pickup, (struct VECT *)&Cre->Box);
+        break;
+    case 44:
+        Display_PickupIcon = 1;
+        Player->Extras.ExtraBits |= 0x1;
+        SoundAtLocation(Sound_Pickup, (struct VECT *)&Cre->Box);
+        break;
+    case 45:
+        Display_PickupIcon = 1;
+        Player->Extras.ExtraBits |= 0x2;
+        SoundAtLocation(Sound_Pickup, (struct VECT *)&Cre->Box);
+        break;
+    case 46:
+        Display_PickupIcon = 1;
+        Player->Extras.ExtraBits |= 0x4;
+        SoundAtLocation(Sound_Pickup, (struct VECT *)&Cre->Box);
+        break;
+    case 17:
+        Display_PickupIcon = 1;
+        Player->Extras.ExtraBits |= 0x8;
+        SoundAtLocation(Sound_Pickup, (struct VECT *)&Cre->Box);
+        break;
+    case 48:
+        Display_PickupIcon = 1;
+        Player->Extras.ExtraBits |= 0x10;
+        SoundAtLocation(Sound_Pickup, (struct VECT *)&Cre->Box);
+        break;
+    case 50:
+        Display_PickupIcon = 1;
+        Player->Extras.ExtraBits |= 0x40;
+        SoundAtLocation(Sound_Pickup, (struct VECT *)&Cre->Box);
+        break;
+    case 51:
+        Display_PickupIcon = 1;
+        Player->Extras.ExtraBits |= 0x20;
+        SoundAtLocation(Sound_Pickup, (struct VECT *)&Cre->Box);
+        break;
+    case 52:
+        Display_PickupIcon = 1;
+        Player->Extras.ExtraBits |= 0x80;
+        SoundAtLocation(Sound_Pickup, (struct VECT *)&Cre->Box);
+        break;
+    case 53:
+        Display_PickupIcon = 1;
+        Player->Extras.ExtraBits |= 0x100;
+        SoundAtLocation(Sound_Pickup, (struct VECT *)&Cre->Box);
+        break;
+    case 54:
+        Display_PickupIcon = 1;
+        Player->Extras.ExtraBits |= 0x200;
+        SoundAtLocation(Sound_Pickup, (struct VECT *)&Cre->Box);
+        break;
+    case 55:
+        Display_PickupIcon = 1;
+        Player->Extras.ExtraBits |= 0x400;
+        SoundAtLocation(Sound_Pickup, (struct VECT *)&Cre->Box);
+        break;
+    case 56:
+        Display_PickupIcon = 1;
+        Player->Extras.ExtraBits |= 0x800;
+        SoundAtLocation(Sound_Pickup, (struct VECT *)&Cre->Box);
+        break;
+    }
+    if (Display_PickupIcon) {
+        Player->Extras.Pickup_NewIcon = Item_PickedUp;
+        PTimers->Pickup_Timer = LevelTicks + 900;
+    }
+    if (Display_PickupIcon)
+        return !ShouldDestroy;
+    return PICKUP_LEFT_NO_GLINT;
+}
+
 short Pickup_Value(short Max_Value, short Current_Value, short AddOn_Value)
 {
     Current_Value += AddOn_Value;
@@ -850,4 +1267,60 @@ void Init_PickupSounds(void)
     }
     if (!Sound_Armour)
         Sound_ArmourShard = Sound_Armour = Sound_Pickup;
+}
+
+/* defined last: -O3 would inline it into the Display_* callers above */
+void Assign_NoSprite(int Num, struct SPRITEDATA *Hundred, struct SPRITEDATA *Ten, struct SPRITEDATA *One, int Minus_Sign)
+{
+    char HunOff;
+    char TenOff;
+    char OneOff;
+
+    BCDNo[0] = BCDNo[1] = BCDNo[2] = 0;
+    BCD_Numbers(Num, Minus_Sign);
+    HunOff = BCDNo[0] << 2;
+    TenOff = BCDNo[1] << 2;
+    OneOff = BCDNo[2] << 2;
+    Hundred->u = QuakeGunNumbers[HunOff];
+    Hundred->v = QuakeGunNumbers[HunOff + 1];
+    Ten->u = QuakeGunNumbers[TenOff];
+    Ten->v = QuakeGunNumbers[TenOff + 1];
+    One->u = QuakeGunNumbers[OneOff];
+    One->v = QuakeGunNumbers[OneOff + 1];
+    if (LevelIsMultiPlayer) {
+        if (Engine.GameConfig.sNumPlayers == 2) {
+            Hundred->w = 18;
+            Hundred->h = 20;
+            Ten->w = 18;
+            Ten->h = 20;
+            One->w = 18;
+            One->h = 20;
+        } else {
+            Hundred->w = 13;
+            Hundred->h = 12;
+            Ten->w = 13;
+            Ten->h = 12;
+            One->w = 13;
+            One->h = 12;
+        }
+        if (HunOff == 44) {
+            Hundred->w = 1;
+            Hundred->h = 1;
+        }
+        if (TenOff == 44) {
+            Ten->w = 1;
+            Ten->h = 1;
+        }
+        if (OneOff == 44) {
+            One->w = 1;
+            One->h = 1;
+        }
+    } else {
+        Hundred->w = QuakeGunNumbers[HunOff + 2];
+        Hundred->h = QuakeGunNumbers[HunOff + 3];
+        Ten->w = QuakeGunNumbers[TenOff + 2];
+        Ten->h = QuakeGunNumbers[TenOff + 3];
+        One->w = QuakeGunNumbers[OneOff + 2];
+        One->h = QuakeGunNumbers[OneOff + 3];
+    }
 }
