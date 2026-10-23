@@ -19,5 +19,5 @@ wine "$PSYQ/bin/cc1psx.exe" -quiet $flags "$tmp/a.i" -o "$tmp/a.s" 2>&1 | grep -
 # always get %hi/%lo, even when gcc emitted `.extern sym,size` with a small size.
 G=$(echo "$flags" | sed -nE 's/.*-G ?([0-9]+).*/\1/p')
 G=${G:-0}
-python3 "$R/tools/maspsx/maspsx.py" --aspsx-version=${ASPSX_VERSION:-2.81} --dont-force-G0 --use-comm-for-lcomm --use-comm-section -G"$G" "$tmp/a.s" < /dev/null > "$tmp/a.m.s"
+python3 "$R/tools/maspsx/maspsx.py" --aspsx-version=${ASPSX_VERSION:-2.81} --dont-force-G0 --use-comm-for-lcomm --use-comm-section --expand-div -G"$G" "$tmp/a.s" < /dev/null > "$tmp/a.m.s"
 ${CROSS}as -EL -march=r3000 -mabi=32 -G0 -no-pad-sections -I "$R/include" -o "$out" "$tmp/a.m.s"

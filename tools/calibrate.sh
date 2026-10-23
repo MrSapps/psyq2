@@ -26,5 +26,5 @@ for c in "$R"/calib/*.c; do
         fi
     done
 done
-echo "$(basename "${PSYQ:-psyq_4.4}") $flags: $ok match, $names match but for a static's name, $bad differ"
+echo "$(basename "${PSYQ:-psyq_4.4}") $flags: $ok match, $names match but for a symbol name, $bad differ"
 [ "$bad" -eq 0 ]

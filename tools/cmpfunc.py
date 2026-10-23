@@ -50,7 +50,7 @@ def listing(path, only=None):
     out = subprocess.run([cross + "objdump", "-dr", "-z", "--no-show-raw-insn"]
                          + ([f"--disassemble={only}"] if only else []) + [path], capture_output=True,
                          text=True, check=True).stdout
-    lines = []
+    lines = []  # [address, instruction, branch target address or None, reloc text]
     for l in out.splitlines():
         l = l.strip()
         if "R_MIPS" in l:
@@ -59,16 +59,23 @@ def listing(path, only=None):
                 if not strict:
                     sym, anon = normalise_symbol(sym)
                     if anon:  # the addend lives in the instruction's immediate
-                        lines[-1] = re.sub(r"(-?(0x)?[0-9a-f]+)(\(\w+\))?$", r"ANON\3", lines[-1])
-                lines[-1] += "   " + kind + ("" if relax else " " + sym)
-        elif re.match(r"[0-9a-f]+:\s", l):
-            ins = re.sub(r"^[0-9a-f]+:\s+", "", l).replace("\t", " ")
-            # branch targets as offsets into the function, not the section; relocated calls by reloc alone
-            ins = re.sub(r"[0-9a-f]+ <[^>+]+\+(0x[0-9a-f]+)>", r"\1", ins)
-            ins = re.sub(r"[0-9a-f]+ <[^>+]+>", "0x0", ins)
-            lines.append(ins)
-    return lines
-
+                        lines[-1][1] = re.sub(r"(-?(0x)?[0-9a-f]+)(\(\w+\))?$", r"ANON\3", lines[-1][1])
+                if kind == "26" and not re.match(r"^(\.|\$L)", sym):
+                    lines[-1][2] = None  # call/jump to another symbol: the reloc says where
+                    lines[-1][1] = lines[-1][1].replace("@T", "0x0")
+                lines[-1][3] += "   " + kind + ("" if relax else " " + sym)
+        elif m := re.match(r"([0-9a-f]+):\s+(.*)", l):
+            ins = m.group(2).replace("\t", " ")
+            # branch targets become offsets into the function: labels in the original (jlabel, .L) are
+            # symbols there but not in the compiled object, so objdump's <sym+off> can't be compared
+            t = re.search(r"\b([0-9a-f]+) <[^>]*>", ins)
+            target = int(t.group(1), 16) if t else None
+            if t:
+                ins = ins[:t.start()] + "@T" + ins[t.end():]
+            lines.append([int(m.group(1), 16), ins, target, ""])
+    start = lines[0][0] if lines else 0
+    return [(ins.replace("@T", hex(target - start)) if target is not None else ins) + rel
+            for _, ins, target, rel in lines]
 
 with tempfile.TemporaryDirectory() as d:
     s = os.path.join(d, "o.s")
