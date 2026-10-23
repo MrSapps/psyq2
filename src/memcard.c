@@ -40,23 +40,6 @@ char FileRemaps[16] BSS;
 struct _MEMCARD_DATA memcard_data BSS;
 
 
-/* The helper's name is made up: SYM shows its inlined locals as nested blocks of GetSaveDescription. */
-static int DescInUse(char *buf, short j)
-{
-    short i;
-    char testBuf[32];
-
-    if (j)
-        sprintf(testBuf, "%s (%d)", buf, j);
-    else
-        sprintf(testBuf, "%s", buf, j);
-    for (i = 0; i < (signed char)memcard_data.numFiles; i++) {
-        if (i != (signed char)memcard_data.activeFileIndex && !strcmp(testBuf, memcard_data.fileDescription[i]))
-            return 1;
-    }
-    return 0;
-}
-
 char *GetStringFromStringtable(struct IDENTITYNAME StringName);
 
 struct SAVEFILEHDR *OpenSaveMemory(struct IDENTITYNAME Name, int Writeable);
@@ -67,13 +50,10 @@ void FrontEndResetVideoDefaults(void);
 void FrontEndResetMultiplayerDefaults(void);
 
 extern short MultiTapExists[];
-/* "SLOT 1" sits in .sdata right after coop, and splat names it coop+0xC */
-extern char coop[];
 int sprintf(char *s, const char *format, ...);
 
 /* ---- MemoryCardUpdate2 and the inline helpers it uses ---- */
 extern unsigned short memcard_slotname[];
-extern char tempDescriptionBuffer[];
 extern struct _MEMCARD_HEADER MemoryCardHeader;
 extern unsigned long MemoryCardIcon[];
 long MemCardExist(long chan);
@@ -105,44 +85,6 @@ struct MEMCARD_DATA_S {
 #define MCD (*(struct MEMCARD_DATA_S *)&memcard_data)
 #define SLOT(n) memcard_slotname[n]
 
-/* Remove the card list entry OldCard (names made up: SYM only shows the inlined blocks) */
-static void RemoveCardEntryUnchecked(int OldCard)
-{
-    int i;
-
-    if (OldCard == -1)
-        Engine.PrintF("Serious problem in memcard removal detection from choose file - Tell Ray\n");
-    for (i = OldCard; i < MCD.numCards - 1; i++)
-        MCD.cardInfo[i] = MCD.cardInfo[i + 1];
-    MCD.numCards--;
-}
-
-static void RemoveCardEntry(int OldCard)
-{
-    int i;
-
-    if (OldCard != -1) {
-        for (i = OldCard; i < MCD.numCards - 1; i++)
-            MCD.cardInfo[i] = MCD.cardInfo[i + 1];
-        MCD.numCards--;
-    }
-}
-
-static void RemoveCard(int card)
-{
-    int OldCard;
-    int i;
-
-    OldCard = -1;
-    for (i = 0; i < MCD.numCards; i++) {
-        if (MCD.cardInfo[i] == card) {
-            OldCard = i;
-            break;
-        }
-    }
-    RemoveCardEntry(OldCard);
-}
-
 static void HeaderTitleFromDescription(char *buf)
 {
     char *ascp;
@@ -155,56 +97,6 @@ static void HeaderTitleFromDescription(char *buf)
         *jisp++ = (sj << 8) | ((unsigned short)sj >> 8);
     }
     *jisp = 0;
-}
-
-static char SJIS2ASCII(unsigned short JIS)
-{
-    static char table[] = " \?\?,.\?:;\?!\"\?''\?^\?_\?\?\?\?\?\?\?\?\?\?\?-/\\~\?|\?\?`'\"\"()[][]{}<>\?\?\?\?\?\?\?\?+-\?x\?\?=\?<>\?\?\?\?\?\?\?\?\?\?\?$\?\?%#&*@";
-
-    if (!(JIS & 0xff))
-        return 0;
-    if (JIS >= 0x824f && JIS <= 0x8258)
-        return JIS - 0x821f;
-    if (JIS >= 0x8260 && JIS <= 0x827a)
-        return JIS - 0x821f;
-    if (JIS >= 0x8281 && JIS <= 0x829b)
-        return JIS - 0x8220;
-    if (JIS >= 0x8140 && JIS <= 0x8197)
-        return table[JIS - 0x8140];
-    return '?';
-}
-
-static unsigned short SwapShort(unsigned short x)
-{
-    return (x << 8) | ((x >> 8) & 0xff);
-}
-
-static inline void DescriptionFromHeaderTitle(void)
-{
-    char *ascp;
-    unsigned short *jisp;
-    unsigned short swapshort;
-
-    ascp = MCD.fileDescription[MCD.testDescriptionIndex];
-    jisp = (unsigned short *)(tempDescriptionBuffer + 4);
-    while (*jisp) {
-        swapshort = SwapShort(*jisp);
-        *ascp++ = SJIS2ASCII(swapshort);
-        jisp++;
-    }
-    *ascp = 0;
-}
-
-static void MakeSaveFileName(char *dst)
-{
-    char tempBuf[64];
-
-    GetSaveDescription(tempBuf);
-    Engine.sprintf(tempBuf, "%sSAVE%02d%c", "BASLUS-00757", (unsigned char)GetCurrentLevelNumber(), gFDescVersionNum + 'A');
-    tempBuf[13] = (Engine.GameConfig.cCheats & 3) + '0';
-    tempBuf[14] = (Engine.GameConfig.cContinues & 3) + '0';
-    tempBuf[15] = (Engine.GameConfig.sDifficulty & 3) + '0';
-    Engine.sprintf(dst, tempBuf);
 }
 
 void MemoryCardUpdate2(void);
@@ -304,7 +196,7 @@ void MemoryCardGetCardnameFromPortNum(long index, char *buf2)
         if (MultiTapExists[0])
             sprintf(buf, "SLOT 1-A");
         else
-            sprintf(buf, coop + 0xc);
+            sprintf(buf, "SLOT 1");
         break;
     case 1:
         sprintf(buf, "SLOT 1-B");
@@ -332,6 +224,35 @@ void MemoryCardGetCardnameFromPortNum(long index, char *buf2)
         break;
     }
     sprintf(buf2, "MEMORY CARD %s", buf);
+}
+
+/* The helper's name is made up: SYM shows its inlined locals as nested blocks of GetSaveDescription. */
+static int DescInUse(char *buf, short j)
+{
+    short i;
+    char testBuf[32];
+
+    if (j)
+        sprintf(testBuf, "%s (%d)", buf, j);
+    else
+        sprintf(testBuf, "%s", buf, j);
+    for (i = 0; i < (signed char)memcard_data.numFiles; i++) {
+        if (i != (signed char)memcard_data.activeFileIndex && !strcmp(testBuf, memcard_data.fileDescription[i]))
+            return 1;
+    }
+    return 0;
+}
+
+static void MakeSaveFileName(char *dst)
+{
+    char tempBuf[64];
+
+    GetSaveDescription(tempBuf);
+    Engine.sprintf(tempBuf, "%sSAVE%02d%c", "BASLUS-00757", (unsigned char)GetCurrentLevelNumber(), gFDescVersionNum + 'A');
+    tempBuf[13] = (Engine.GameConfig.cCheats & 3) + '0';
+    tempBuf[14] = (Engine.GameConfig.cContinues & 3) + '0';
+    tempBuf[15] = (Engine.GameConfig.sDifficulty & 3) + '0';
+    Engine.sprintf(dst, tempBuf);
 }
 
 void MemoryCardGetCardname(long index, char *buf)
@@ -411,6 +332,44 @@ int ASCII2SJIS(unsigned char ascii_code)
     return ascii_k_table[ascii_code - t];
 }
 
+static char SJIS2ASCII(unsigned short JIS)
+{
+    static char table[] = " \?\?,.\?:;\?!\"\?''\?^\?_\?\?\?\?\?\?\?\?\?\?\?-/\\~\?|\?\?`'\"\"()[][]{}<>\?\?\?\?\?\?\?\?+-\?x\?\?=\?<>\?\?\?\?\?\?\?\?\?\?\?$\?\?%#&*@";
+
+    if (!(JIS & 0xff))
+        return 0;
+    if (JIS >= 0x824f && JIS <= 0x8258)
+        return JIS - 0x821f;
+    if (JIS >= 0x8260 && JIS <= 0x827a)
+        return JIS - 0x821f;
+    if (JIS >= 0x8281 && JIS <= 0x829b)
+        return JIS - 0x8220;
+    if (JIS >= 0x8140 && JIS <= 0x8197)
+        return table[JIS - 0x8140];
+    return '?';
+}
+
+static unsigned short SwapShort(unsigned short x)
+{
+    return (x << 8) | ((x >> 8) & 0xff);
+}
+
+static inline void DescriptionFromHeaderTitle(void)
+{
+    char *ascp;
+    unsigned short *jisp;
+    unsigned short swapshort;
+
+    ascp = MCD.fileDescription[MCD.testDescriptionIndex];
+    jisp = (unsigned short *)(tempDescriptionBuffer + 4);
+    while (*jisp) {
+        swapshort = SwapShort(*jisp);
+        *ascp++ = SJIS2ASCII(swapshort);
+        jisp++;
+    }
+    *ascp = 0;
+}
+
 void Config_InstallVideo(void);
 
 void LoadSaveGameConfigData(int Write)
@@ -435,6 +394,44 @@ void LoadSaveGameConfigData(int Write)
         FrontEndResetMultiplayerDefaults();
     }
     Config_InstallVideo();
+}
+
+/* Remove the card list entry OldCard (names made up: SYM only shows the inlined blocks) */
+static void RemoveCardEntryUnchecked(int OldCard)
+{
+    int i;
+
+    if (OldCard == -1)
+        Engine.PrintF("Serious problem in memcard removal detection from choose file - Tell Ray\n");
+    for (i = OldCard; i < MCD.numCards - 1; i++)
+        MCD.cardInfo[i] = MCD.cardInfo[i + 1];
+    MCD.numCards--;
+}
+
+static void RemoveCardEntry(int OldCard)
+{
+    int i;
+
+    if (OldCard != -1) {
+        for (i = OldCard; i < MCD.numCards - 1; i++)
+            MCD.cardInfo[i] = MCD.cardInfo[i + 1];
+        MCD.numCards--;
+    }
+}
+
+static void RemoveCard(int card)
+{
+    int OldCard;
+    int i;
+
+    OldCard = -1;
+    for (i = 0; i < MCD.numCards; i++) {
+        if (MCD.cardInfo[i] == card) {
+            OldCard = i;
+            break;
+        }
+    }
+    RemoveCardEntry(OldCard);
 }
 
 void MemoryCardPostProcessDir(void)

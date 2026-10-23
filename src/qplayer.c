@@ -110,16 +110,6 @@ int SoundByCreature(int SFXNumber, struct CREATURE *Cre);
 extern unsigned int LevelTicks;
 void DoDamage(struct CREATURE *Victim, struct CREATURE *Attacker, int Damage, int Type, int Flags);
 
-extern struct ANIMHDR *QMMAnim_Stand;
-extern struct ANIMHDR *QMMAnim_Run;
-extern struct ANIMHDR *QMMAnim_Attack;
-extern struct ANIMHDR *QMMAnim_Death1;
-extern struct ANIMHDR *QMMAnim_Death2;
-extern struct ANIMHDR *QMMAnim_Death3;
-extern struct ANIMHDR *QMMAnim_Jump;
-extern struct ANIMHDR *QMMAnim_Pain1;
-extern struct ANIMHDR *QMMAnim_Pain2;
-extern struct ANIMHDR *QMMAnim_Pain3;
 int AnimateCreature(struct CREATURE *Cre, int TicksPassed, int *EndFrame);
 void StartAnim(struct CREATURE *Cre, struct ANIMHDR *Anim);
 
@@ -924,7 +914,7 @@ void PlayerToxicSound(struct CREATURE *Cre)
 
 void PlayerLavaSound(struct CREATURE *Cre)
 {
-    static int Silent = 0;
+    static int Silent = 3;
 
     if ((++Silent & 3) == 0)
         SoundByCreature(sound_burn1, Cre);
@@ -997,8 +987,8 @@ void PreInitPlayerMale(struct GLOBMODHDR *Hdr)
 {
     if (!Hdr)
         return;
-    if (ModNameCmp(&Hdr->ModelName, (struct IDENTITYNAME *)"Male2") == 1
-        || ModNameCmp(&Hdr->ModelName, (struct IDENTITYNAME *)"Male4") == 1) {
+    if (ModNameCmp(&Hdr->ModelName, &(struct IDENTITYNAME){"Male2"}) == 1
+        || ModNameCmp(&Hdr->ModelName, &(struct IDENTITYNAME){"Male4"}) == 1) {
         PlayerMale_ModHdr = Hdr;
         QMMAnim_Stand = FindAnimHdr(Hdr, (struct IDENTITYNAME){"Stand"});
         QMMAnim_Run = FindAnimHdr(Hdr, (struct IDENTITYNAME){"Run"});
@@ -1174,7 +1164,7 @@ void QuakePlayerCheckUnderwater(struct CREATURE *Cre)
     struct PLAYER *Player;
     struct PTIMERS *PTimers;
     int Damage;
-    static int RebreatherPitch;
+    static int RebreatherPitch SBSS;
 
     Player = Cre->Player;
     PTimers = &Player->Extras.PTimers;

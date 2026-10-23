@@ -47,8 +47,6 @@ int GameSpawn(struct CREATURE *Cre, struct CREDATA *CreData, struct SPAWNDETAILS
 struct MATRIX *RotMatrixYXZ(struct SVECT *r, struct MATRIX *m);
 
 extern struct CRESAVE *SaveMemoryWriteAddress;
-extern struct CREATURE Creatures[48];
-extern struct CREATURE *CreFreeList[48];
 int BytesBetween(void *Pntr0, void *Pntr1);
 void CloseWritableSaveMemoryFile(struct IDENTITYNAME Name, short Flags);
 

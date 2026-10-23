@@ -40,7 +40,6 @@ struct UVWH WordSprites[15] = {
     { 48, 168, 24, 8 },
     { 72, 168, 24, 8 },
 };
-static char BaseFormatThing[14] = "*7@%03X%02X%s";
 int MarginsOn = 0;
 int LeftMargin = 106;
 int RightMargin = 406;
@@ -48,9 +47,10 @@ int SpaceWidth = 4;
 int CharWidth = 8;
 int SpritextPal = 74;
 static int SpaceMode = 0;
-static short CharX SBSS;
-/* gap before CharY: 0x800b2d3a .. 0x800b2d3a */
-static short CharY SBSS;
+/* CharX and CharY sit back to back in .sbss (as .lcomm statics, aligned only to their size):
+   section attribute without the word alignment of SBSS */
+static short CharX __attribute__((section(".sbss")));
+static short CharY __attribute__((section(".sbss")));
 int SpriTextError SBSS;
 struct SPRT *SpriteAnySize SBSS;
 struct SPRT *LastSpriteAnySize SBSS;
@@ -61,10 +61,11 @@ struct POLY_FT4 *LastMenuPoly SBSS;
 struct SPRT_16 *Sprite816 SBSS;
 struct SPRT_16 *LastSprite816 SBSS;
 struct SCRPNT Fizzles[64] BSS;
-char MikeStringBuffer[128] BSS;
+/* no aligned(4) here: the original only knew this array's alignment at output time, so the
+   strcpy of "..." into it in DoAddCentredSpriText is expanded with unaligned lwl/lwr swl/swr */
+char MikeStringBuffer[128] __attribute__((section(".bss")));
 
 
-extern char MikeStringBuffer[];
 extern int MaxWindows;
 extern struct WINDOW GameWindows[];
 
@@ -88,7 +89,6 @@ void AddPrim_(void *ot, void *p);
 #define setlen(p, _len) (*(((unsigned char *)(p)) + 3) = (unsigned char)(_len))
 #define setcode(p, _code) (*(((unsigned char *)(p)) + 7) = (unsigned char)(_code))
 extern unsigned char CharUVs8[182];
-extern struct SCRPNT Fizzles[64];
 extern unsigned char FizzleUVs[16];
 extern unsigned char FizzleRGBs[32];
 extern short palette[80];
@@ -416,7 +416,7 @@ void UpdateMessageText(struct WINDOW *Window)
 {
     int i;
     int t;
-    static char buf[8];
+    static char buf[8] SBSS;
     char *String;
     struct COLOUR ColourSave;
     struct COLOUR MessageColour = {0x78, 0x78, 0x78, 0};
@@ -460,9 +460,10 @@ void DoAddSpriText(struct WINDOW *Window)
        there still counted towards gcc's inline-candidate limit (insns are counted before the
        optimiser deletes them). Without it this function is small enough to be deferred to the
        end of the file and inlined into bprintf; the original is emitted here and called.
-       A compiled-out debug echo is a guess at what it was. */
+       It used the string "|2%s|0" (left in .sdata between "xxx" and "..."), so it
+       printed the message in colour 2; the call itself is a guess. */
     if (0)
-        printf("%s\n", MikeStringBuffer);
+        printf("|2%s|0", MikeStringBuffer);
     strncpy(Window->Messages.Strings[Window->Messages.FreeRow], MikeStringBuffer, 63);
     Window->Messages.Strings[Window->Messages.FreeRow][63] = 0;
     Window->Messages.RowTimer[Window->Messages.FreeRow] = 0;
@@ -470,6 +471,8 @@ void DoAddSpriText(struct WINDOW *Window)
     if (Window->Messages.FreeRow == 4)
         Window->Messages.FreeRow = 0;
 }
+
+static char BaseFormatThing[14] = "*7@%03X%02X%s";
 
 void DoAddCentredSpriText(struct WINDOW *Window)
 {
@@ -503,6 +506,17 @@ void DoAddCentredSpriText(struct WINDOW *Window)
         sprintf(Window->Messages.Strings[4], FormatThing, (short)x, (short)LenForPos, "String too long!");
         strcpy(MikeStringBuffer + 16, "...");
     }
+}
+
+/* Not in the SYM and never called (so never emitted): lines 1062-1132 of the original have no
+   code, but an unreferenced 4-byte static Pos (Pos.36) sits in .sbss between buf (UpdateMessageText)
+   and CharX. A discarded helper's static is a guess at where it came from. */
+static struct SCRPNT *GetCursorPos(struct WINDOW *Window)
+{
+    static struct SCRPNT Pos SBSS;
+
+    Pos = Window->Messages.TextPos;
+    return &Pos;
 }
 
 int GetLengthOfToken(char Token)

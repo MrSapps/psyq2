@@ -175,7 +175,6 @@ struct EVENTTIMER EventTimers[8] BSS;
 short LaserBeamEvents[32][2] BSS;
 
 
-extern struct EVENTTIMER EventTimers[];
 extern int NewVcounts;
 int rand(void);
 int Event_DoTimerSub(struct EVENTTIMER *timer, struct CREATURE *Cre);
@@ -201,7 +200,6 @@ extern int MaxWindows;
 int rand(void);
 int AreaValid1(int Win, int Area);
 int AddLight(struct VECT *Location, struct COLOUR Colour, struct POWER Power, struct SHORTPAIR FlareTypeSize);
-extern short eventstack[];
 int Do_SubEvent(struct PSXSUBEVENT *subevent, struct CREATURE *Cre);
 
 static void Event_DoOffset(int offset, struct CREATURE *Cre)
@@ -245,8 +243,6 @@ struct PSXSUBEVENT *PSXDOOR2SIDE_T(struct PSXSUBEVENT *subevent);
 struct PSXSUBEVENT *PSXEXPLODE_T(struct PSXSUBEVENT *subevent);
 
 
-/* Sound_Explosion: splat names Event.Obj's copy Sound_Explosion_800B2A68 (quakecre.obj has another) */
-static int Sound_Explosion_800B2A68;
 void SceneObjFragments(int ObjIndx, int NumBits, struct VECT *Loc);
 void QuakeGenExplosion(struct VECT *Location, int Area, int Scale, int Type);
 void HideObjWithSolid(int Obj);
@@ -352,7 +348,6 @@ extern struct COLLHEADER TrigBoundCollMap;
 int In3dSpaceIndx(struct COLLHEADER *Map, struct VECT *Loc, int Indx);
 
 extern struct COLLHEADER TrigBoundCollMap;
-extern short TelePortData[8];
 extern struct PARTCOLOURS *ParticleColoursTable[19];
 struct PARTICLE *AddParticlesSL(struct VECT *Pos, struct SVECT *Vel, struct PARTCOLOURS *PColour0, struct PARTCOLOURS *PColour1, int NumToDraw, int Timer, int Size, int Area);
 extern int GlobalKey;
@@ -396,7 +391,6 @@ void PSXB3ROCKS_GIRDR_M(struct BRUSHMOVEBUF *MoveBuf);
 int rand(void);
 unsigned short QuickRand(void);
 
-extern short LaserWallEvents[][2];
 extern struct COLLHEADER CollMap;
 int Find3dSpaceIndxLink(struct COLLHEADER *Map, struct VECT *Loc, short Main, int CheckAll);
 struct CREATURE *AddLaser(struct VECT *Start, struct VECT *Stop, short Space, short LaserType, struct SHORTPAIR Parts);
@@ -444,7 +438,6 @@ extern struct BRUSHMOVEBUF BrushMoveBufs[];
 extern struct BRUSHMOVEBUF BrushMoveBufs[48];
 extern struct BRUSHMOVEBUF BrushMoveBufs[];
 extern unsigned int LevelTicks;
-extern short LaserWallEvents[][2];
 
 /* not in the SYM types; layout from the asm */
 struct PSXEVDISH {
@@ -460,8 +453,6 @@ extern int GlobalSecretsCount;
 void DoDamage();
 
 extern struct COLLHEADER TrigBoundCollMap;
-extern short TelePortData[];
-extern short LaserBeamEvents[][2];
 extern struct COLLHEADER CollMap;
 int Find3dSpaceIndxLink(struct COLLHEADER *Map, struct VECT *Loc, short Main, int CheckAll);
 extern struct SCENE2 *Scene2Data;
@@ -486,13 +477,11 @@ struct PSXEVTLIGHT {
 extern int GlobalKey;
 void FreeSolidBoxs(struct SOLIDBOX *SolidBox);
 int Event_DoFromSub(int eventhdroffset, struct CREATURE *Cre, struct PSXSUBEVENT *subevent2);
-extern struct EVENTTIMER EventTimers[];
 
 extern struct USERFUNCLIST EventUserFuncList[];
 int ModNameCmp(struct IDENTITYNAME *Name1, struct IDENTITYNAME *Name2);
 void InitEventSoundsEachLevel(void);
 void dofunc_error(void);
-extern short LaserBeamEvents[][2];
 struct CREATURE *AddLaser(struct VECT *Start, struct VECT *Stop, short Space, short LaserType, struct SHORTPAIR Parts);
 extern struct BRUSHMOVEBUF BrushMoveBufs[];
 extern unsigned int usp;
@@ -1018,7 +1007,7 @@ struct PSXSUBEVENT *PSXEXPLODE(struct PSXSUBEVENT *subevent, struct CREATURE *cr
                 if (c < 0) {
                     QuakeGenExplosion(&Location, Scene2->Area, 0x1000, 0);
                     c = ~c;
-                    SoundAtLocation(Sound_Explosion_800B2A68, &Location);
+                    SoundAtLocation(Sound_Explosion, &Location);
                 }
                 SceneObjFragments(ev_exp->crossobj[b], c, 0);
             }
@@ -1867,8 +1856,8 @@ void DrawTelePorts(void)
         i = LevelTicks & 0x1ff;
         if (i > 256)
             i = 512 - i;
-        AddLight(&PartsOffset, *&(struct COLOUR){ 255, 255, 255, 0 }, (struct POWER){ 400, (i * 4) + 800 },
-                 *&(struct SHORTPAIR){ 0, 0 });
+        AddLight(&PartsOffset, *&(struct COLOUR){ 32, 16, 255, 0 }, (struct POWER){ 400, (i * 4) + 800 },
+                 *&(struct SHORTPAIR){ 1, 2 });
     }
 }
 
@@ -2301,7 +2290,7 @@ struct PSXSUBEVENT *PSXCAGELIFT1EVENT_T(struct PSXSUBEVENT *subevent)
 
 struct PSXSUBEVENT *PSXMISSIONCOMPLETE(struct PSXSUBEVENT *subevent)
 {
-    MainStartName = *(struct IDENTITYNAME *)"Default";
+    MainStartName = (struct IDENTITYNAME){"Default"};
     LevelComplete = 7;
     return subevent;
 }
@@ -2656,8 +2645,8 @@ struct PSXSUBEVENT *PSXDISH(struct PSXSUBEVENT *subevent, struct CREATURE *cre)
 
 void PSXDISH_M(struct BRUSHMOVEBUF *MoveBuf)
 {
-    static struct VECT Location;
-    static struct POWER Power;
+    static struct VECT Location BSS;
+    static struct POWER Power SBSS;
 
     if (MoveBuf->Time < LevelTicks) {
         switch (MoveBuf->OpenFlag) {
@@ -3773,6 +3762,6 @@ void InitEventSoundsEachLevel(void)
     Sound_Menu2 = GetSoundNum((struct IDENTITYNAME){"msc_menu2"});
     Sound_Menu3 = GetSoundNum((struct IDENTITYNAME){"msc_menu3"});
     Sound_Secret = GetSoundNum((struct IDENTITYNAME){"msc_secret"});
-    Sound_Explosion_800B2A68 = GetSoundNum((struct IDENTITYNAME){"wep_grenlx1a"});
+    Sound_Explosion = GetSoundNum((struct IDENTITYNAME){"wep_grenlx1a"});
     Sound_GlassSmash = GetSoundNum((struct IDENTITYNAME){"amb_brkglas"});
 }

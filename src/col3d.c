@@ -12,7 +12,6 @@ struct COLLRET Next3dSpaceIndxG(struct COLLHEADER *Map, struct VECT *Location, i
 struct FRACTION IntersectLinePlane(struct COLLHEADER *Map, int SpaceIndx, struct VECT *Loc, struct SVECT *T);
 int MakeIn3dSpace(struct COLLHEADER *Map, struct VECT *Start, short Indx);
 int Visable3d(struct COLLHEADER *Map, struct VECT *Start, struct VECT *End, int S0);
-extern struct COLLHEADER CollMap;
 struct COLLRET Next3dSpaceIndxG(struct COLLHEADER *Map, struct VECT *Location, int Space, int PMask);
 int TimesectLine(struct COLLHEADER *Map, int SpaceIndx, struct VECT *Loc, struct SVECT *V, short Scale);
 /* data */

@@ -51,7 +51,6 @@ char QuakeDefaultTrackList[] = { 2, -1 };
 char OneTrackList[] = { 2, -1 };
 int MusicCheck = 0;
 char *CDAudioTrackList = 0;
-short cddefvol = 100;
 int Playing SBSS;
 int ntoc SBSS;
 short targetcdvol SBSS;
@@ -119,6 +118,8 @@ void GetToc(void)
     totalxaifiles = i;
     CdSetDebug(0);
 }
+
+short cddefvol = 100;
 
 void PlayTrackList(char *list)
 {
