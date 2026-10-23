@@ -46,6 +46,81 @@ extern unsigned char FreeListMoveBuf[];
 extern struct COLLHEADER CollMap;
 void TurnOffSceneModel(struct SCENE2 *Scn2, int Win);
 
+void CalcActiveAreaList(void)
+{
+    unsigned long ToConsider[3];
+    unsigned long *Pntr;
+    unsigned long Consider;
+    unsigned long Considered[3];
+    unsigned long NotHidden[3];
+    int a;
+    int Area;
+    struct PORTDATA *PortalData;
+    struct PORTDATA *Portal;
+    char *AreaList;
+    char *Data;
+    int NumPortals;
+    int SomeToDo;
+
+    /* ChrisCount is loaded with lw here (lhu elsewhere) */
+    if (*(int *)&ChrisCount == 1 || MaxWindows != 1) {
+        for (a = 0; a < 3; a++)
+            AreaNotHiddenData[a] = ~0;
+        return;
+    }
+    for (a = 0; a < 3; a++) {
+        ToConsider[a] = 0;
+        Considered[a] = 0;
+        NotHidden[a] = 0;
+    }
+    SomeToDo = 0;
+    for (a = 0; a < MaxWindows; a++) {
+        if (GameWindows[a].Area) {
+            ToConsider[GameWindows[a].Area / 32] |= 1 << (GameWindows[a].Area & 31);
+            SomeToDo = 1;
+        }
+    }
+    while (SomeToDo) {
+        Pntr = ToConsider;
+        Area = 0;
+        while (!*Pntr) {
+            Pntr++;
+            Area += 32;
+        }
+        Consider = *Pntr;
+        while (!(Consider & 1)) {
+            Consider >>= 1;
+            Area++;
+        }
+        Considered[Area / 32] |= 1 << (Area & 31);
+        ToConsider[Area / 32] &= ~(1 << (Area & 31));
+        NotHidden[Area / 32] |= 1 << (Area & 31);
+        if (pAreaConxLists[Area]) {
+            Data = (char *)pAreaConxFile + pAreaConxLists[Area];
+            NumPortals = *(unsigned char *)Data;
+            AreaList = Data + 1;
+        } else
+            NumPortals = 0;
+        if (NumPortals & 1)
+            Data = AreaList + NumPortals;
+        else
+            Data = AreaList + NumPortals + 1;
+        PortalData = (struct PORTDATA *)Data;
+        for (Portal = PortalData; Portal < PortalData + NumPortals; Portal++, AreaList++) {
+            SomeToDo = *AreaList >> 5;
+            if (!(Considered[SomeToDo] & (1 << (*AreaList & 31))) && !Scene2Data[Portal->Obj].NoDraw)
+                /* the cast keeps CSE from reusing the scaled Considered[] index */
+                ToConsider[(unsigned char)SomeToDo] |= 1 << (*AreaList & 31);
+        }
+        SomeToDo = 0;
+        for (a = 0; a < 3; a++)
+            SomeToDo |= ToConsider[a];
+    }
+    for (a = 0; a < 3; a++)
+        AreaNotHiddenData[a] = NotHidden[a];
+}
+
+
 void ReInitAreaConxData(void *ConxFile)
 {
     pAreaConxFile = ConxFile;
@@ -464,4 +539,218 @@ void DrawBrush(short OtIndx, struct SCENE2 *Scn2, struct SCENE *Scn, struct MODE
         NextDummyGpu++;
         OrderedSort(Sort, &AreaData[Scn2->Area].Data[CurrWinIndx].SortLink);
     }
+}
+
+struct MODELREFINDX *ModelRefIndx;
+extern struct VECT *CurrCamPos;
+void RotateSceneCoords_(struct MODELREF *Ref, int Many, struct SCRPNTZ *Buffer);
+#define gte_mvr(reg, r0) __asm__ volatile("move $" #reg ",%0" : : "r"(r0) : "$" #reg, "memory")
+#define gte_op(s) __asm__ volatile(s)
+#define gte_st(s) __asm__ volatile(s : : : "memory")
+#define gte_ldv0_s(r0) { gte_mvr(12, r0); gte_op("lwc2 $0,0($12)"); gte_op("lwc2 $1,4($12)"); }
+#define gte_rtv0_s() { gte_op("nop"); gte_op("nop"); gte_op(".word 0x4A486012"); }
+#define gte_stlvnl_s(r0) { gte_mvr(12, r0); \
+    gte_st("swc2 $25,0($12)"); gte_st("swc2 $26,4($12)"); gte_st("swc2 $27,8($12)"); }
+#define gte_SetTransMatrix_s(r0) { gte_mvr(12, r0); \
+    gte_op("lw $13,20($12)"); gte_op("lw $14,24($12)"); gte_op("ctc2 $13,$5"); \
+    gte_op("lw $15,28($12)"); gte_op("ctc2 $14,$6"); gte_op("ctc2 $15,$7"); }
+
+static void RelRotVect(struct VECT *P, struct VECT *Q, struct SVECTOR *Rel, struct VECT *Out)
+{
+    Rel->vx = P->vx - Q->vx;
+    Rel->vy = P->vy - Q->vy;
+    Rel->vz = P->vz - Q->vz;
+    gte_ldv0_s(Rel);
+    gte_rtv0_s();
+    gte_stlvnl_s(Out);
+}
+
+static void RotVect(struct VECT *P, struct VECT *Q, struct VECT *Out)
+{
+    struct SVECT Rel;
+    Rel.vx = P->vx - Q->vx;
+    Rel.vy = P->vy - Q->vy;
+    Rel.vz = P->vz - Q->vz;
+    gte_ldv0_s(&Rel);
+    gte_rtv0_s();
+    gte_stlvnl_s(Out);
+}
+
+/* an anonymous zero SCRPNT in scene.obj's .sdata (a function-local static), which
+   the original reaches with lui/addiu %hi/%lo: declared as an array of unknown size
+   so that gcc splits the %hi/%lo itself, as in qents.c */
+
+
+#define Null (*&(struct SCRPNT){0, 0})
+int ProcessDoorway(int Obj, int ClipLevel, int Area, int BrushOt)
+{
+    struct MODELREFINDX *MRef;
+    struct SCENE2 *Scn2;
+    int Point;
+    int AllZClip;
+    int NoZClip;
+    struct SCRPNTZ StackData[12];
+    struct SCRPNTZ *Rotated;
+    struct SCRPNT MinMax[2];
+    struct SCRPNT SMinMax[2];
+    struct SCRPNT *ThisMinMax;
+    struct SVECTOR Rel;
+    struct VECT Tran;
+
+    Scn2 = &Scene2Data[Obj];
+    if (Scn2->NoDraw)
+        return AlterScreenClipping(Null, Null, Null, (struct SHORTPAIR){BrushOt, Area}, (struct SHORTPAIR){Obj, ClipLevel});
+    MRef = &ModelRefIndx[Obj];
+    if (MRef->Many > 12)
+        Rotated = (struct SCRPNTZ *)primlistarray;
+    else
+        Rotated = StackData;
+    gte_SetGeomOffset(CurrWin->Geom.sx, CurrWin->Geom.sy);
+    RelRotVect(&Scene2Data[Obj].Origin, CurrCamPos, &Rel, &Tran);
+    gte_SetTransMatrix_s((struct MATRIX *)((char *)&Tran - 20));
+    RotateSceneCoords_(MRef->Ref, MRef->Many, Rotated);
+    /* the line table runs 918 (MinMax[0]), 923/924 (AllZClip, NoZClip), 919..921: the
+       do {} while (0) loop notes are a sched barrier that keeps the two flags between
+       the MinMax[0] and MinMax[1] stores, as in the original */
+    do {
+        MinMax[0].sx = 0x400;
+        MinMax[0].sy = 0x400;
+    } while (0);
+    AllZClip = 1;
+    NoZClip = 1;
+    MinMax[1].sx = -0x400;
+    MinMax[1].sy = -0x400;
+    SMinMax[0] = MinMax[0];
+    SMinMax[1] = MinMax[1];
+    for (Point = 0; Point < MRef->Many; Point++) {
+        if (Rotated[Point].sz) {
+            ThisMinMax = MinMax;
+            AllZClip = 0;
+        } else {
+            NoZClip = 0;
+            ThisMinMax = SMinMax;
+        }
+        if (Rotated[Point].sx < ThisMinMax[0].sx)
+            ThisMinMax[0].sx = Rotated[Point].sx;
+        if (ThisMinMax[1].sx < Rotated[Point].sx)
+            ThisMinMax[1].sx = Rotated[Point].sx;
+        if (Rotated[Point].sy < ThisMinMax[0].sy)
+            ThisMinMax[0].sy = Rotated[Point].sy;
+        if (ThisMinMax[1].sy < Rotated[Point].sy)
+            ThisMinMax[1].sy = Rotated[Point].sy;
+    }
+    if (!AllZClip) {
+        if (!NoZClip && ((MinMax[0].sx > 0 && MinMax[1].sx < CurrWin->Size.sx) || (MinMax[0].sy > 0 && MinMax[1].sy < CurrWin->Size.sy)))
+            return AlterScreenClipping(ScreenChanges[CurrWinIndx][ClipLevel].MinMax.Min, ScreenChanges[CurrWinIndx][ClipLevel].MinMax.Max,
+                                       ScreenChanges[CurrWinIndx][ClipLevel].Offset, (struct SHORTPAIR){BrushOt, Area}, (struct SHORTPAIR){Obj, ClipLevel});
+    } else {
+        struct VECT Location;
+        Location.vx = (Scene2Data[Obj].VectBox.Min.vx + Scene2Data[Obj].VectBox.Max.vx) / 2;
+        Location.vy = (Scene2Data[Obj].VectBox.Min.vy + Scene2Data[Obj].VectBox.Max.vy) / 2;
+        Location.vz = (Scene2Data[Obj].VectBox.Min.vz + Scene2Data[Obj].VectBox.Max.vz) / 2;
+        RotVect(&Location, CurrCamPos, &Tran);
+        if (Tran.vz >= -200)
+            return AlterScreenClipping(ScreenChanges[CurrWinIndx][ClipLevel].MinMax.Min, ScreenChanges[CurrWinIndx][ClipLevel].MinMax.Max,
+                                       ScreenChanges[CurrWinIndx][ClipLevel].Offset, (struct SHORTPAIR){BrushOt, Area}, (struct SHORTPAIR){Obj, ClipLevel});
+        return AlterScreenClipping(Null, Null, Null, (struct SHORTPAIR){BrushOt, Area}, (struct SHORTPAIR){Obj, ClipLevel});
+    }
+    if (SMinMax[0].sx < MinMax[0].sx)
+        MinMax[0].sx = SMinMax[0].sx;
+    if (SMinMax[0].sy < MinMax[0].sy)
+        MinMax[0].sy = SMinMax[0].sy;
+    if (SMinMax[1].sx > MinMax[1].sx)
+        MinMax[1].sx = SMinMax[1].sx;
+    if (SMinMax[1].sy > MinMax[1].sy)
+        MinMax[1].sy = SMinMax[1].sy;
+    SMinMax[0] = ScreenChanges[CurrWinIndx][ClipLevel].MinMax.Min;
+    SMinMax[1] = ScreenChanges[CurrWinIndx][ClipLevel].MinMax.Max;
+    for (Point = 0; Point < 2; Point++) {
+        if (MinMax[Point].sx < SMinMax[0].sx)
+            MinMax[Point].sx = SMinMax[0].sx;
+        else if (SMinMax[1].sx < MinMax[Point].sx)
+            MinMax[Point].sx = SMinMax[1].sx;
+        if (MinMax[Point].sy < SMinMax[0].sy)
+            MinMax[Point].sy = SMinMax[0].sy;
+        else if (SMinMax[1].sy < MinMax[Point].sy)
+            MinMax[Point].sy = SMinMax[1].sy;
+    }
+    return AlterScreenClipping(MinMax[0], MinMax[1], ScreenChanges[CurrWinIndx][ClipLevel].Offset,
+                               (struct SHORTPAIR){BrushOt, Area}, (struct SHORTPAIR){Obj, ClipLevel});
+}
+
+int PolysAvailable(int NumPolys);
+void MallocPolyPackets(short *Dest, int Count);
+#define UVP(x) (*(struct UV *)&(x))
+
+/* modgt4 is not in the SYM; its increment is line 2164, and loop.c turns the field accesses
+   into one pointer at &modgt4->Tp (the last one in the body) */
+int InitBrush(struct SCENE2 *sc2, struct SCENE *scn)
+{
+    struct POLY_GT4 *pol1g4;
+    struct POLY_GT4 *pol2g4;
+    short *fp;
+    int NumPolys;
+    int f;
+    struct RGB3 *Rgbs;
+    struct UV4 *UV4s;
+    struct UV4 *PolyUV4;
+    struct GLOBSMODHDR *Hdr;
+    struct GLOBSMODGT4 *modgt4;
+
+    pol1g4 = 0;
+    pol2g4 = 0;
+    Hdr = sc2->ModelHdr;
+    NumPolys = Hdr->NumPolys;
+    UV4s = (struct UV4 *)((char *)Hdr + Hdr->UVOffset);
+    Rgbs = (struct RGB3 *)((char *)Hdr + Hdr->RGBOffset);
+    if (NumPolys >= 64 || !PolysAvailable(NumPolys))
+        return 0;
+    MallocPolyPackets(scn->Pols, NumPolys);
+    modgt4 = (struct GLOBSMODGT4 *)(Hdr + 1);
+    f = 0;
+    for (fp = &scn->Pols[1]; NumPolys > 0; NumPolys--) {
+        if (!(f & 31)) {
+            pol1g4 = &db[0].modpolsg4[*fp];
+            pol2g4 = &db[1].modpolsg4[*fp];
+            fp++;
+        }
+        f++;
+        PolyUV4 = &UV4s[modgt4->UV];
+        UVP(pol1g4->u0) = PolyUV4->uv[(3 - modgt4->UVRot) & 3];
+        UVP(pol1g4->u1) = PolyUV4->uv[(2 - modgt4->UVRot) & 3];
+        UVP(pol1g4->u2) = PolyUV4->uv[(0 - modgt4->UVRot) & 3];
+        UVP(pol1g4->u3) = PolyUV4->uv[(1 - modgt4->UVRot) & 3];
+        *(struct RGB3 *)&pol1g4->r0 = Rgbs[modgt4->Col0];
+        *(struct RGB3 *)&pol1g4->r1 = Rgbs[modgt4->Col1];
+        *(struct RGB3 *)&pol1g4->r2 = Rgbs[modgt4->Col3];
+        *(struct RGB3 *)&pol1g4->r3 = Rgbs[modgt4->Col2];
+        pol1g4->clut = GamePals[modgt4->Pal];
+        if (modgt4->trans) {
+            pol1g4->code = pol2g4->code = 0x3e;
+            /* '|= 0' (folded away, no store) gives the loaded value its own register, as in the original */
+            pol1g4->tpage = alltpages[modgt4->Tp & 0x1f] |= 0;
+        } else {
+            pol1g4->code = pol2g4->code = semitranstable[modgt4->trans] | 0x3c;
+            pol1g4->tpage = alltpages[modgt4->Tp & 0x1f] |= tptranstable[2];
+        }
+        pol1g4->tag = pol2g4->tag = 0xc000000;
+        *(unsigned short *)&pol2g4->u0 = *(unsigned short *)&pol1g4->u0;
+        *(unsigned short *)&pol2g4->u1 = *(unsigned short *)&pol1g4->u1;
+        *(unsigned short *)&pol2g4->u2 = *(unsigned short *)&pol1g4->u2;
+        *(unsigned short *)&pol2g4->u3 = *(unsigned short *)&pol1g4->u3;
+        *(long *)&pol2g4->r0 = *(long *)&pol1g4->r0;
+        *(long *)&pol2g4->r1 = *(long *)&pol1g4->r1;
+        *(long *)&pol2g4->r2 = *(long *)&pol1g4->r2;
+        *(long *)&pol2g4->r3 = *(long *)&pol1g4->r3;
+        pol2g4->tpage = pol1g4->tpage;
+        pol2g4->clut = pol1g4->clut;
+        pol1g4->pad3 = 0;
+        pol2g4->pad3 = 0;
+        pol1g4->pad2 = pol1g4->clut;
+        pol2g4->pad2 = pol1g4->clut;
+        pol1g4++;
+        pol2g4++;
+        modgt4++;
+    }
+    return 1;
 }
