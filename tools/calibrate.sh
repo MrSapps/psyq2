@@ -1,8 +1,8 @@
 #!/bin/bash
 # Compile every calib/<name>.c and diff each function it defines against asm/<name>.s.
 #   tools/calibrate.sh [cc1psx flags]        default: -O3 -G8
-# Env: PSYQ (SDK dir, as for cc-psx.sh). Prints one line per function (OK, ~~ = only a static's
-# name differs, -- = differs); exit 1 if any differ.
+# Env: PSYQ (SDK dir, as for cc-psx.sh). Prints one line per function (OK, ~~ = only a symbol name
+# differs, -- = differs); exit 1 if any differ.
 # Loop over SDKs/flags to compare compilers, e.g.
 #   for v in 4.3 4.4 4.5; do PSYQ=~/dev/psyq_sdk/psyq_$v tools/calibrate.sh -O3 -G8; done
 R=$(cd "$(dirname "$0")/.." && pwd)
@@ -19,7 +19,7 @@ for c in "$R"/calib/*.c; do
         if python3 "$R/tools/cmpfunc.py" "$R/asm/$n.s" "$f" "$tmp/$n.o" > /dev/null; then
             echo "  OK  $f"; ok=$((ok + 1))
         elif python3 "$R/tools/cmpfunc.py" "$R/asm/$n.s" "$f" "$tmp/$n.o" --relax > /dev/null; then
-            # same code, only a relocation's symbol differs (a function-local static's numbered name)
+            # same code, only a relocation's symbol differs
             echo "  ~~  $f"; names=$((names + 1))
         else
             echo "  --  $f"; bad=$((bad + 1))

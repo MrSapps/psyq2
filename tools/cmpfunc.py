@@ -3,8 +3,12 @@
 
 usage: cmpfunc.py ASMFILE FUNC COMPILED.o [--relax] [--cross mipsel-linux-gnu-]
 
---relax ignores symbol names on relocations (compare reloc kinds only), for functions touching statics
-whose names differ between the original and the compiled object.
+Relocations against data C can't name the same way compare equal: unnamed data (string literals and
+other `D_xxxxxxxx` labels in the original, section symbols such as `.rodata`, `$LC` labels) all become
+`<anon>` with the addend in the instruction ignored, and gcc's numbered function-local statics
+(`Temp.100`) compare by base name. Use --strict to compare every symbol and addend exactly.
+
+--relax ignores symbol names on relocations altogether (compare reloc kinds only), for diagnosis.
 
 Extracts FUNC from the splat asm file and from COMPILED.o (which may hold other functions),
 assembles it, and prints both listings
@@ -21,6 +25,7 @@ signal.signal(signal.SIGPIPE, signal.SIG_DFL)  # quiet when piped into head
 
 asmfile, func, obj = sys.argv[1:4]
 relax = "--relax" in sys.argv
+strict = "--strict" in sys.argv
 cross = sys.argv[sys.argv.index("--cross") + 1] if "--cross" in sys.argv else "mipsel-linux-gnu-"
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
@@ -29,6 +34,16 @@ m = re.search(rf"^glabel {re.escape(func)}\n.*?^endlabel {re.escape(func)}\n", t
 if not m:
     sys.exit(f"{func} not found in {asmfile}")
 body = '.include "macro.inc"\n.set noat\n.set noreorder\n.section .text, "ax"\n' + m.group(0)
+
+
+ANON = re.compile(r"^(D_[0-9A-Fa-f]{8}|\.(rodata|rdata|sdata|data|sbss|bss)|\$LC?\d+)([+-]0x[0-9a-f]+)?$")
+
+
+def normalise_symbol(sym):
+    """Return (symbol, is_anonymous_data) with names C can't reproduce made comparable."""
+    if ANON.match(sym):
+        return "<anon>", True
+    return re.sub(r"^(\w+)\.\d+", r"\1.N", sym), False
 
 
 def listing(path, only=None):
@@ -40,7 +55,12 @@ def listing(path, only=None):
         l = l.strip()
         if "R_MIPS" in l:
             if lines:
-                lines[-1] += "   " + l.split()[-2].replace("R_MIPS_", "") + ("" if relax else " " + l.split()[-1])
+                kind, sym = l.split()[-2].replace("R_MIPS_", ""), l.split()[-1]
+                if not strict:
+                    sym, anon = normalise_symbol(sym)
+                    if anon:  # the addend lives in the instruction's immediate
+                        lines[-1] = re.sub(r"(-?(0x)?[0-9a-f]+)(\(\w+\))?$", r"ANON\3", lines[-1])
+                lines[-1] += "   " + kind + ("" if relax else " " + sym)
         elif re.match(r"[0-9a-f]+:\s", l):
             ins = re.sub(r"^[0-9a-f]+:\s+", "", l).replace("\t", " ")
             # branch targets as offsets into the function, not the section; relocated calls by reloc alone
