@@ -111,3 +111,54 @@ void DeleteSaveMemory(struct IDENTITYNAME Name)
         memmove(File, NextFile, BytesBetween(NextFile, LastFile) + sizeof(struct SAVEFILEHDR));
     }
 }
+
+
+
+void *memcpy(void *dst, const void *src, unsigned int n);
+
+struct SAVEFILEHDR *OpenSaveMemory(struct IDENTITYNAME Name, int Writeable)
+{
+    struct SAVEFILEHDR *FileName;
+
+    /* dead store, deleted by flow after jump opt: the (then empty) branch
+       survives until combine and shapes the arg packing below */
+    if (Writeable)
+        FileName = 0;
+    PrintIdentityName(Name);
+    PrintIdentityName(Name);
+    FileName = FindSaveFile(Name);
+    if (FileName) {
+        if (Writeable) {
+            struct SAVEFILEHDR *LastFile;
+            int BytesCanMove;
+            int BytesToMove;
+            int BytesThisPass;
+
+            LastFile = FindSaveFile((struct IDENTITYNAME){""});
+            BytesCanMove = BytesBetween(LastFile, SaveMemory + sizeof(SaveMemory)) - sizeof(struct SAVEFILEHDR);
+            BytesToMove = FileName->Size + sizeof(struct SAVEFILEHDR);
+            while (BytesToMove) {
+                if (BytesToMove <= BytesCanMove)
+                    BytesThisPass = BytesToMove;
+                else
+                    BytesThisPass = BytesCanMove;
+                BytesToMove -= BytesThisPass;
+                memcpy(LastFile, FileName, BytesThisPass);
+                memmove(FileName, (char *)FileName + BytesThisPass, BytesBetween(FileName, LastFile) - BytesToMove);
+            }
+            LastFile->Name = (struct IDENTITYNAME){""};
+            FileName = FindSaveFile(Name);
+        }
+        return FileName;
+    }
+    if (Writeable) {
+        {
+            FileName = FindSaveFile((struct IDENTITYNAME){""});
+            FileName->Name = Name;
+            FileName->Size = 0;
+            CloseWritableSaveMemoryFile(Name, 0);
+        }
+        return FileName;
+    }
+    return 0;
+}
