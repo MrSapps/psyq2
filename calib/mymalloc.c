@@ -17,10 +17,12 @@ void GameTerminateStuff();
 
 static void UnlinkBlock(int *p)
 {
+    int *currp;
     int *nextp;
     int *lastp;
-    lastp = (int *)p[-7];
-    nextp = (int *)p[-6];
+    currp = p - 7; /* header pointer; lastp/nextp read through it */
+    lastp = (int *)currp[0];
+    nextp = (int *)currp[1];
     lastp[1] = (int)nextp;
     if (nextp)
         nextp[0] = (int)lastp;
@@ -225,4 +227,48 @@ void *MyMalloc(int Length, int HiFlag)
         printf("\n!!!! WARNING !!!! MALLOC FAILED:  \nRequired %d; Available %d; Diff %d\n(approx. %d too many GT4s)\n",
                Length, BiggestGap, Length - BiggestGap, Gap);
     return 0;
+}
+
+void *memmove(void *dst, void *src, int n);
+void *memcpy(void *dst, void *src, int n);
+
+void *myrealloc2(void *lastp2, int len2, int HiFlag)
+{
+    int len;
+    int gap;
+    int *newp;
+    int *lastp;
+
+    if (!lastp2)
+        return MyMalloc(len2, 0);
+    len = len2 + 31;
+    len &= ~3;
+    lastp = (int *)lastp2 - 7;
+    if (HiFlag && len2 < lastp[2]) {
+        int SizeDecrease;
+        SizeDecrease = (lastp[2] - len2) & ~2;
+        memmove((char *)lastp2 + SizeDecrease, lastp2, len2);
+        UpdateMallocStart(lastp2, (char *)lastp2 + SizeDecrease);
+        return (char *)lastp2 + SizeDecrease;
+    }
+    if (lastp[1])
+        gap = lastp[1] - (int)lastp;
+    else
+        gap = (int)heapend - (int)lastp;
+    if (gap >= len) {
+        lastp[2] = len2;
+        return lastp += 7;
+    }
+    newp = MyMalloc(len2, 0);
+    lastp += 7;
+    MyFree((void **)&lastp);
+    if (newp) {
+        memcpy(newp, lastp, len2);
+        lastp -= 7;
+        newp[3] = lastp[3];
+        newp[4] = lastp[4];
+        newp[5] = lastp[5];
+        newp[6] = lastp[6];
+    }
+    return newp;
 }

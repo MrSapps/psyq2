@@ -81,3 +81,49 @@ void OnePixel(struct SVECT *A, struct SVECT *B)
         break;
     }
 }
+
+int SquareRootNR(int a);
+int AccMultDiv_(int a, int b, int c);
+int abs(int);
+
+struct PAIR QuadraticSolutionsR12(int a, int b, int c)
+{
+    unsigned int Root;
+    long long b2_4ac;
+    long long ac4;
+    int Sa;
+    int Sb;
+
+    b2_4ac = b;
+    ac4 = a;
+    b2_4ac = b2_4ac * b2_4ac - ac4 * c * 4;
+    if (b2_4ac < 0)
+        return (struct PAIR){0x7fffffff, 0x7fffffff};
+    {
+        long long BigNum = b2_4ac;
+        if (BigNum < 0)
+            Root = 0x7fffffff;
+        else {
+            int ShiftVal = 0;
+            while (BigNum > 0x7fffffff) {
+                BigNum >>= 2;
+                ShiftVal++;
+            }
+            Root = SquareRootNR(BigNum) << ShiftVal;
+        }
+    }
+    Sa = -b - Root;
+    if ((Sa ^ a) < 0)
+        Sa = AccMultDiv_(-0x800, abs(Sa), abs(a));
+    else
+        Sa = AccMultDiv_(0x800, abs(Sa), abs(a));
+    Sb = Root - b;
+    if ((Sb ^ a) < 0)
+        Sb = AccMultDiv_(-0x800, abs(Sb), abs(a));
+    else
+        Sb = AccMultDiv_(0x800, abs(Sb), abs(a));
+    if (a > 0)
+        return (struct PAIR){Sa, Sb};
+    else
+        return (struct PAIR){Sb, Sa};
+}
