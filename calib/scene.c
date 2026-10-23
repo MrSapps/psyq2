@@ -678,6 +678,327 @@ int ProcessDoorway(int Obj, int ClipLevel, int Area, int BrushOt)
                                (struct SHORTPAIR){BrushOt, Area}, (struct SHORTPAIR){Obj, ClipLevel});
 }
 
+extern int MASK[17];
+unsigned int BitData;
+int SubDivRoutine;
+unsigned char *SceneSortData;
+unsigned short BitsLeft;
+unsigned int *BitDataPtr;
+int ThisModel;
+int CutOffDist;
+int ObjSortIndx;
+extern int LastObjDrawn;
+extern struct MATRIX *CurrCamMat;
+extern unsigned char SceneBuffFreeList[];
+extern struct OBJSORTINFO ObjSortInfo[];
+extern void T2GlobSubdivideGt4();
+void SetRotMatrix(struct MATRIX *m);
+void MulMatrix0(struct MATRIX *m0, struct MATRIX *m1, struct MATRIX *m2);
+struct MATRIX *RotMatrixYXZ(struct SVECT *r, struct MATRIX *m);
+void Rotate(struct MATRIX *m, struct SVECT *v1, struct VECT *v2);
+int InitBrush(struct SCENE2 *sc2, struct SCENE *scn);
+
+#define gte_ldv0_ds(r0) { \
+    __asm__ volatile("move $12,%0" : : "r"(r0) : "$12"); \
+    __asm__ volatile("lwc2 $0,0($12)\nlwc2 $1,4($12)"); }
+#define gte_rtv0_ds() __asm__ volatile("nop\nnop\n.word 0x4A486012")
+#define gte_rtv0tr_ds() __asm__ volatile("nop\nnop\n.word 0x4A480012")
+#define gte_mvlvtr_ds() __asm__ volatile("mfc2 $12,$25\nmfc2 $13,$26\nmfc2 $14,$27\nctc2 $12,$5\nctc2 $13,$6\nctc2 $14,$7" : : : "$12", "$13", "$14", "$15")
+
+/* inlined bit reader (SYM: { short numbits; { unsigned short val; } } blocks) */
+static unsigned short GetBits(short numbits)
+{
+    unsigned short val;
+
+    if (BitsLeft >= numbits) {
+        val = (BitData >> (32 - BitsLeft)) & MASK[numbits];
+        BitsLeft -= numbits;
+    } else {
+        if (BitsLeft)
+            val = BitData >> (32 - BitsLeft);
+        else
+            val = 0;
+        numbits -= BitsLeft;
+        BitData = *BitDataPtr++;
+        val |= (BitData & MASK[numbits]) << BitsLeft;
+        BitsLeft = 32 - numbits;
+    }
+    return val;
+}
+
+static unsigned char GetSceneBuff(void)
+{
+    if (SceneBuffFreePntr - SceneBuffFreeList >= 255)
+        return 0;
+    return *SceneBuffFreePntr++;
+}
+
+/* inlined (SYM block Brush/MoveBuf/C); its frame and SetTransRel's share one temp slot, so both Rel
+   live at sp+0x48 and the hoisted &Rel is spilled once. M (&Mat) is not in the SYM: a frame address */
+static void MoveBrushTrans(struct SCENE2 *Brush, struct BRUSHMOVEBUF *MoveBuf, struct VECT *C, struct MATRIX *M)
+{
+    struct SVECT Rel;
+    struct SVECT SecRel;
+    struct VECT A;
+    struct VECT VRel;
+
+    Rotate(M, &MoveBuf->RotOff, &A);
+    VRel.vx = Brush->Origin.vx - C->vx - A.vx + MoveBuf->RotOff.vx + MoveBuf->Offset.vx;
+    VRel.vy = Brush->Origin.vy - C->vy - A.vy + MoveBuf->RotOff.vy + MoveBuf->Offset.vy;
+    VRel.vz = Brush->Origin.vz - C->vz - A.vz + MoveBuf->RotOff.vz + MoveBuf->Offset.vz;
+    SecRel.vx = VRel.vx >> 1;
+    SecRel.vy = VRel.vy >> 1;
+    SecRel.vz = VRel.vz >> 1;
+    Rel.vx = VRel.vx - SecRel.vx;
+    Rel.vy = VRel.vy - SecRel.vy;
+    Rel.vz = VRel.vz - SecRel.vz;
+    gte_ldv0_ds(&SecRel);
+    gte_rtv0_ds();
+    gte_mvlvtr_ds();
+    gte_ldv0_ds(&Rel);
+    gte_rtv0tr_ds();
+    gte_mvlvtr_ds();
+}
+
+static void SetTransRel(struct VECT *P, struct VECT *Q)
+{
+    struct SVECT Rel;
+
+    Rel.vx = P->vx - Q->vx;
+    Rel.vy = P->vy - Q->vy;
+    Rel.vz = P->vz - Q->vz;
+    gte_ldv0_ds(&Rel);
+    gte_rtv0_ds();
+    gte_mvlvtr_ds();
+}
+
+void DrawScene(int Win)
+{
+    struct BRUSHMOVEBUF *MoveBuf;
+    struct POLY_GT4 *Spr0;
+    int a;
+    int b;
+    int c;
+    int Dist2;
+    short BrushNumBase;
+    short absolutemode = 0;
+    struct SCENE2 *Scene2;
+    struct VECT tempvect3;
+    struct SCENE *Scene;
+    struct OBJSORTINFO *ObjPointer;
+    int MaxInitBrush;
+    short BrushNum;
+    short BrushOt;
+    int ValA;
+    int ValB;
+    struct MATRIX Mat;
+    unsigned char objbits;
+    unsigned char portalbits;
+    unsigned char bigobjbits;
+    unsigned char seedbits;
+    unsigned char clipbits;
+    unsigned char areabits;
+    unsigned char skipbits;
+    unsigned char Clip;
+    short Skip;
+    unsigned char Area;
+
+    PortalDepth = 0;
+    BrushOt = 45;
+    /* a zero compound literal (store_constructor -> clear_storage -> memset call) rather than
+       memset(&...): the address comes from the component-ref expansion (ScreenChanges first),
+       which gives the original s1/s2/s3 allocation */
+    ScreenChanges[Win][ScreenChangeIndx[Win]].MinMax.Min = (struct SCRPNT){0, 0};
+    ScreenChanges[Win][ScreenChangeIndx[Win]].Offset = CurrOffset;
+    ScreenChanges[Win][ScreenChangeIndx[Win]].MinMax.Max = CurrScreenSize;
+    ScreenChanges[Win][ScreenChangeIndx[Win]].Area = CurrWin->Area;
+    ScreenChanges[Win][ScreenChangeIndx[Win]].OtLevel = BrushOt;
+    AreaData[CollMap.Coll3dSpace[CurrWin->CamSpace].Area].Data[Win].Depth = PortalDepth++;
+    AreaData[CollMap.Coll3dSpace[CurrWin->CamSpace].Area].Data[Win].ValidCheck = ChrisCount;
+    AreaData[CollMap.Coll3dSpace[CurrWin->CamSpace].Area].Data[Win].ScreenChange = &ScreenChanges[Win][ScreenChangeIndx[Win]];
+    AreaData[0].Data[Win] = AreaData[CollMap.Coll3dSpace[CurrWin->CamSpace].Area].Data[Win];
+    BrushOt = 43;
+    SetRotMatrix(CurrCamMat);
+    SubDivRoutine = (int)T2GlobSubdivideGt4;
+    MaxInitBrush = CurrWin->MapOverLoad;
+    if (CurrWin->CamSpace < 0)
+        goto AllDrawn;
+    a = CollMap.Coll3dSpace[CurrWin->CamSpace].SortIndx;
+    b = a & 3;
+    BitDataPtr = (unsigned int *)(SceneSortData + a - b);
+    BitData = *BitDataPtr++;
+    BitsLeft = 32 - b * 8;
+    seedbits = GetBits(4) + 1;
+    objbits = GetBits(3) + 1;
+    bigobjbits = GetBits(4) + 1;
+    portalbits = GetBits(3) + 1;
+    clipbits = GetBits(3) + 1;
+    areabits = GetBits(3) + 1;
+    skipbits = GetBits(4) + 1;
+    BrushNumBase = GetBits(seedbits);
+
+    while (1) {
+        if (!absolutemode)
+            BrushNum = GetBits(objbits);
+        else {
+            BrushNum = GetBits(bigobjbits);
+            if (BrushNum == 2) {
+                absolutemode = 0;
+                BrushNum = GetBits(objbits);
+            }
+        }
+        if (!BrushNum)
+            goto AllDrawn;
+        if (BrushNum == 1) {
+            BrushNum = GetBits(portalbits);
+            Skip = GetBits(skipbits);
+            Clip = GetBits(clipbits);
+            Area = GetBits(areabits);  /* Area is not in the SYM; absolutemode = 0 comes after it */
+            absolutemode = 0;
+            if (ProcessDoorway(BrushNum, Clip, Area, BrushOt)) {
+                if (Skip)
+                    BrushNumBase = GetBits(seedbits);
+            } else {
+                a = Skip - BitsLeft;
+                if (a < 0)
+                    BitsLeft -= Skip;
+                else {
+                    BitDataPtr += a >> 5;
+                    a &= 31;
+                    BitData = *BitDataPtr++;
+                    BitsLeft = 32 - a;
+                }
+            }
+            BrushOt--;
+            if (BrushOt < 4)
+                goto AllDrawn;
+            continue;
+        }
+        if (BrushNum == 2) {
+            absolutemode = 1;
+            BrushNum = GetBits(bigobjbits);
+            BrushNum -= 3;
+        } else {
+            if (!absolutemode)
+                BrushNum += BrushNumBase;
+            BrushNum -= 3;
+        }
+        LastObjDrawn = BrushNum;
+        ThisModel = BrushNum;
+        Scene2 = &Scene2Data[BrushNum];
+        if (!Scene2->ModelHdr || Scene2->NoDraw)
+            continue;
+        if (!Scene2->MoveBufId)
+            goto SimpleBrush;
+        MoveBuf = MOVEBUF(Scene2->MoveBufId);
+        if (!*(long *)&MoveBuf->Ang.vx
+            && !*(long *)&MoveBuf->Ang.vz
+            && !*(long *)&MoveBuf->Offset.vy)
+            goto SimpleBrush;
+        tempvect3.vx = (Scene2->VectBox.Min.vx + Scene2->VectBox.Max.vx) / 2 - CurrCamPos->vx;
+        tempvect3.vz = (Scene2->VectBox.Min.vz + Scene2->VectBox.Max.vz) / 2 - CurrCamPos->vz;
+        Dist2 = tempvect3.vx * tempvect3.vx + tempvect3.vz * tempvect3.vz;
+        if (Dist2 > CutOffDist)
+            continue;
+        if (Scene2->BuffIndx[Win])
+            Scene = &SceneBuffs[Scene2->BuffIndx[Win] - 1];
+        else {
+            if (!MaxInitBrush)
+                continue;
+            if (!(Scene2->BuffIndx[Win] = GetSceneBuff()))
+                continue;
+            Scene = &SceneBuffs[Scene2->BuffIndx[Win] - 1];
+            if (!InitBrush(Scene2, Scene)) {
+                FreeSceneBuff(&Scene2->BuffIndx[Win]);
+                continue;
+            }
+            MaxInitBrush--;
+        }
+        RotMatrixYXZ(&MoveBuf->Ang, &Mat); MoveBrushTrans(Scene2, MoveBuf, CurrCamPos, &Mat);
+        MulMatrix0(CurrCamMat, &Mat, &Mat);
+        SetRotMatrix(&Mat);
+        ValA = *(int *)&ChrisCount & 0x7fff;
+        ValB = Scene2->Validate;
+        if (ValA != ValB) {
+            Scene2->Validate = ValA;
+            Scene2->ObjIndx = ObjSortIndx++;
+            ObjPointer = &ObjSortInfo[Scene2->ObjIndx];
+            ObjPointer->ObjIndx = BrushNum;
+            ObjPointer->ObjPntr = Scene2;
+            ObjPointer->Min = Scene2->VectBox.Min;
+            ObjPointer->Max = Scene2->VectBox.Max;
+            ObjPointer->Num = ObjPointer->ObjIndx;
+            ObjPointer->Count = 0;
+        } else
+            ObjPointer = &ObjSortInfo[Scene2->ObjIndx];
+        ObjPointer->Pols[ObjPointer->Count++] = Scene->Pols;
+        DrawBrush(BrushOt, Scene2, Scene, &ModelRefIndx[BrushNum]);
+        SetRotMatrix(CurrCamMat);
+        if (BrushOt < 4)
+            goto AllDrawn;
+        continue;
+SimpleBrush:
+        tempvect3.vx = Scene2->VectBox.Min.vx + Scene2->VectBox.Max.vx - CurrCamPos->vx;
+        tempvect3.vz = Scene2->VectBox.Min.vz + Scene2->VectBox.Max.vz - CurrCamPos->vz;
+        Dist2 = tempvect3.vx * tempvect3.vx + tempvect3.vz * tempvect3.vz;
+        if (Dist2 > CutOffDist)
+            continue;
+        if (Scene2->BuffIndx[Win])
+            Scene = &SceneBuffs[Scene2->BuffIndx[Win] - 1];
+        else {
+            if (!MaxInitBrush)
+                continue;
+            if (!(Scene2->BuffIndx[Win] = GetSceneBuff()))
+                continue;
+            Scene = &SceneBuffs[Scene2->BuffIndx[Win] - 1];
+            if (!InitBrush(Scene2, Scene)) {
+                FreeSceneBuff(&Scene2->BuffIndx[Win]);
+                continue;
+            }
+            MaxInitBrush--;
+        }
+        SetTransRel(&Scene2->Origin, CurrCamPos);
+        ValA = *(int *)&ChrisCount & 0x7fff;
+        ValB = Scene2->Validate;
+        if (ValA != ValB) {
+            Scene2->Validate = ValA;
+            Scene2->ObjIndx = ObjSortIndx++;
+            ObjPointer = &ObjSortInfo[Scene2->ObjIndx];
+            ObjPointer->ObjIndx = BrushNum;
+            ObjPointer->ObjPntr = Scene2;
+            ObjPointer->Min = Scene2->VectBox.Min;
+            ObjPointer->Max = Scene2->VectBox.Max;
+            ObjPointer->Num = ObjPointer->ObjIndx;
+            ObjPointer->Count = 0;
+        } else
+            ObjPointer = &ObjSortInfo[Scene2->ObjIndx];
+        ObjPointer->Pols[ObjPointer->Count++] = Scene->Pols;
+        DrawBrush(BrushOt, Scene2, Scene, &ModelRefIndx[BrushNum]);
+        if (BrushOt < 4)
+            goto AllDrawn;
+    }
+AllDrawn:
+    AlterScreenClipping(*&(struct SCRPNT){0, 0}, CurrWin->Size, CurrOffset, *&(struct SHORTPAIR){1, -1}, (struct SHORTPAIR){-1, -1});
+    Scene2 = Scene2Data;
+    for (a = 0; a < NumSceneModels; Scene2++, a++) {
+        if (Scene2->BuffIndx[Win] && Scene2->Validate != (*(int *)&ChrisCount & 0x7fff)) {
+            Scene = &SceneBuffs[Scene2->BuffIndx[Win] - 1];
+            for (b = 0; b < Scene2->ModelHdr->NumPolys >> 5; b++) {
+                Spr0 = &db[0].modpolsg4[Scene->Pols[b + 1]];
+                for (c = 0; c < 32; c++, Spr0++)
+                    if (Spr0->pad3)
+                        FreeSubDivFromPoly(Spr0);
+            }
+            Spr0 = &db[0].modpolsg4[Scene->Pols[b + 1]];
+            for (c = 0; c < (Scene2->ModelHdr->NumPolys & 31); c++, Spr0++)
+                if (Spr0->pad3)
+                    FreeSubDivFromPoly(Spr0);
+            FreePolyPackets(Scene->Pols);
+            FreeSceneBuff(&Scene2->BuffIndx[Win]);
+        }
+    }
+}
+
 int PolysAvailable(int NumPolys);
 void MallocPolyPackets(short *Dest, int Count);
 #define UVP(x) (*(struct UV *)&(x))
