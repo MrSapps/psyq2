@@ -1,7 +1,10 @@
 #!/usr/bin/env python3
 """Diff one compiled function against the original asm.
 
-usage: cmpfunc.py ASMFILE FUNC COMPILED.o [--cross mipsel-linux-gnu-]
+usage: cmpfunc.py ASMFILE FUNC COMPILED.o [--relax] [--cross mipsel-linux-gnu-]
+
+--relax ignores symbol names on relocations (compare reloc kinds only), for functions touching statics
+whose names differ between the original and the compiled object.
 
 Extracts FUNC from the splat asm file, assembles it, and prints both listings
 side by side (relocations shown symbolically); exit status 0 means identical.
@@ -13,7 +16,8 @@ import tempfile
 import os
 
 asmfile, func, obj = sys.argv[1:4]
-cross = sys.argv[5] if len(sys.argv) > 5 and sys.argv[4] == "--cross" else "mipsel-linux-gnu-"
+relax = "--relax" in sys.argv
+cross = sys.argv[sys.argv.index("--cross") + 1] if "--cross" in sys.argv else "mipsel-linux-gnu-"
 root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 text = open(asmfile).read()
@@ -31,7 +35,7 @@ def listing(path):
         l = l.strip()
         if "R_MIPS" in l:
             if lines:
-                lines[-1] += "   " + l.split()[-2].replace("R_MIPS_", "") + " " + l.split()[-1]
+                lines[-1] += "   " + l.split()[-2].replace("R_MIPS_", "") + ("" if relax else " " + l.split()[-1])
         elif re.match(r"[0-9a-f]+:\s", l):
             lines.append(re.sub(r"^[0-9a-f]+:\s+", "", l).replace("\t", " "))
     return lines

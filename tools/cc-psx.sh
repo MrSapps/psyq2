@@ -13,5 +13,8 @@ export WINEDEBUG=-all
 gcc -E -P -I "$R/src/include" -I "$R/include" "$src" -o "$tmp/a.i"
 wine "$PSYQ/bin/cc1psx.exe" -quiet $flags "$tmp/a.i" -o "$tmp/a.s" 2>&1 | grep -v MESA || true
 # maspsx reads stdin when there is any, so give it the file explicitly
-python3 "$R/tools/maspsx/maspsx.py" --aspsx-version=${ASPSX_VERSION:-2.79} "$tmp/a.s" < /dev/null > "$tmp/a.m.s"
-${CROSS}as -EL -march=r3000 -mabi=32 -no-pad-sections -I "$R/include" -o "$out" "$tmp/a.m.s"
+# small-data threshold: pass the compiler's -G on to the assembler (maspsx would force -G0)
+G=$(echo "$flags" | sed -nE 's/.*-G ?([0-9]+).*/\1/p')
+G=${G:-0}
+python3 "$R/tools/maspsx/maspsx.py" --aspsx-version=${ASPSX_VERSION:-2.79} --dont-force-G0 --use-comm-for-lcomm --use-comm-section "$tmp/a.s" < /dev/null > "$tmp/a.m.s"
+${CROSS}as -EL -march=r3000 -mabi=32 -G"$G" -no-pad-sections -I "$R/include" -o "$out" "$tmp/a.m.s"
