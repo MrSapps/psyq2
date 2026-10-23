@@ -76,6 +76,10 @@ def compile_c(name):
     errors = '\n'.join(l for l in out.splitlines() if 'warning' not in l and l.strip())
     if rc:
         return name, rc, errors
+    # The original objects' .data and .bss sizes were whole words (the linker's __datalen and
+    # __bsslen in SNMAIN, the sums of the sizes, show it), which ASPSX 2.81 does not do itself.
+    with open(s, 'a', newline='') as f:
+        f.write('\t.data\r\n\t.align\t2\r\n\t.section .bss,"aw",@progbits\r\n\t.align\t2\r\n')
     rc, out2 = run(['wine', ASPSX, '-q', '-G8', s, '-o', obj])
     return name, rc, out2 if rc else ''
 

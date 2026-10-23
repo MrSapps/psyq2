@@ -63,6 +63,8 @@ static struct QUATANIMFRAME GlobalTweenedQuatFrames[32] BSS;
 char PolsToFreeList[256] BSS;
 struct BESTLIGHT bestlights[4] BSS;
 struct SVECTOR LightVec[3] BSS;
+/* Buf.4 in the original: a function static of lost code */
+static char UnusedBuf[13] BSS;
 
 
 extern short rcossin_tbl[][2];

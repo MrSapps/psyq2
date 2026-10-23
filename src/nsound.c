@@ -64,6 +64,8 @@ static int DefaultMix = 2;
 /* unused (so not in the SYM): the two zero words after DefaultMix */
 static int UnusedSoundA = 0;
 static int UnusedSoundB = 0;
+/* ThisAmbientSound.116 in the original: a function static of lost code */
+static int UnusedThisAmbientSound SBSS;
 static int VagCount SBSS;
 static int CommonVagCount SBSS;
 int ttt SBSS;
@@ -420,7 +422,7 @@ void DoMix(int chan, struct SNDCTRL *sbuf)
             if (wRightVol > 0x55F0)
                 wRightVol = 0x55F0;
             break;
-        case 3:
+        case 6:
             wLeftVol = sbuf->currvol * pbStereoLookup[sbuf->lrpan] / 4;
             wRightVol = sbuf->currvol * pbStereoLookup[30 - sbuf->lrpan] / 4;
             if (wLeftVol > 0x55F0)
@@ -428,13 +430,13 @@ void DoMix(int chan, struct SNDCTRL *sbuf)
             if (wRightVol > 0x55F0)
                 wRightVol = 0x55F0;
             break;
-        case 4:
+        case 3:
             wLeftVol = sbuf->currvol * SFXMasterVolume / 2;
             if (wLeftVol > 0x55F0)
                 wLeftVol = 0x55F0;
             wRightVol = -wLeftVol;
             break;
-        case 5:
+        case 4:
             lrvol = sbuf->currvol;
             fbpan = sbuf->fbpan;
             if (fbpan < 15) {
@@ -463,7 +465,7 @@ void DoMix(int chan, struct SNDCTRL *sbuf)
             if (wRightVol > 0x55F0)
                 wRightVol = 0x55F0;
             break;
-        case 6:
+        case 5:
             pan = sbuf->lrpan;
             lrvol = sbuf->currvol;
             pan <<= 2;

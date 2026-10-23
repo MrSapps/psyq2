@@ -98,3 +98,4 @@ _svm_auto_kof_mode:
 	.globl	_SsVmMaxVoice
 _SsVmMaxVoice:
 	.space	1
+	.space	3		# the original link rounded each piece of bss up to a word: see tools/build.py

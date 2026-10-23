@@ -268,7 +268,9 @@ void StopPlayingCD(void)
 
 void PlayThisXA(int XANumber)
 {
-    static char Trax[2] SBSS;
+    /* nothing uses it, and the original has no room for it: left a .lcomm, which ASPSX puts
+       on top of Playing (see src/include/bss.h) */
+    static char Trax[2];
     return;
     {
         unsigned char param[4];

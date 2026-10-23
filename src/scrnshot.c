@@ -28,7 +28,7 @@ int SaveBMP(void)
     struct BITMAPINFOHEADER BMPInfoHeader;
     int Handle;
     char *buf2;
-    static char OutName[50];
+    static char OutName[50] BSS;
     int h;
     int x;
     int y;

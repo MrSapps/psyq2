@@ -793,7 +793,7 @@ int PrimaryQuakePickup(struct CREATURE *Cre)
     int a;
     int b;
     struct CREATURE *Target;
-    static struct SVECT Vel[15];
+    static struct SVECT Vel[15] BSS;
     static int Sound_FadeIn = 0;
     struct VECT Loc;
     struct COLOUR Colour;
