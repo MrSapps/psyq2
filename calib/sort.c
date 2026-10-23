@@ -270,3 +270,189 @@ int NoDependancyCheck(int *MinMaxA, int *MinMaxB, int Base)
     return Base >= MaxB && MinA >= MaxB;
 }
 
+
+int VectBoxUnOverlap(struct VECTBOX *VBoxA, struct VECTBOX *VBoxB, struct VECTBOX *VBoxC, struct VECTBOX *VBoxD)
+{
+    int WhichAxis;
+    int MinDist;
+    int Temp;
+    int *BoxA;
+    int *BoxB;
+    int a;
+
+    WhichAxis = 6; MinDist = 0x7FFFFFFF;
+
+    BoxA = (int *)VBoxA;
+    BoxB = (int *)VBoxB;
+
+    for (a = 0; a < 3; a++) {
+        if (BoxA[a] >= BoxB[a + 3])
+            return 0;
+        if (BoxA[a + 3] <= BoxB[a])
+            return 0;
+    }
+    for (a = 0; a < 3; a++) {
+        if (BoxA[a + 3] > BoxB[a + 3]) {
+            Temp = BoxB[a + 3] - BoxA[a];
+            if (Temp < MinDist) {
+                MinDist = Temp;
+                WhichAxis = a * 2;
+            }
+        } else if (BoxA[a] < BoxB[a]) {
+            Temp = BoxA[a + 3] - BoxB[a];
+            if (Temp < MinDist) {
+                MinDist = Temp;
+                WhichAxis = a * 2 + 1;
+            }
+        }
+    }
+    if (WhichAxis == 6)
+        return 0;
+    a = WhichAxis / 2;
+    *VBoxC = *VBoxA;
+    *VBoxD = *VBoxB;
+    BoxA = (int *)VBoxC;
+    BoxB = (int *)VBoxD;
+    if (!(WhichAxis & 1)) {
+        BoxA[a] += MinDist / 2;
+        BoxB[a + 3] = BoxA[a];
+    } else {
+        BoxA[a + 3] = BoxB[a] += MinDist / 2;
+    }
+    return 1;
+}
+
+void GenerateSortOrder(struct SORT *Sort, struct SORT *QSort, struct SORT **NewSort, int *Dependancies, int *QDependancies, struct SORT **Original, struct SORT **QOriginal, int NumElements, int QNumElements)
+{
+    int Indx;
+    int QIndx;
+    int Count;
+    int SinceLastAdd;
+    int NumLeft;
+    int QNumLeft;
+    int ZVal;
+    int ShiftVal;
+    int QShiftVal;
+    int Added;
+    int Temp;
+    int QAddedT[4];
+    int *QAddedP;
+    int a;
+    struct SORT *WinToAdd;
+    struct SORT **FirstThisPass;
+    struct SORT **Compare;
+    struct SORT *TempLink;
+
+    Added = 0;
+    for (a = 3; a >= 0; a--)
+        QAddedT[a] = 0;
+    Indx = 0;
+    ShiftVal = 1;
+    NumLeft = NumElements;
+    QNumLeft = QNumElements;
+    SinceLastAdd = 0;
+    while (NumLeft || QNumLeft) {
+        if (QNumLeft) {
+            *NewSort = 0;
+            QShiftVal = 1;
+            QAddedP = QAddedT;
+            FirstThisPass = NewSort;
+            for (QIndx = 0; QIndx < QNumElements; QIndx++) {
+                if (!(*QAddedP & QShiftVal) && !QDependancies[QIndx]) {
+                    *QAddedP |= QShiftVal;
+                    WinToAdd = QOriginal[QIndx];
+                    ZVal = WinToAdd->ScreenZ;
+                    Compare = FirstThisPass;
+                    QNumLeft--;
+                    while (*Compare) {
+                        if (ZVal < (*Compare)->ScreenZ) {
+                            TempLink = *Compare;
+                            *Compare = WinToAdd;
+                            WinToAdd->SortLink = TempLink;
+                            break;
+                        }
+                        Compare = &(*Compare)->SortLink;
+                    }
+                    if (!*Compare) {
+                        TempLink = *Compare;
+                        NewSort = (struct SORT **)WinToAdd;
+                        *Compare = WinToAdd;
+                        *NewSort = TempLink;
+                    }
+                }
+                QShiftVal <<= 1;
+                if (!QShiftVal) {
+                    QShiftVal = 1;
+                    QAddedP++;
+                }
+            }
+        }
+        if (NumLeft) {
+            if (!(Added & ShiftVal)) {
+            if (!Dependancies[Indx]) {
+                Temp = ~ShiftVal;
+                *NewSort = Original[Indx];
+                NewSort = (struct SORT **)*NewSort;
+                for (Count = 0; Count < NumElements; Count++)
+                    Dependancies[Count] &= Temp;
+                for (Count = 0; Count < QNumElements; Count++)
+                    QDependancies[Count] &= Temp;
+                NumLeft--;
+                SinceLastAdd = 0;
+                Added |= ShiftVal;
+            } else {
+                SinceLastAdd++;
+            }
+            }
+            Indx++;
+            ShiftVal <<= 1;
+            if (Indx == NumElements) {
+                Indx = 0;
+                ShiftVal = 1;
+            }
+            if (NumLeft && SinceLastAdd == NumLeft) {
+                dprintf(GameWindows, "Possible dependancy loop\n");
+                {
+                    int ShiftValB;
+                    int ShiftVal;
+                    int MinIndx;
+                    int MinCount;
+                    int a;
+                    int Count;
+                    int b;
+
+                    MinCount = 33;
+                    MinIndx = 32;
+                    ShiftVal = 1;
+                    for (b = 0; b < NumElements; b++, ShiftVal <<= 1) {
+                        if (!(Added & ShiftVal)) {
+                            ShiftValB = 1;
+                            Count = 0;
+                            for (a = 0; a < NumElements; a++) {
+                                if (Dependancies[b] & ShiftValB)
+                                    Count++;
+                                ShiftValB <<= 1;
+                            }
+                            if (Count < MinCount) {
+                                MinCount = Count;
+                                MinIndx = b;
+                            }
+                        }
+                    }
+                    if (MinIndx == 32) {
+                        dprintf(GameWindows, "Can't break dependency loop\n");
+                        Indx = -1;
+                    } else {
+                        Dependancies[MinIndx] = 0;
+                        Indx = MinIndx;
+                    }
+                }
+                ShiftVal = 1 << Indx;
+                SinceLastAdd--;
+                if (Indx == -1)
+                    break;
+            }
+        }
+    }
+    *NewSort = 0;
+}

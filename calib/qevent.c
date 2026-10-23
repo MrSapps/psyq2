@@ -940,3 +940,356 @@ struct PSXSUBEVENT *PSXCAGELIFT1EVENT_T(struct PSXSUBEVENT *subevent)
     }
     return (struct PSXSUBEVENT *)((char *)ev + sizeof(struct PSXEVUSRFUNC_CAGELIFT1));
 }
+
+extern short rcossin_tbl[][2];
+int MoveSolidBoxs(struct SOLIDBOX *SolidBox, struct SVECT Movement);
+
+void PSXPISTON_M(struct BRUSHMOVEBUF *MoveBuf)
+{
+    short r;
+    short a;
+    short end;
+    struct VECT Location;
+    struct SVECT xyz;
+    struct SVECT xyz2;
+    int speed;
+    short old;
+    struct SCENE2 *Box;
+
+    end = 0;
+    memset(&xyz, 0, sizeof(struct SVECT));
+    speed = MoveBuf->Speed * NewVcounts;
+    a = MoveBuf->PrecisionRange;
+    old = a;
+    a = old + speed;
+    r = abs(MoveBuf->Range) << 4;
+    if (old < r) {
+        end = a >= r;
+    } else if (a >= r * 2) {
+        end = 1;
+        a -= r * 2;
+    }
+    MoveBuf->PrecisionRange = a;
+    a = ((rcossin_tbl[((a << 11) / r - 0x400) & 0xFFF][0] + 0x1000) * -MoveBuf->Range) / 8192;
+    if (end) {
+        if (MoveBuf->Time) {
+            MoveBuf->Time--;
+            if (!MoveBuf->Time) {
+                MoveBuf->Primary = 0;
+                MoveBuf->OpenFlag = 0;
+            }
+        }
+    }
+    (&xyz.vx)[MoveBuf->Axis] = a;
+    while (MoveBuf) {
+        (&MoveBuf->Offset.vx)[MoveBuf->Axis] = a;
+        if (MoveBuf->SolidBox) {
+            /* index first: &Scene2Data[MoveBuf->Obj] puts the base register first and swaps a0/a1 */
+            Box = (struct SCENE2 *)(MoveBuf->Obj * sizeof(struct SCENE2) + (int)Scene2Data);
+            xyz2.vx = xyz.vx + (Box->VectBox.Min.vx - MoveBuf->SolidBox->MinMax.Min.vx);
+            xyz2.vy = xyz.vy + (Box->VectBox.Min.vy - MoveBuf->SolidBox->MinMax.Min.vy);
+            xyz2.vz = xyz.vz + (Box->VectBox.Min.vz - MoveBuf->SolidBox->MinMax.Min.vz);
+            MoveSolidBoxs(MoveBuf->SolidBox, xyz2);
+        }
+        MoveBuf = MoveBuf->Link;
+    }
+}
+
+struct PSXSUBEVENT *PSXROTHATCHEVENT_T(struct PSXSUBEVENT *subevent)
+{
+    struct PSXEVUSRFUNC_ROTHATCH *ev;
+    struct BRUSHMOVEBUF *MoveBuf;
+    short *shortpnt;
+    short *shortpnt2;
+    int Obj;
+
+    if (subevent->evsize != sizeof(struct PSXEVUSRFUNC_ROTHATCH))
+        return subevent;
+    ev = (struct PSXEVUSRFUNC_ROTHATCH *)subevent;
+    shortpnt = &ev->crossobj;
+    shortpnt2 = (short *)((int)shortpnt - (int)eventlistbase + (int)neweventlistbase);
+    MoveBuf = &BrushMoveBufs[numbrushes];
+    *shortpnt = -1;
+    if (*shortpnt2 >= 0 && numbrushes < 48) {
+        memset(MoveBuf, 0, sizeof(struct BRUSHMOVEBUF));
+        MoveBuf->Primary = (void (*)())PSXROTHATCH_M;
+        MoveBuf->PortalObj = -1;
+        MoveBuf->Axis = ev->axis;
+        if (ev->range < 0x800) {
+            MoveBuf->Speed = abs(ev->speed);
+            MoveBuf->Range = ev->range;
+        } else {
+            MoveBuf->Speed = -abs(ev->speed);
+            MoveBuf->Range = ev->range;
+        }
+        MoveBuf->OpenFlag = 0;
+        Obj = *shortpnt2;
+        MoveBuf->Obj = Obj;
+        Scene2Data[Obj].MoveBufId = numbrushes + 1;
+        MoveBuf->RotOff.vx = (Scene2Data[Obj].VectBox.Min.vx + Scene2Data[Obj].VectBox.Max.vx) / 2 - Scene2Data[Obj].Origin.vx - ev->xoff;
+        MoveBuf->RotOff.vy = ev->yoff + ((Scene2Data[Obj].VectBox.Min.vy + Scene2Data[Obj].VectBox.Max.vy) / 2 - Scene2Data[Obj].Origin.vy);
+        MoveBuf->RotOff.vz = ev->zoff + ((Scene2Data[Obj].VectBox.Min.vz + Scene2Data[Obj].VectBox.Max.vz) / 2 - Scene2Data[Obj].Origin.vz);
+        MoveBuf->SolidBox = GenSolidBox(&Scene2Data[Obj].VectBox, 0, 1);
+        *shortpnt = numbrushes;
+        numbrushes++;
+    }
+    return (struct PSXSUBEVENT *)((char *)subevent + sizeof(struct PSXEVUSRFUNC_ROTHATCH));
+}
+
+extern int GlobalKey;
+static int Sound_KeyUse;
+static int Sound_KeyTry;
+void QuakeSuggestKey(short Key);
+void SetShockData(int InputWin, int Ident, int InputScale, struct VECT *Location, struct POWER Power);
+/* unprototyped here: Time goes over as lhu and Speed * NewVcounts untruncated */
+void SeekL();
+
+/* The object centre is computed once per site from a block-local pointer (SYM doesn't list it); the
+   index-first integer form gives the original's idx + Scene2Data operand order, as in PSXPISTON_M. */
+void PrimaryPlatform_PDH(struct BRUSHMOVEBUF *MoveBuf)
+{
+    short in;
+    int NoProblem;
+    struct VECT Location;
+
+    in = -MoveBuf->Triggered;
+    if (MoveBuf->Speed < 0)
+        MoveBuf->Speed = -MoveBuf->Speed;
+    MoveBuf->Triggered = 0;
+    switch (MoveBuf->OpenFlag) {
+    case 0:
+        if (in) {
+            if (!MoveBuf->Key || (MoveBuf->Key & GlobalKey)) {
+                MoveBuf->OpenFlag = 5;
+                if (MoveBuf->Key) {
+                    {
+                        struct SCENE2 *Box = (struct SCENE2 *)(MoveBuf->Obj * sizeof(struct SCENE2) + (int)Scene2Data);
+
+                        Location.vx = (Box->VectBox.Min.vx + Box->VectBox.Max.vx) / 2;
+                        Location.vy = (Box->VectBox.Min.vy + Box->VectBox.Max.vy) / 2;
+                        Location.vz = (Box->VectBox.Min.vz + Box->VectBox.Max.vz) / 2;
+                    }
+                    SoundAtLocation(Sound_KeyUse, &Location);
+                    MoveBuf->SoundJustDone = 1;
+                }
+                return;
+            }
+            if (!MoveBuf->SoundJustDone) {
+                {
+                    struct SCENE2 *Box = (struct SCENE2 *)(MoveBuf->Obj * sizeof(struct SCENE2) + (int)Scene2Data);
+
+                    Location.vx = (Box->VectBox.Min.vx + Box->VectBox.Max.vx) / 2;
+                    Location.vy = (Box->VectBox.Min.vy + Box->VectBox.Max.vy) / 2;
+                    Location.vz = (Box->VectBox.Min.vz + Box->VectBox.Max.vz) / 2;
+                }
+                SoundAtLocation(Sound_KeyTry, &Location);
+                MoveBuf->SoundJustDone = 1;
+                QuakeSuggestKey(MoveBuf->Key);
+            }
+            return;
+        }
+        MoveBuf->SoundJustDone = 0;
+        return;
+    case 2:
+        MoveBuf->OpenFlag = 6;
+        return;
+    case 3:
+        in = 0;
+        break;
+    case 1:
+        in = 1;
+        break;
+    case 5:
+        if ((short)(MoveBuf->StartDelay - NewVcounts) > 0) {
+            MoveBuf->StartDelay -= NewVcounts;
+            return;
+        }
+        MoveBuf->OpenFlag = 1;
+        {
+            struct SCENE2 *Box = (struct SCENE2 *)(MoveBuf->Obj * sizeof(struct SCENE2) + (int)Scene2Data);
+
+            Location.vx = (Box->VectBox.Min.vx + Box->VectBox.Max.vx) / 2;
+            Location.vy = (Box->VectBox.Min.vy + Box->VectBox.Max.vy) / 2;
+            Location.vz = (Box->VectBox.Min.vz + Box->VectBox.Max.vz) / 2;
+        }
+        SoundAtLocation(Sound_PlatformStart, &Location);
+        return;
+    case 6:
+        if (MoveBuf->Time == 0xFFFF)
+            return;
+        if ((short)(MoveBuf->Time - NewVcounts) > 0) {
+            MoveBuf->Time -= NewVcounts;
+            return;
+        }
+        if (in) {
+            MoveBuf->Time = 1;
+            return;
+        }
+        MoveBuf->OpenFlag = 3;
+        {
+            struct SCENE2 *Box = (struct SCENE2 *)(MoveBuf->Obj * sizeof(struct SCENE2) + (int)Scene2Data);
+
+            Location.vx = (Box->VectBox.Min.vx + Box->VectBox.Max.vx) / 2 + MoveBuf->Offset.vx;
+            Location.vy = (Box->VectBox.Min.vy + Box->VectBox.Max.vy) / 2 + MoveBuf->Offset.vy;
+            Location.vz = (Box->VectBox.Min.vz + Box->VectBox.Max.vz) / 2 + MoveBuf->Offset.vz;
+        }
+        SoundAtLocation(Sound_PlatformStart, &Location);
+        return;
+    }
+    {
+        struct SCENE2 *Box = (struct SCENE2 *)(MoveBuf->Obj * sizeof(struct SCENE2) + (int)Scene2Data);
+
+        Location.vx = (Box->VectBox.Min.vx + Box->VectBox.Max.vx) / 2 + MoveBuf->Offset.vx;
+        Location.vy = (Box->VectBox.Min.vy + Box->VectBox.Max.vy) / 2 + MoveBuf->Offset.vy;
+        Location.vz = (Box->VectBox.Min.vz + Box->VectBox.Max.vz) / 2 + MoveBuf->Offset.vz;
+    }
+    SetShockData(4, 13, 0x400, &Location, (struct POWER){0x800, 0x1000});
+    {
+        unsigned char LastOpenFlag;
+        int NewXYZ;
+        struct SVECT xyz;
+
+        LastOpenFlag = MoveBuf->OpenFlag;
+        NewXYZ = MoveBuf->PrecisionRange;
+        MoveBuf->Range = abs(MoveBuf->Range);
+        if (MoveBuf->OpenFlag == 4) {
+            SeekL((long *)&NewXYZ, MoveBuf->Time, MoveBuf->Speed * NewVcounts);
+            if (NewXYZ == MoveBuf->Time)
+                MoveBuf->OpenFlag = MoveBuf->Params[0];
+        } else if (in) {
+            NewXYZ += MoveBuf->Speed * NewVcounts;
+            if (NewXYZ > MoveBuf->Range) {
+                NewXYZ = MoveBuf->Range;
+                MoveBuf->OpenFlag = 2;
+                {
+                    struct SCENE2 *Box = (struct SCENE2 *)(MoveBuf->Obj * sizeof(struct SCENE2) + (int)Scene2Data);
+
+                    Location.vx = (Box->VectBox.Min.vx + Box->VectBox.Max.vx) / 2 + MoveBuf->Offset.vx;
+                    Location.vy = (Box->VectBox.Min.vy + Box->VectBox.Max.vy) / 2 + MoveBuf->Offset.vy;
+                    Location.vz = (Box->VectBox.Min.vz + Box->VectBox.Max.vz) / 2 + MoveBuf->Offset.vz;
+                }
+                SetShockData(4, 14, 0xC00, &Location, (struct POWER){0x800, 0x1000});
+            }
+        } else {
+            NewXYZ -= MoveBuf->Speed * NewVcounts;
+            if (NewXYZ <= 0) {
+                NewXYZ = 0;
+                MoveBuf->OpenFlag = 0;
+            }
+        }
+        xyz.vx = MoveBuf->DamageLoc.vx * NewXYZ / MoveBuf->Range;
+        xyz.vy = MoveBuf->DamageLoc.vy * NewXYZ / MoveBuf->Range;
+        xyz.vz = MoveBuf->DamageLoc.vz * NewXYZ / MoveBuf->Range;
+        NoProblem = 0;
+        if (MoveBuf) {
+            if (MoveBuf->SolidBox) {
+                struct SVECT xyz2;
+                struct SCENE2 *Box;
+
+                Box = (struct SCENE2 *)(MoveBuf->Obj * sizeof(struct SCENE2) + (int)Scene2Data);
+                xyz2.vx = xyz.vx + (Box->VectBox.Min.vx - MoveBuf->SolidBox->MinMax.Min.vx);
+                xyz2.vy = xyz.vy + (Box->VectBox.Min.vy - MoveBuf->SolidBox->MinMax.Min.vy);
+                xyz2.vz = xyz.vz + (Box->VectBox.Min.vz - MoveBuf->SolidBox->MinMax.Min.vz);
+                NoProblem = MoveSolidBoxs(MoveBuf->SolidBox, xyz2);
+            }
+        }
+        if (NoProblem) {
+            MoveBuf->PrecisionRange = NewXYZ;
+            if (MoveBuf) {
+                while (1) {
+                    MoveBuf->Offset = xyz;
+                    MoveBuf = MoveBuf->Link;
+                    if (!MoveBuf)
+                        break;
+                }
+            }
+        } else if (LastOpenFlag == 1) {
+            MoveBuf->Params[0] = LastOpenFlag;
+            MoveBuf->OpenFlag = 4;
+            MoveBuf->Time = MoveBuf->PrecisionRange - MoveBuf->Speed * 150;
+            if (MoveBuf->Time > MoveBuf->Range)
+                MoveBuf->Time = 0;
+        } else if (LastOpenFlag == 3) {
+            MoveBuf->Params[0] = LastOpenFlag;
+            MoveBuf->OpenFlag = 4;
+            MoveBuf->Time = MoveBuf->PrecisionRange + MoveBuf->Speed * 150;
+            if (MoveBuf->Range < MoveBuf->Time)
+                MoveBuf->Time = MoveBuf->Range;
+        } else
+            MoveBuf->OpenFlag = LastOpenFlag;
+    }
+}
+
+int SquareRootNR(int n);
+
+/* The size check wraps the whole body with `return subevent;` last: that makes subevent outlive ev,
+   so cse keeps the ev->dest reads on subevent ($a1) and the xd*xd product lands in $a2. */
+struct PSXSUBEVENT *PSXPLATFORMEVENT_T(struct PSXSUBEVENT *subevent)
+{
+    struct PSXEVUSRFUNC_PLATFORM *ev;
+    struct BRUSHMOVEBUF *MoveBuf;
+    struct BRUSHMOVEBUF *LastMoveBuf;
+    struct SOLIDBOX **SolidBoxPntrPntr;
+    int NewGroup;
+    short *shortpnt;
+    short *shortpnt2;
+    int c;
+    int Obj;
+    int range;
+    int xd;
+    int yd;
+    int zd;
+
+    if (subevent->evsize == sizeof(struct PSXEVUSRFUNC_PLATFORM)) {
+        shortpnt = ((struct PSXEVUSRFUNC_PLATFORM *)subevent)->crossobj;
+        shortpnt2 = (short *)((int)shortpnt - (int)eventlistbase + (int)neweventlistbase);
+        MoveBuf = &BrushMoveBufs[numbrushes];
+        ev = (struct PSXEVUSRFUNC_PLATFORM *)subevent;
+        Obj = *shortpnt2;
+        if (Obj >= 0) {
+            xd = ev->dest.vx - (Scene2Data[Obj].VectBox.Min.vx + Scene2Data[Obj].VectBox.Max.vx) / 2;
+            yd = ev->dest.vy - (Scene2Data[Obj].VectBox.Min.vy + Scene2Data[Obj].VectBox.Max.vy) / 2;
+            zd = ev->dest.vz - (Scene2Data[Obj].VectBox.Min.vz + Scene2Data[Obj].VectBox.Max.vz) / 2;
+            range = xd * xd + yd * yd + zd * zd;
+            range = SquareRootNR(range / 4) * 2;
+        } else {
+            range = 0;
+        }
+        for (c = 0; c < 4; c++)
+            shortpnt[c] = -1;
+        LastMoveBuf = 0;
+        SolidBoxPntrPntr = &MoveBuf->SolidBox;
+        NewGroup = 1;
+        for (c = 0; c < 4; c++) {
+            if (*shortpnt2 >= 0 && numbrushes < 48) {
+                memset(MoveBuf, 0, sizeof(struct BRUSHMOVEBUF));
+                if (LastMoveBuf)
+                    LastMoveBuf->Link = MoveBuf;
+                else
+                    MoveBuf->Primary = PrimaryPlatform_PDH;
+                MoveBuf->PortalObj = -1;
+                MoveBuf->Axis = 1;
+                MoveBuf->Speed = abs(ev->speed);
+                MoveBuf->Range = range;
+                MoveBuf->DamageLoc.vx = xd;
+                MoveBuf->DamageLoc.vy = yd;
+                MoveBuf->DamageLoc.vz = zd;
+                MoveBuf->OpenFlag = 0;
+                Obj = *shortpnt2;
+                MoveBuf->Obj = Obj;
+                Scene2Data[Obj].MoveBufId = numbrushes + 1;
+                *SolidBoxPntrPntr = GenSolidBox(&Scene2Data[Obj].VectBox, 0, NewGroup);
+                if (*SolidBoxPntrPntr) {
+                    SolidBoxPntrPntr = &(*SolidBoxPntrPntr)->LinkedData;
+                    NewGroup = 0;
+                }
+                LastMoveBuf = MoveBuf;
+                MoveBuf++;
+                *shortpnt++ = numbrushes++;
+            }
+            shortpnt2++;
+        }
+        return (struct PSXSUBEVENT *)((char *)ev + sizeof(struct PSXEVUSRFUNC_PLATFORM));
+        }
+        return subevent;
+    }
