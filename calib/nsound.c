@@ -1,5 +1,10 @@
 #include "types.h"
 
+/* libspu functions return void (an int return value in v0 changes DoMix's register allocation) */
+void SpuSetVoiceAttr(struct SpuVoiceAttr *arg);
+void SpuGetVoiceAttr(struct SpuVoiceAttr *arg);
+void SpuSetKey(long on_off, unsigned long voice_bit);
+
 unsigned long Big2Little(unsigned long v);
 long SpuMalloc(long size);
 void SpuSetTransferStartAddr(unsigned long addr);
@@ -161,6 +166,42 @@ static unsigned short NewSoundID(void)
     }
 }
 
+/* the VAGList test guards the body (return -2 last): with an early `return -2` the delay slot after
+   `bnez` on SoundID gets filled, which the original does not do */
+int SoundAtLocation_Vol(int SFXNumber, struct VECT *loc, int vol)
+{
+    int chan;
+    struct SNDCTRL *sbuf;
+    struct SoundList *ThisSound;
+
+    if (SFXNumber == -1)
+        return -1;
+    if (!SFXNumber)
+        return -1;
+    ThisSound = &SampleInfoTable[SFXNumber];
+    if (VAGList[ThisSound->SampleNumber].dwAddr) {
+        chan = GetFreeChannel();
+        if (chan >= 0) {
+            sbuf = &SoundControlBuffers[chan];
+            sbuf->s_dtype = SFXNumber;
+            sbuf->pos.vx = loc->vx;
+            sbuf->pos.vy = loc->vy;
+            sbuf->pos.vz = loc->vz;
+            *(signed char *)&sbuf->type = -3;
+            *(signed char *)&sbuf->chain = -1;
+            sbuf->lastpitch = sbuf->currpitch = sbuf->basepitch = ThisSound->Pitch << 3;
+            sbuf->lastvol = sbuf->currvol = sbuf->basevol = ThisSound->Volume * vol >> 4;
+            sbuf->mixflag = DefaultMix;
+            sbuf->pitchflag = 0;
+            sbuf->samplenum = ThisSound->SampleNumber;
+            sbuf->statusdelay = 5;
+            sbuf->SoundID = NewSoundID();
+        }
+        return chan;
+    }
+    return -2;
+}
+
 int SoundByCreature(int SFXNumber, struct CREATURE *Cre)
 {
     int Chan;
@@ -232,22 +273,6 @@ int SoundStopOnCreDeath(short SoundID, short Channel)
         Sbuf->type = 8;
 }
 
-int SoundStopAllLoopingSamples(void)
-{
-    struct SNDCTRL *SoundControlBuffer;
-    int Channel;
-    int StopCount = 0;
-    SoundControlBuffer = SoundControlBuffers;
-    for (Channel = 0; Channel < 24; Channel++, SoundControlBuffer++) {
-        if (*(signed char *)&SoundControlBuffer->type) {
-            if (SampleInfoTable[SoundControlBuffer->samplenum].Flags & 4) {
-                SoundControlBuffer->type = 8;
-                StopCount++;
-            }
-        }
-    }
-    return StopCount;
-}
 
 int InitSamplesForLevel(void)
 {
@@ -664,4 +689,140 @@ int GetSoundNum(struct IDENTITYNAME Name)
             return 0;
         }
     }
+}
+
+extern unsigned char pbStereoLookup[];
+extern unsigned char pbRearLookup[];
+extern unsigned char pbQPanLookup[];
+
+/* case 2/3 and the two-pass cases share their clamp tails by cross-jumping; the then-branch's
+   SpuSetVoiceAttr call is merged with the else-branch's */
+void DoMix(int chan, struct SNDCTRL *sbuf)
+{
+    struct SpuVoiceAttr voiceAttr;
+    int pan;
+    unsigned int wLeftVol;
+    unsigned int wRightVol;
+    int fbpan;
+    int lrvol;
+    int rearvol;
+
+    wRightVol = wLeftVol = 0;
+    if (*(signed char *)&sbuf->mixflag > 0) {
+        voiceAttr.mask = 15;
+        voiceAttr.volmode.left = 0;
+        voiceAttr.volmode.right = 0;
+        switch (*(signed char *)&sbuf->mixflag) {
+        case 1:
+            wLeftVol = sbuf->currvol * SFXMasterVolume / 2;
+            if (wLeftVol > 0x55F0)
+                wLeftVol = 0x55F0;
+            wRightVol = wLeftVol;
+            break;
+        case 2:
+            wLeftVol = sbuf->currvol * pbStereoLookup[sbuf->lrpan] * SFXMasterVolume / 512;
+            wRightVol = sbuf->currvol * pbStereoLookup[30 - sbuf->lrpan] * SFXMasterVolume / 512;
+            if (wLeftVol > 0x55F0)
+                wLeftVol = 0x55F0;
+            if (wRightVol > 0x55F0)
+                wRightVol = 0x55F0;
+            break;
+        case 3:
+            wLeftVol = sbuf->currvol * pbStereoLookup[sbuf->lrpan] / 4;
+            wRightVol = sbuf->currvol * pbStereoLookup[30 - sbuf->lrpan] / 4;
+            if (wLeftVol > 0x55F0)
+                wLeftVol = 0x55F0;
+            if (wRightVol > 0x55F0)
+                wRightVol = 0x55F0;
+            break;
+        case 4:
+            wLeftVol = sbuf->currvol * SFXMasterVolume / 2;
+            if (wLeftVol > 0x55F0)
+                wLeftVol = 0x55F0;
+            wRightVol = -wLeftVol;
+            break;
+        case 5:
+            lrvol = sbuf->currvol;
+            fbpan = sbuf->fbpan;
+            if (fbpan < 15) {
+                rearvol = lrvol;
+                lrvol = lrvol * fbpan;
+                lrvol = lrvol / 15;
+            } else if (fbpan > 15) {
+                rearvol = lrvol * (31 - fbpan) / 15;
+            } else {
+                rearvol = lrvol;
+            }
+            wLeftVol = rearvol * pbRearLookup[sbuf->lrpan] * SFXMasterVolume / 512;
+            wRightVol = rearvol * pbRearLookup[30 - sbuf->lrpan] * SFXMasterVolume / 512;
+            if (wLeftVol > 0x55F0)
+                wLeftVol = 0x55F0;
+            if (wRightVol > 0x55F0)
+                wRightVol = 0x55F0;
+            voiceAttr.voice = 1 << sbuf->channel2;
+            voiceAttr.volume.left = wLeftVol;
+            voiceAttr.volume.right = wRightVol;
+            SpuSetVoiceAttr(&voiceAttr);
+            wLeftVol = lrvol * pbStereoLookup[sbuf->lrpan] * SFXMasterVolume / 512;
+            wRightVol = pbStereoLookup[30 - sbuf->lrpan] * lrvol * SFXMasterVolume / 512;
+            if (wLeftVol > 0x55F0)
+                wLeftVol = 0x55F0;
+            if (wRightVol > 0x55F0)
+                wRightVol = 0x55F0;
+            break;
+        case 6:
+            pan = sbuf->lrpan;
+            lrvol = sbuf->currvol;
+            pan <<= 2;
+            wLeftVol = *(pbQPanLookup + (pan + 2)) * lrvol * SFXMasterVolume / 512;
+            wRightVol = *(pbQPanLookup + (pan + 3)) * lrvol * SFXMasterVolume / 512;
+            if (wLeftVol > 0x55F0)
+                wLeftVol = 0x55F0;
+            if (wRightVol > 0x55F0)
+                wRightVol = 0x55F0;
+            voiceAttr.voice = 1 << sbuf->channel2;
+            voiceAttr.volume.left = wLeftVol;
+            voiceAttr.volume.right = wRightVol;
+            SpuSetVoiceAttr(&voiceAttr);
+            wLeftVol = *(pbQPanLookup + pan) * lrvol * SFXMasterVolume / 512;
+            wRightVol = *(pbQPanLookup + (pan + 1)) * lrvol * SFXMasterVolume / 512;
+            if (wLeftVol > 0x55F0)
+                wLeftVol = 0x55F0;
+            if (wRightVol > 0x55F0)
+                wRightVol = 0x55F0;
+            break;
+        }
+        voiceAttr.voice = 1 << chan;
+        voiceAttr.volume.left = wLeftVol;
+        voiceAttr.volume.right = wRightVol;
+        SpuSetVoiceAttr(&voiceAttr);
+    } else {
+        voiceAttr.voice = 1 << chan;
+        SpuGetVoiceAttr(&voiceAttr);
+        voiceAttr.volume.left -= 256;
+        if (voiceAttr.volume.left < 0)
+            voiceAttr.volume.left = 0;
+        voiceAttr.volume.right -= 256;
+        if (voiceAttr.volume.right < 0)
+            voiceAttr.volume.right = 0;
+        SpuSetVoiceAttr(&voiceAttr);
+    }
+}
+
+/* after ProcessSounds, which calls it rather than inlining it */
+int SoundStopAllLoopingSamples(void)
+{
+    struct SNDCTRL *SoundControlBuffer;
+    int Channel;
+    int StopCount = 0;
+    SoundControlBuffer = SoundControlBuffers;
+    for (Channel = 0; Channel < 24; Channel++, SoundControlBuffer++) {
+        if (*(signed char *)&SoundControlBuffer->type) {
+            if (SampleInfoTable[SoundControlBuffer->samplenum].Flags & 4) {
+                SoundControlBuffer->type = 8;
+                StopCount++;
+            }
+        }
+    }
+    return StopCount;
 }

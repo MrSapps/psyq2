@@ -311,3 +311,108 @@ void NewShieldEffect(struct CREATURE *Cre)
         }
     }
 }
+
+extern long *DummyMemory;
+extern struct POLY_G4 *LastGeneralG4;
+int abs(int);
+#define setlen(p, _len) (*(((unsigned char *)(p)) + 3) = (unsigned char)(_len))
+#define setcode(p, _code) (*(((unsigned char *)(p)) + 7) = (unsigned char)(_code))
+
+int AddLight(struct VECT *Location, struct COLOUR Colour, struct POWER Power, struct SHORTPAIR FlareTypeSize);
+void AddPrimInsert_(void *ot, void *p);
+
+#define gte_mvr(reg, r0) __asm__ volatile("move $" #reg ",%0" : : "r"(r0) : "$" #reg, "memory")
+#define gte_op(s) __asm__ volatile(s)
+#define gte_st(s) __asm__ volatile(s : : : "memory")
+#define gte_ldv3c_s(r0) { gte_mvr(12, r0); \
+    gte_op("lwc2 $0,0($12)"); gte_op("lwc2 $1,4($12)"); gte_op("lwc2 $2,8($12)"); \
+    gte_op("lwc2 $3,12($12)"); gte_op("lwc2 $4,16($12)"); gte_op("lwc2 $5,20($12)"); }
+/* rtpt without the nops, storing SXY0-2 with an 8-byte stride (TEMPTYPE) */
+#define gte_rtpt_sxy8(r0) { gte_mvr(13, r0); gte_op(".word 0x4A280030"); \
+    gte_st("swc2 $12,0($13)"); gte_st("swc2 $13,8($13)"); gte_st("swc2 $14,16($13)"); }
+#define gte_ldsxy3_s(r0, r1, r2) { gte_mvr(12, r0); gte_mvr(13, r1); gte_mvr(14, r2); \
+    gte_op("mtc2 $12,$12"); gte_op("mtc2 $14,$14"); gte_op("mtc2 $13,$13"); }
+#define gte_nclip_s() { gte_op("nop"); gte_op("nop"); gte_op(".word 0x4B400006"); }
+#define gte_stopz_s(r0) { gte_mvr(12, r0); gte_st("swc2 $24,0($12)"); }
+
+/* B1: the original copies Trigger into B1 (same $s2) and uses it for Bright and the brightness scale;
+   the depth tested against Bright is SVECTOR.pad (lh 6) */
+void DrawGlint(struct CREATURE *Cre, struct MATRIX *Matrix, struct COLOUR Colour, int Trigger, int Light, int Range)
+{
+    int Bright;
+    int R;
+    int G;
+    int B;
+    int NClip;
+    int Br;
+    int B1;
+    int a;
+    int g;
+    int h;
+    int i;
+    int j;
+    int p0;
+    struct TEMPTYPE *TTrr;
+    struct TEMPTYPE *TTr;
+    struct SVECTOR *S;
+    unsigned char *P;
+
+    TTrr = (struct TEMPTYPE *)DummyMemory;
+    R = (Colour.r << 13) / Range;
+    G = (Colour.g << 13) / Range;
+    B = (Colour.b << 13) / Range;
+    if (Light)
+        AddLight(&Cre->Draw.Location, Colour, *&(struct POWER){300, 800}, *&(struct SHORTPAIR){1, 3});
+    B1 = Trigger;
+    Bright = Range / 4 * (4 - B1) + 1024;
+    SetRotMatrix(Matrix);
+    TTr = TTrr;
+    S = ShieldEffPoints;
+    for (a = 0; a < 94; a += 3, S += 3, TTr += 3) {
+        gte_ldv3c_s(S);
+        gte_rtpt_sxy8(TTr);
+        for (p0 = 0; p0 < 3; p0++) {
+            Br = abs(S[p0].pad - Bright);
+            if (Br < Range)
+                Br = Range - Br;
+            else
+                Br = 0;
+            Br = Br * B1;
+            TTr[p0].r = R * Br >> 15;
+            TTr[p0].g = G * Br >> 15;
+            TTr[p0].b = B * Br >> 15;
+        }
+    }
+    P = (unsigned char *)ShieldEffPolys;
+    for (a = 0; a < 79; a++, P += 4) {
+        p0 = *(int *)&TTrr[P[0]].r;
+        p0 |= *(int *)&TTrr[P[1]].r;
+        p0 |= *(int *)&TTrr[P[2]].r;
+        p0 |= *(int *)&TTrr[P[3]].r;
+        if (p0 & 0xFFFFFF) {
+            if (NextGeneralG4 >= LastGeneralG4)
+                return;
+            g = *(int *)&TTrr[P[0]];
+            h = *(int *)&TTrr[P[1]];
+            i = *(int *)&TTrr[P[3]];
+            j = *(int *)&TTrr[P[2]];
+            gte_ldsxy3_s(g, h, i);
+            *(int *)&NextGeneralG4->x0 = g;
+            *(int *)&NextGeneralG4->x1 = h;
+            *(int *)&NextGeneralG4->x2 = i;
+            *(int *)&NextGeneralG4->x3 = j;
+            *(int *)&NextGeneralG4->r0 = *(int *)&TTrr[P[0]].r;
+            *(int *)&NextGeneralG4->r1 = *(int *)&TTrr[P[1]].r;
+            *(int *)&NextGeneralG4->r2 = *(int *)&TTrr[P[3]].r;
+            *(int *)&NextGeneralG4->r3 = *(int *)&TTrr[P[2]].r;
+            setlen(NextGeneralG4, 8), setcode(NextGeneralG4, 0x38);
+            setcode(NextGeneralG4, ((unsigned char *)NextGeneralG4)[7] | 2);
+            gte_nclip_s();
+            gte_stopz_s(&NClip);
+            if (NClip >= 0)
+                AddPrimInsert_(&Cre->WinData[0].Sort.FirstLast[1], NextGeneralG4++);
+            else
+                AddPrim_(&Cre->WinData[0].Sort.FirstLast[0], NextGeneralG4++);
+        }
+    }
+}
