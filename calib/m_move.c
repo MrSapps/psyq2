@@ -1,4 +1,5 @@
 #include "types.h"
+long anglemod(long a);
 extern short rcossin_tbl[][2];
 int SV_movestep(struct edict_s *ent, struct VECT *move, int relink);
 int SV_StepDirection(struct edict_s *ent, long yaw, long dist);
@@ -73,4 +74,71 @@ int M_walkmove(struct edict_s *ent, long yaw, long dist)
     move.vz = rcossin_tbl[yaw & 0xfff][1] * dist / 4096;
     move.vy = 0;
     return SV_movestep(ent, &move, 1);
+}
+
+static void SV_FixCheckBottom(struct edict_s *ent)
+{
+    ent->flags |= 0x100;
+}
+
+void SV_NewChaseDir(struct edict_s *actor, struct edict_s *enemy, long dist)
+{
+    long deltax;
+    long deltaz;
+    long d[3];
+    long tdir;
+    long olddir;
+    long turnaround;
+
+    if (!enemy)
+        return;
+    olddir = anglemod((actor->ideal_yaw / 512) * 512);
+    turnaround = anglemod(olddir - 0x800);
+    deltax = enemy->sorigin.vx - actor->sorigin.vx;
+    deltaz = enemy->sorigin.vz - actor->sorigin.vz;
+    if (deltax > 120)
+        d[1] = 0x400;
+    else if (deltax < -120)
+        d[1] = 0xc00;
+    else
+        d[1] = -1;
+    if (deltaz < -120)
+        d[2] = 0x800;
+    else if (deltaz > 120)
+        d[2] = 0;
+    else
+        d[2] = -1;
+    if (d[1] != -1 && d[2] != -1) {
+        if (d[1] == 0x400)
+            tdir = d[2] == 0 ? 0x200 : 0x600;
+        else
+            tdir = d[2] == 0 ? 0xe00 : 0xa00;
+        if (tdir != turnaround && SV_StepDirection(actor, tdir, dist))
+            return;
+    }
+    if ((rand() & 1) || abs(deltaz) > abs(deltax)) {
+        tdir = d[1];
+        d[1] = d[2];
+        d[2] = tdir;
+    }
+    if (d[1] != -1 && d[1] != turnaround && SV_StepDirection(actor, d[1], dist))
+        return;
+    if (d[2] != -1 && d[2] != turnaround && SV_StepDirection(actor, d[2], dist))
+        return;
+    if (olddir != -1 && SV_StepDirection(actor, olddir, dist))
+        return;
+    if (rand() & 1) {
+        for (tdir = 0; tdir <= 0xe00; tdir += 0x200)
+            if (tdir != turnaround && SV_StepDirection(actor, tdir, dist))
+                return;
+    } else {
+        for (tdir = 0xe00; tdir >= 0; tdir -= 0x200)
+            if (tdir != turnaround && SV_StepDirection(actor, tdir, dist))
+                return;
+    }
+    if (turnaround != -1 && SV_StepDirection(actor, turnaround, dist))
+        return;
+    actor->ideal_yaw = olddir;
+    if (!M_CheckBottom(actor))
+        SV_FixCheckBottom(actor);
 }
