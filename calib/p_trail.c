@@ -178,27 +178,21 @@ extern struct COLLHEADER TrigBoundCollMap;
 int InVectBox3D(struct VECTBOX *VectBox, struct VECT *Vect);
 void ExpandVectBox(struct VECTBOX *PQBox, struct VECTBOX *PQExp, short Width, struct SHORTPAIR MinMaxY);
 
-/* Same code except one thing C can't reach here: the original addresses the small
-   initialised static MinMaxY with lui/addiu %hi/%lo, maspsx with $gp:
-     lui v0,%hi(MinMaxY); addiu s4,v0,%lo(MinMaxY); lhu s3,%lo(MinMaxY)(v0)
-   vs addiu s4,gp,%gp_rel(MinMaxY); lhu s3,%gp_rel(MinMaxY)(gp) */
-#ifdef CALIB_TOOLCHAIN_GAPS
+/* The small constant MinMaxY (D_800AED6C, %hi/%lo) is a compound literal, not a $gp static. */
 /* static in p_trail.obj; non-static here so the reloc keeps its name */
 struct VECTBOX PICB_Box;
 
 struct VECTBOX *PointInCreatureBlocker(struct VECT *point, int space)
 {
-    static const struct SHORTPAIR MinMaxY = {-571, 573};
     struct COLL3DSPACE *trigger;
 
     for (trigger = TrigBoundCollMap.Coll3dSpace;
          trigger < TrigBoundCollMap.Coll3dSpace + TrigBoundCollMap.TotalNumSpaces; trigger++) {
         if (trigger->u.trigflags & 0x10) {
-            ExpandVectBox(&trigger->MinMax, &PICB_Box, 573, MinMaxY);
+            ExpandVectBox(&trigger->MinMax, &PICB_Box, 573, *&(struct SHORTPAIR){-571, 573});
             if (InVectBox3D(&PICB_Box, point))
                 return &PICB_Box;
         }
     }
     return 0;
 }
-#endif

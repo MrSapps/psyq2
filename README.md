@@ -60,8 +60,8 @@ of that.
 
 `calib/` holds matched functions, one file per original source file; `tools/calibrate.sh [flags]`
 recompiles them and diffs each against `asm/` (`ASPSX_VERSION=` changes maspsx's assembler model, and a
-file whose original used other flags says so in a `/* calib-flags: ... */` comment). **959 of the 1037
-game functions match, 76% of the game's code, and 56 of the 90 source files are complete.**
+file whose original used other flags says so in a `/* calib-flags: ... */` comment). **1024 of the 1037
+game functions match, 94.5% of the game's code, and 81 of the 90 source files are complete.**
 
 | cc1psx                  | -O1 | -O2     | -O3     | -O3 -G0 | -O3 -G4 |
 |-------------------------|-----|---------|---------|---------|---------|
@@ -71,7 +71,8 @@ game functions match, 76% of the game's code, and 56 of the 90 source files are 
 | 4.5 (egcs 1.1.2)        | 4/8 | 4/8     | 4/8     | 3/8     | 4/8     |
 | 4.6 (gcc 2.95.2)        | 2/8 | 2/8     | 2/8     | 1/8     | 2/8     |
 
-The x/8 columns are from the first 8 calibration functions. What settles it:
+The x/8 columns are from the first 8 calibration functions, the x/959 ones from the set as it stood at
+959 matches. What settles it:
 
 - **4.4, not 4.3.** 74 functions match with 4.4 and not with 4.3, none the other way. All of them pass a
   byte-aligned struct by value (a 12-byte `IDENTITYNAME`, a 4-byte `COLOUR`), which gcc builds from
@@ -149,8 +150,7 @@ Found while matching `calib/`; the files show each in use.
   compares addresses. A file's own variable that splat suffixed (`Sound_Explosion_800B2A68`) has to be
   named that way.
 
-Of the 78 functions left, most are over 150 instructions. The near misses are register allocation or
-scheduling, in particular `QuakeFillInLevelEngineSideInterface`, `OpenSaveMemory`, the `Cre_*HighLight*`
-family (3 instructions each) and `ReadCommonFiles`, where an inlined helper hoists a constant the original
-didn't. The three left of 60 instructions or fewer are `ProcessPortalWibble`, `PSXTELEPORT_T` and
-`DoSolidBoxEventDamage`, all register allocation or block layout.
+Of the 13 functions left, all are over 180 instructions and the near misses are register allocation,
+scheduling or cross-jumping: `ProcessSounds` and `PrimaryDoor2_PDH` are 2 and 4 instructions off,
+`ProcessWaterEffect` 8 lines, `AnyoneFireRocketL` 7, `GameCheckPaused`/`GameInitStuff` a cross-jump each.
+`DrawScene` (1531 instructions) hasn't been attempted.

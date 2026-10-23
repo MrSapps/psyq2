@@ -275,6 +275,75 @@ int Event_DoFromSub(int eventhdroffset, struct CREATURE *Cre, struct PSXSUBEVENT
     return 1;
 }
 
+int Event_DoTimerSub(struct EVENTTIMER *timer, struct CREATURE *Cre)
+{
+    int a;
+    int b;
+    struct PSXSUBEVHDR *eventhdr;
+    struct PSXSUBEVENT *subevent;
+    struct PSXSUBEVENT *subevent2;
+
+    /* The early `return 0` block is shared with the first loop's `return 0` (bnez + j there,
+       not beqz to the epilogue): a goto to one return, presumably as in the original. */
+    if (!eventlistbase) {
+fail:
+        return 0;
+    }
+    Event_GlobalEVOFFSET = timer->eventhdroffset;
+    eventhdr = (struct PSXSUBEVHDR *)(timer->eventhdroffset + (int)eventlistbase);
+    if (eventhdr->disabled)
+        return 1;
+    subevent2 = timer->timernextsubevent;
+    eventhdr_start = eventstack;
+    eventhdr_end = eventstack;
+    eventhdr->disabled = eventhdr->oneshot;
+    eventhdr->used = 1;
+    a = 0;
+    subevent = (struct PSXSUBEVENT *)(eventhdr + 1);
+    while (subevent != subevent2) {
+        a++;
+        if (a >= eventhdr->numevents)
+            goto fail;
+        subevent = (struct PSXSUBEVENT *)((char *)subevent + subevent->evsize);
+    }
+    b = timer->groupsof;
+    do {
+        if (Do_SubEvent(subevent, Cre))
+            b = 0;
+        a++;
+        if (a == eventhdr->numevents) {
+            subevent2 = timer->timersubevent;
+            subevent = (struct PSXSUBEVENT *)(eventhdr + 1);
+            a = 0;
+            while (subevent != subevent2) {
+                subevent = (struct PSXSUBEVENT *)((char *)subevent + subevent->evsize);
+                a++;
+            }
+        }
+        subevent = (struct PSXSUBEVENT *)((char *)subevent + subevent->evsize);
+        b--;
+        if (subevent == timer->timernextsubevent)
+            break;
+    } while (b > 0);
+    timer->timernextsubevent = subevent;
+    while (eventhdr_start < eventhdr_end) {
+        Event_GlobalEVOFFSET = *eventhdr_start;
+        eventhdr = (struct PSXSUBEVHDR *)((char *)eventlistbase + *eventhdr_start++);
+        if (!eventhdr->disabled) {
+            eventhdr->disabled = eventhdr->oneshot;
+            eventhdr->used = 1;
+            subevent = (struct PSXSUBEVENT *)(eventhdr + 1);
+            nomoresubevents = 0;
+            for (a = 0; a < eventhdr->numevents; a++) {
+                if (Do_SubEvent(subevent, Cre))
+                    break;
+                subevent = (struct PSXSUBEVENT *)((char *)subevent + subevent->evsize);
+            }
+        }
+    }
+    return 1;
+}
+
 static void Event_DoOffset(int offset, struct CREATURE *Cre)
 {
     if (eventlistbase) {
@@ -981,8 +1050,9 @@ struct PSXEVCOUNTER {
     short reset;
 };
 
-/* inlined into Do_SubEvent (PSXDOOR1UP's out-of-line copy is in event_9) */
-static struct PSXSUBEVENT *PSXDOOR1UP(struct PSXSUBEVENT *subevent, struct CREATURE *cre, short damage)
+/* inlined into Do_SubEvent (PSXDOOR1UP's out-of-line copy is in event_9); renamed here so that
+   PSXDOOR1UP_T can take the address of the real, external PSXDOOR1UP */
+static struct PSXSUBEVENT *PSXDOOR1UP_inl(struct PSXSUBEVENT *subevent, struct CREATURE *cre, short damage)
 {
     struct PSXEVDOOR1UP *ev_door1up;
 
@@ -1061,7 +1131,7 @@ int Do_SubEvent(struct PSXSUBEVENT *subevent, struct CREATURE *Cre)
             *eventhdr_end++ = *shortpnt++;
         return 0;
     case 3:
-        PSXDOOR1UP(subevent, Cre, 0);
+        PSXDOOR1UP_inl(subevent, Cre, 0);
         break;
     case 4:
         PSXDOOR1SIDE(subevent, Cre, 0);
@@ -1189,4 +1259,164 @@ struct PSXSUBEVENT *PSXLIFT1EVENT_T(struct PSXSUBEVENT *subevent)
         shortpnt2++;
     }
     return (struct PSXSUBEVENT *)((char *)ev + sizeof(struct PSXEVUSRFUNC_LIFT1));
+}
+
+struct PSXSUBEVENT *PSXDOOR1UP(struct PSXSUBEVENT *subevent, struct CREATURE *cre, short damage);
+
+struct PSXSUBEVENT *PSXDOOR1UP_T(struct PSXSUBEVENT *subevent)
+{
+    struct PSXEVDOOR1UP *ev_door1up;
+    short c;
+    short Obj;
+    short *shortpnt;
+    short *shortpnt2;
+    struct BRUSHMOVEBUF *LastMoveBuf;
+    struct SOLIDBOX *LastSolidBox;
+
+    LastSolidBox = 0;
+    if (subevent->evsize != sizeof(struct PSXEVDOOR1UP))
+        return subevent;
+    ev_door1up = (struct PSXEVDOOR1UP *)subevent;
+    MoveBuf = &BrushMoveBufs[numbrushes];
+    shortpnt = &ev_door1up->portal;
+    shortpnt2 = (short *)((int)shortpnt - (int)eventlistbase + (int)neweventlistbase);
+    ev_door1up->portal = *shortpnt2++;
+    LastMoveBuf = 0;
+    shortpnt = ev_door1up->crossobj;
+    if (ev_door1up->portal != -1)
+        Scene2Data[ev_door1up->portal].NoDraw = 1;
+    for (c = 0; c < 4; c++)
+        shortpnt[c] = -1;
+    for (c = 0; c < 4; c++) {
+        if (*shortpnt2 >= 0 && numbrushes < 48) {
+            memset(MoveBuf, 0, sizeof(struct BRUSHMOVEBUF));
+            if (LastMoveBuf) {
+                LastMoveBuf->Link = MoveBuf;
+                MoveBuf->Primary = 0;
+                MoveBuf->PortalObj = -1;
+            } else {
+                MoveBuf->Primary = (void (*)())PrimaryDoor2_PDH;
+                MoveBuf->PortalObj = ev_door1up->portal;
+            }
+            if (ev_door1up->shotdamage > 0)
+                MoveBuf->DamageFunction = (int (*)())PSXDOOR1UP;
+            MoveBuf->EvOffset = (char *)ev_door1up - (char *)eventlistbase;
+            MoveBuf->EvHdrOffset = Event_GlobalEVOFFSET;
+            MoveBuf->Key = ev_door1up->key;
+            MoveBuf->Range = -ev_door1up->range;
+            MoveBuf->Speed = abs(ev_door1up->speed);
+            MoveBuf->Triggered = 0;
+            MoveBuf->Params[2] = 1;
+            MoveBuf->Axis = 1;
+            LastMoveBuf = MoveBuf;
+            MoveBuf->OpenFlag = 0;
+            Obj = *shortpnt2;
+            MoveBuf->Obj = Obj;
+            Scene2Data[Obj].MoveBufId = numbrushes + 1;
+            if (ev_door1up->shotdamage > 0)
+                MoveBuf->SolidBox = GenSolidBox(&Scene2Data[Obj].VectBox, 4, 1);
+            else
+                MoveBuf->SolidBox = GenSolidBox(&Scene2Data[Obj].VectBox, 0, 1);
+            if (LastSolidBox && MoveBuf->SolidBox)
+                LastSolidBox->LinkedData = MoveBuf->SolidBox;
+            LastSolidBox = MoveBuf->SolidBox;
+            *shortpnt = numbrushes;
+            MoveBuf++;
+            numbrushes++;
+            shortpnt++;
+        }
+        shortpnt2++;
+    }
+    return (struct PSXSUBEVENT *)((char *)subevent + sizeof(struct PSXEVDOOR1UP));
+}
+
+extern struct COLLHEADER TrigBoundCollMap;
+int In3dSpaceIndx(struct COLLHEADER *Map, struct VECT *Loc, int Indx);
+
+void Event_ProcessTriggers(struct CREATURE *Cre, int typemask)
+{
+    int Indx;
+    int NumTriggers;
+    int a;
+    struct COLL3DSPACE *Space;
+    int numevents;
+    struct PSXSUBEVHDR *eventhdr;
+    struct COLLHEADER *Map;  /* not in SYM: an unallocated pointer, rematerialised as lui/addiu $a3 */
+
+    Map = &TrigBoundCollMap;
+    numevents = eventlistbase->nummainevents;
+    NumTriggers = Map->TotalNumSpaces;
+    for (Space = Map->Coll3dSpace, Indx = 0; Indx < NumTriggers; Indx++, Space++) {
+        if (typemask & Space->u.trigflags) {
+            if ((signed char)Space->Area == -1 || Cre->Box.Area == Space->Area) {
+                if (In3dSpaceIndx(Map, &Cre->Box.Location, (int)Space) /* sic: a2 is the Space pointer */) {
+                    eventhdr = (struct PSXSUBEVHDR *)((char *)eventlistbase + Space->StartJoin);
+                    eventhdr->JustTriggered = 1;
+                    if (eventhdr->WhileIn || (eventhdr->OnEntry && !eventhdr->LastTriggered))
+                        Event_DoOffset(Space->StartJoin, Cre);
+                }
+            }
+        }
+    }
+    eventhdr = firsteventlist;
+    for (a = 0; a < numevents; a++) {
+        if (eventhdr->OnExit) {
+            if (eventhdr->LastTriggered && !eventhdr->JustTriggered)
+                Event_DoOffset(Space->StartJoin, Cre);
+        }
+        eventhdr->LastTriggered = eventhdr->JustTriggered;
+        eventhdr->JustTriggered = 0;
+        eventhdr = (struct PSXSUBEVHDR *)((char *)eventhdr + eventhdr->evsize);
+    }
+}
+
+extern struct COLLHEADER TrigBoundCollMap;
+extern short TelePortData[8];
+short NumTelePorts;
+extern struct PARTCOLOURS *ParticleColoursTable[19];
+struct PARTICLE *AddParticlesSL(struct VECT *Pos, struct SVECT *Vel, struct PARTCOLOURS *PColour0, struct PARTCOLOURS *PColour1, int NumToDraw, int Timer, int Size, int Area);
+
+/* DrawTelePorts: the original has a dead `lui $v1,%hi(TrigBoundCollMap)` (Map's hoisted %hi; its %lo
+   use was rematerialised in the loop) that splat leaves as the bare constant 0x800D. */
+void DrawTelePorts(void)
+{
+    short a;
+    short i;
+    short Directshun;
+    struct COLL3DSPACE *Space;
+    struct SVECT Vel[15];
+    struct VECT PartsOffset;
+    struct COLLHEADER *Map;  /* not in SYM: its hoisted %hi is the original's orphan lui $v1 */
+    int Timer;
+
+    Map = &TrigBoundCollMap;
+    if ((LevelTicks & 127) < 63)
+        Directshun = -1;
+    else
+        Directshun = 1;
+    for (a = 0; a < 15; a++) {
+        Vel[a].vx = (rand() - 0x4000) >> 13;
+        Vel[a].vy = (rand() >> 8) * Directshun;
+        Vel[a].vz = (rand() - 0x4000) >> 13;
+    }
+    for (a = 0; a < NumTelePorts; a++) {
+        Space = (struct COLL3DSPACE *)(TelePortData[a] + (int)Map->Coll3dSpace);
+        PartsOffset.vx = (Space->MinMax.Min.vx + Space->MinMax.Max.vx) / 2;
+        PartsOffset.vz = (Space->MinMax.Min.vz + Space->MinMax.Max.vz) / 2;
+        Timer = 24;  /* a separate constant pseudo in the loop: changes which invariants loop.c hoists */
+        if (Directshun > 0)
+            PartsOffset.vy = Space->MinMax.Min.vy;
+        else
+            PartsOffset.vy = Space->MinMax.Max.vy;
+        PartsOffset.vx += (rand() & 255) - 127;
+        PartsOffset.vz += (rand() & 255) - 127;
+        AddParticlesSL(&PartsOffset, Vel, ParticleColoursTable[2], ParticleColoursTable[0], 15, (rand() + Timer) & 15,
+                       (rand() & 0x2047) + 12000, Space->Area);
+        PartsOffset.vy = (Space->MinMax.Min.vy + Space->MinMax.Max.vy) / 2;
+        i = LevelTicks & 0x1ff;
+        if (i > 256)
+            i = 512 - i;
+        AddLight(&PartsOffset, *&(struct COLOUR){ 255, 255, 255, 0 }, (struct POWER){ 400, (i * 4) + 800 },
+                 *&(struct SHORTPAIR){ 0, 0 });
+    }
 }

@@ -26,6 +26,110 @@ int MYPCopen(char *name);
 int MYPCclose(int h);
 int MYPClseek(int h, int offset, int mode);
 
+
+int *AllIffPics;
+extern short *Global16colourpals;
+extern short NumMapPals;
+extern short NumModelPals;
+int strcmp(char *, char *);
+int strlen(char *);
+
+/* inline helper (params only, so no SYM block): converting Type for the call emits its
+   zero-extension before EndOfLine - 257, as in the original */
+static int SubRepeatRun(int EndOfLine, int Type)
+{
+    return EndOfLine - (257 - Type);
+}
+
+static void UnpackByteRun(int EndOfLine, char *Data, char *Img)
+{
+    {
+        char Val;
+        char Type;
+        short Loop;
+
+        while (EndOfLine > 0) {
+            Type = *Data++;
+            if ((signed char)Type >= 0) {
+                for (Loop = 0; Loop <= (short)Type; Loop++)
+                    *Img++ = *Data++;
+                EndOfLine -= Type + 1;
+            } else {
+                Val = *Data++;
+                for (Loop = 0; Loop <= 256 - Type; Loop++)
+                    *Img++ = Val;
+                EndOfLine = SubRepeatRun(EndOfLine, Type);
+            }
+        }
+    }
+}
+
+struct IFFPICENTRY {
+    int Offset;
+    short Width;
+    short Height;
+};
+
+char *LoadIffToRam_ConCat_NewMode(char *loadname, struct HEADERTYPE *Header, short *PSXColours)
+{
+    char *p2;
+    int found;
+    int b;
+    int numpics;
+    int numtppics;
+    int nummappals;
+    int nummodpals;
+    char *names;
+    char *names2;
+    char *pic;
+    short *pal;
+    int numbytes;
+    char *buf;
+
+    if (AllIffPics) {
+        numtppics = ((unsigned char *)AllIffPics)[0];
+        numpics = ((unsigned char *)AllIffPics)[1];
+        nummappals = ((unsigned char *)AllIffPics)[2];
+        nummodpals = ((unsigned char *)AllIffPics)[3];
+        names = (char *)(AllIffPics + 1);
+        names += (numpics + numtppics) * 8;
+        Global16colourpals = (short *)names;
+        names += (nummappals + nummodpals) * 32;
+        NumMapPals = nummappals;
+        NumModelPals = nummodpals;
+        found = -1;
+        names2 = names + numpics * 512;
+        for (b = 0; b < numpics + numtppics; b++) {
+            if (!strcmp(names2, loadname)) {
+                found = b;
+                break;
+            }
+            names2 += strlen(names2);
+            names2++;
+        }
+        if (found >= 0) {
+            if (found >= numtppics) {
+                pal = (short *)(AllIffPics + 1);
+                pal += found * 4;
+                Header->Width = pal[2];
+                Header->Height = pal[3];
+                numbytes = pal[2] * pal[3];
+            } else {
+                Header->Width = 0x80;
+                Header->Height = 0x100;
+                numbytes = 0x8000;
+            }
+            pic = (char *)AllIffPics;
+            pic += ((int *)pic)[found * 2 + 1];
+            p2 = MY_malloc_name(Header->Width * Header->Height, loadname);
+            if (p2)
+                UnpackByteRun(numbytes, pic, p2);
+            return p2;
+        }
+    }
+    return 0;
+}
+
 /* inline helpers: SYM shows them as nested blocks of Read_File_Alloc2 (no out-of-line copies exist) */
 static int CdFileLen(char *name)
 {
