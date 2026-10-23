@@ -1,0 +1,105 @@
+#include "types.h"
+
+/* defined below; gcc defers these to the end of the file in this order */
+void MissionLoadSaveHub(int Write);
+void PrintMissionDetails_80023594(void); void InitMissionJail(void);
+void PrintMissionDetails_80023594(void);
+extern struct QENGINELEVINTERFACE Engine;
+extern struct MISSIONEVENT ThisMissionEvents_8009B8C4[];
+extern struct MISSIONEVENT *MissionEvents;
+extern char *MissionSpecificMemory;
+extern void (*MissionPrintStatus)();
+extern void (*GameHubLoadSaveData)();
+extern short SelfPlay;
+extern struct IDENTITYNAME NextLevelName;
+extern struct IDENTITYNAME MainStartName;
+/* defined in QMJail.obj, so $gp-relative */
+struct JAILDATA *JailData;
+void *MY_malloc_namehb(int s, char *name);
+char *PrintIdentityName(struct IDENTITYNAME Name);
+char *PrintBool(int Bool);
+/* static in the original; splat's names */
+void MissionLoadSaveHub(int Write);
+
+extern char GameDeathWatchA;
+extern char GameDeathWatchB;
+extern char GameDeathWatchC;
+extern struct IDENTITYNAME LastObjective;
+extern struct IDENTITYNAME LastOrders;
+struct SAVEFILEHDR *OpenSaveMemory(struct IDENTITYNAME Name, int Writeable);
+void CloseWritableSaveMemoryFile(struct IDENTITYNAME Name, short Flags);
+void HelpComputer_SetMessages(struct IDENTITYNAME Orders, struct IDENTITYNAME Objective);
+void HelpComputer_GetMessages(struct IDENTITYNAME *Orders, struct IDENTITYNAME *Objective);
+int HelpComputer_Reset(void);
+void *memset(void *s, int c, unsigned int n);
+
+static const struct IDENTITYNAME MissionName = {"Mission 2"};
+
+void MissionLoadSaveHub(int Write)
+{
+    struct SAVEFILEHDR *FileHdr;
+    struct JAILDATA *SaveJailData;
+
+    FileHdr = OpenSaveMemory(MissionName, Write);
+    if (FileHdr) {
+        SaveJailData = (struct JAILDATA *)(FileHdr + 1);
+        if (Write) {
+            HelpComputer_GetMessages(&JailData->HelpOrders, &JailData->HelpObjective);
+            JailData->TanksToKill = GameDeathWatchA;
+            JailData->SuperTanksToKill = GameDeathWatchB;
+            JailData->HelpObjective = LastObjective;
+            JailData->HelpOrders = LastOrders;
+            *SaveJailData = *JailData;
+            FileHdr->Size = sizeof(struct JAILDATA);
+            CloseWritableSaveMemoryFile(MissionName, 2);
+        } else {
+            *JailData = *SaveJailData;
+            LastObjective = JailData->HelpObjective;
+            LastOrders = JailData->HelpOrders;
+            GameDeathWatchA = JailData->TanksToKill;
+            GameDeathWatchB = JailData->SuperTanksToKill;
+            HelpComputer_SetMessages(JailData->HelpOrders, JailData->HelpObjective);
+        }
+    } else {
+        memset(JailData, 0, sizeof(struct JAILDATA));
+        JailData->TanksToKill = 2;
+        JailData->SuperTanksToKill = 1;
+        GameDeathWatchA = JailData->TanksToKill;
+        GameDeathWatchB = JailData->SuperTanksToKill;
+        GameDeathWatchC = 0;
+        JailData->HelpObjective = LastObjective;
+        JailData->HelpOrders = LastOrders;
+        if (!NextLevelName.Name[0]) {
+            NextLevelName = *(struct IDENTITYNAME *)"Jail2";
+            MainStartName = *(struct IDENTITYNAME *)"Default";
+            HelpComputer_Reset();
+        }
+    }
+}
+
+void PrintMissionDetails_80023594(void);
+
+void InitMissionJail(void)
+{
+    Engine.MissionData = JailData = (struct JAILDATA *)(MissionSpecificMemory = MY_malloc_namehb(sizeof(struct JAILDATA), "Jail Mission"));
+    MissionPrintStatus = PrintMissionDetails_80023594;
+    MissionEvents = ThisMissionEvents_8009B8C4;
+    GameHubLoadSaveData = MissionLoadSaveHub;
+    SelfPlay = 0;
+    GameHubLoadSaveData(0);
+    PrintIdentityName(NextLevelName);
+    PrintIdentityName(MainStartName);
+}
+
+void PrintMissionDetails_80023594(void)
+{
+    PrintIdentityName(JailData->HelpObjective);
+    PrintIdentityName(JailData->HelpOrders);
+    PrintBool(JailData->BlockedOffJail2);
+    PrintBool(JailData->DrawBridgeDown);
+    PrintBool(JailData->BlownUpWalls);
+    PrintBool(JailData->BlownUpHatch);
+    PrintBool(JailData->OrbState);
+    PrintBool(JailData->SecurityLiftBlocked);
+    PrintBool(JailData->HelpCompStatus);
+}

@@ -12,11 +12,14 @@ flags=${*:--O3 -G8 -g}
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 export WINEDEBUG=-all
 gcc -E -P -I "$R/src/include" -I "$R/include" "$src" -o "$tmp/a.i"
+rc=0
 if [ -n "$CC1" ]; then  # a native cc1 instead of cc1psx under wine, e.g. for the permuter
-    "$CC1" -quiet $flags "$tmp/a.i" -o "$tmp/a.s" 2>&1 || true
+    "$CC1" -quiet $flags "$tmp/a.i" -o "$tmp/a.s" 2> "$tmp/err" || rc=$?
 else
-    wine "$PSYQ/bin/cc1psx.exe" -quiet $flags "$tmp/a.i" -o "$tmp/a.s" 2>&1 | grep -v MESA || true
+    wine "$PSYQ/bin/cc1psx.exe" -quiet $flags "$tmp/a.i" -o "$tmp/a.s" 2> "$tmp/err" || rc=$?
 fi
+grep -v MESA "$tmp/err" >&2 || true
+[ "$rc" -eq 0 ] || { echo "$src: compile failed" >&2; exit 1; }
 [ -s "$tmp/a.s" ] || { echo "cc1psx produced no output" >&2; exit 1; }
 # maspsx reads stdin when there is any, so give it the file explicitly
 # small-data threshold: maspsx gets the compiler's -G and makes symbols defined in this file $gp-relative.

@@ -1,0 +1,714 @@
+#include "types.h"
+
+/* defined below; gcc defers these to the end of the file in this order */
+void ProcessLights(void);
+void ProcessAllLensFlare(void);
+int AddLight(struct VECT *Location, struct COLOUR Colour, struct POWER Power, struct SHORTPAIR FlareTypeSize);
+int AddTimedLight(struct VECT *Location, struct COLOUR Colour, struct POWER Power, int Life);
+void InitialiseLightEveryFrame(void);
+void TendToDefaultAmbience(struct CREATURE *Cre, int InverseRate);
+void ResetLightBackList(void);
+void UndoMobileLights(void);
+int CalcLightBright(struct LIGHTS *Light, struct SVECT *Rel, short OverBright);
+void ProcessTimedLights(void);
+void ResetModelLights_Many(struct GLOBSMODHDR *ModelHdr, char **Spr, int Many);
+void ProcessMobileLights(void);
+void SetLensFlarePointsHex(struct SCRPNT Coord, int Size, struct SCRPNT *Points);
+void SetLensFlarePointsAny(struct SCRPNT Coord, int Size, struct SCRPNT *Points, int NumPoints);
+void DrawLensFlareSparkle(struct SCRPNT Coord, int NumPoints, int Size, unsigned long *Ot, struct COLOUR Colour);
+void DrawLensFlares(struct LENSFLARE *LensFlare, struct SCRPNT BaseCoord, int BaseSize, unsigned long *Ot, struct BIGCOLOUR *BigColour);
+void ProcessLensFlare(struct LIGHTS *Light, unsigned long *Ot);
+void ProcessLensFlares(int Win);
+extern int ChrisCount;
+extern int MaxWindows;
+extern struct LIGHTBACK *LightBackEnd2[];
+struct LIGHTBACK LightBackList2[2][128];
+struct LIGHTS LightList[16];
+struct LIGHTS *LightListCurrent;
+struct LIGHTS HeavenlyLightList[3];
+struct LIGHTS *HeavenlyLightListCurrent;
+int FlareType;
+short Conv[256];
+struct TIMEDLIGHT TimedLights[16];
+void ProcessTimedLights(void);
+void ProcessMobileLights(void);
+void ProcessLensFlares(int Win);
+void UpdateSubdivisionLighting(void);
+
+void ResetLightBackList(void);
+
+extern unsigned char DbFrame[];
+void ResetModelLights_Many(struct GLOBSMODHDR *ModelHdr, char **Spr, int Many);
+
+
+static struct TIMEDLIGHT *FindFreeTimedLight(void)
+{
+    int a;
+    for (a = 0; a < 16; a++)
+        if (!TimedLights[a].Life)
+            return &TimedLights[a];
+    return 0;
+}
+
+extern struct WINDOW GameWindows[];
+extern struct DB *currdb;
+extern struct VECT *CurrCamPos;
+extern struct MATRIX *CurrCamMat;
+extern struct COLLHEADER MoveCollMap;
+extern short alltpages[];
+short *FixedLightList;
+struct LIGHTS *FixedLightData;
+extern struct WINDOW *CurrWin;
+void SetRotMatrix(struct MATRIX *m);
+void ProcessLensFlare(struct LIGHTS *Light, unsigned long *Ot);
+
+/* inline_c.h */
+#define gte_SetTransMatrix(r0) __asm__ volatile (	\
+	"move	$12,%0\n"			\
+	"lw	$13,20($12)\n"			\
+	"lw	$14,24($12)\n"			\
+	"ctc2	$13,$5\n"			\
+	"lw	$15,28($12)\n"			\
+	"ctc2	$14,$6\n"			\
+	"ctc2	$15,$7"				\
+	:					\
+	: "r"( r0 )				\
+	: "$12", "$13", "$14", "$15")
+
+extern short rcossin_tbl[][2];
+
+extern struct LENSFLARE LensFlare_TypeA[7];
+extern struct LENSFLARE LensFlare_TypeB[2];
+extern struct LENSFLARE LensFlare_TypeC[3];
+extern struct LENSFLARE LensFlare_TypeD[6];
+void DrawLensFlares(struct LENSFLARE *LensFlare, struct SCRPNT BaseCoord, int BaseSize, unsigned long *Ot, struct BIGCOLOUR *BigColour);
+
+/* inline_c.h */
+#define gte_ldv0(r0) { \
+    __asm__ volatile("move $12,%0" : : "r"(r0) : "$12"); \
+    __asm__ volatile("lwc2 $0,0($12)\nlwc2 $1,4($12)"); }
+#define gte_rtv0() __asm__ volatile("nop\nnop\n.word 0x4A486012")
+#define gte_rtps() __asm__ volatile("nop\nnop\n.word 0x4A180001")
+#define gte_stlvnl(r0) __asm__ volatile("move $12,%0\nswc2 $25,0($12)\nswc2 $26,4($12)\nswc2 $27,8($12)" : : "r"(r0) : "$12", "memory")
+#define gte_stsxy(r0) __asm__ volatile("move $12,%0\nswc2 $14,0($12)" : : "r"(r0) : "$12", "memory")
+
+extern struct POLY_G4 *NextGeneralG4;
+extern struct POLY_G4 *LastGeneralG4;
+void AddPrim_(void *ot, void *p);
+void *memset();
+#define setLineG2(p) (*(((unsigned char *)(p)) + 3) = 4), (*(((unsigned char *)(p)) + 7) = 0x52)
+
+void SetPolyF4(void *p);
+
+/* Colour is the 4th parameter: inlined, its home slot in the 16-byte arg block lands at sp+164.
+   The braces around each case let both inlines reuse the same arg block. */
+static void DrawLensFlareG4(struct SCRPNT *Points, int NumPoints, unsigned long *Ot, struct COLOUR Colour)
+{
+    struct POLY_G4 *Poly;
+    int p;
+
+    Poly = NextGeneralG4;
+    if (Poly + NumPoints / 2 > LastGeneralG4)
+        return;
+    for (p = 0; p < NumPoints; p += 2) {
+        Poly->tag = 0x8000000;
+        *(struct COLOUR *)&Poly->r0 = (struct COLOUR){0, 0, 0, 0x3a};
+        *(struct COLOUR *)&Poly->r1 = Colour;
+        *(struct COLOUR *)&Poly->r2 = (struct COLOUR){0, 0, 0, 0};
+        *(struct COLOUR *)&Poly->r3 = (struct COLOUR){0, 0, 0, 0};
+        *(struct SCRPNT *)&Poly->x1 = Points[0];
+        *(struct SCRPNT *)&Poly->x0 = Points[p + 1];
+        *(struct SCRPNT *)&Poly->x2 = Points[p + 2];
+        *(struct SCRPNT *)&Poly->x3 = Points[p + 3];
+        AddPrim_(Ot, Poly++);
+    }
+    NextGeneralG4 = Poly;
+}
+
+static void DrawLensFlareF4(struct SCRPNT *Points, int NumPoints, unsigned long *Ot, struct COLOUR Colour)
+{
+    struct POLY_F4 *Poly;
+    int p;
+
+    Poly = (struct POLY_F4 *)NextGeneralG4;
+    if ((struct POLY_G4 *)Poly + 2 > LastGeneralG4)
+        return;
+    for (p = 0; p < NumPoints; p += 2) {
+        Poly = (struct POLY_F4 *)NextGeneralG4;
+        *(struct COLOUR *)&Poly->r0 = Colour;
+        SetPolyF4(Poly);
+        Poly->code |= 2;
+        *(struct SCRPNT *)&Poly->x1 = Points[0];
+        *(struct SCRPNT *)&Poly->x0 = Points[p + 1];
+        *(struct SCRPNT *)&Poly->x2 = Points[p + 2];
+        *(struct SCRPNT *)&Poly->x3 = Points[p + 3];
+        AddPrim_(Ot, Poly);
+        NextGeneralG4++;
+    }
+}
+
+extern struct OBJSORTINFO ObjSortInfo[];
+extern int ObjSortIndx;
+extern struct MODELREFINDX *ModelRefIndx;
+int GetDist2Shift_(struct MODELREF *ModRef, struct VECT *Rel, int Shift);
+
+void InitLights(void)
+{
+    int a;
+    int b;
+
+    LightBackEnd2[0] = LightBackList2[0];
+    LightBackEnd2[1] = LightBackList2[1];
+    for (a = 0; a < 64; a++)
+        for (b = 0; b < 4; b++)
+            Conv[a * 4 + b] = (a & 31) * 52 + b * 12 + 4;
+    for (a = 15; a >= 0; a--)
+        TimedLights[a].Life = 0;
+}
+
+int AddLight(struct VECT *Location, struct COLOUR Colour, struct POWER Power, struct SHORTPAIR FlareTypeSize)
+{
+    if (LightListCurrent < HeavenlyLightList) {
+        LightListCurrent->LensFlareType = FlareTypeSize.a;
+        LightListCurrent->LensFlareScale = FlareTypeSize.b;
+        LightListCurrent->Location = *Location;
+        LightListCurrent->Colour = Colour;
+        LightListCurrent->PowerSqrd.Full2 = Power.Full * Power.Full;
+        LightListCurrent->PowerSqrd.Fall2 = Power.Fall * Power.Fall;
+        LightListCurrent->Radius = Power.Fall;
+        LightListCurrent++;
+        return 1;
+    }
+    return 0;
+}
+
+int AddTimedLight(struct VECT *Location, struct COLOUR Colour, struct POWER Power, int Life)
+{
+    struct TIMEDLIGHT *TimedLight;
+    TimedLight = FindFreeTimedLight();
+    if (TimedLight) {
+        TimedLight->Light.Location = *Location;
+        TimedLight->Light.Colour = Colour;
+        TimedLight->Light.PowerSqrd.Full2 = Power.Full * Power.Full;
+        TimedLight->Light.PowerSqrd.Fall2 = Power.Fall * Power.Fall;
+        TimedLight->Light.Radius = Power.Fall;
+        TimedLight->Power = Power;
+        TimedLight->InitLife = Life;
+        TimedLight->Life = Life;
+        return 1;
+    }
+    return 0;
+}
+
+void ProcessTimedLights(void)
+{
+    int a;
+    struct TIMEDLIGHT *TimedLight;
+
+    /* AddLight is inlined; the scaled power goes through two int temporaries (a compound literal
+       with the divisions in it builds an extra stack copy) */
+    TimedLight = TimedLights;
+    for (a = 0; a < 16; a++, TimedLight++) {
+        if (TimedLight->Life) {
+            int Full, Fall;
+            Full = TimedLight->Power.Full * TimedLight->Life / TimedLight->InitLife;
+            Fall = TimedLight->Power.Fall * TimedLight->Life / TimedLight->InitLife;
+            AddLight(&TimedLight->Light.Location, TimedLight->Light.Colour, (struct POWER){Full, Fall}, (struct SHORTPAIR){0});
+
+            TimedLight->Life--;
+        }
+    }
+}
+
+void ResetModelLights_Many(struct GLOBSMODHDR *ModelHdr, char **Spr, int Many)
+{
+    struct GLOBSMODGT4 *ModGt4;
+    struct POLY_GT4 *SprM[4];
+    struct RGB3 *Rgbs;
+    short Num;
+    short NumPolys;
+    char *Temp;
+    long a;
+    long b;
+    long c;
+    long d;
+    long Count;
+
+    ModGt4 = (struct GLOBSMODGT4 *)(ModelHdr + 1);
+    NumPolys = ModelHdr->NumPolys;
+    Temp = (char *)ModelHdr;
+    Rgbs = (struct RGB3 *)(Temp + ModelHdr->RGBOffset);
+
+    while (NumPolys) {
+        Temp = 0;
+        for (a = 0; a < Many; a++) {
+            Temp += (long)Spr[a];
+            SprM[a] = (struct POLY_GT4 *)Temp;
+        }
+        Spr += 4;
+        Num = NumPolys > 32 ? 32 : NumPolys;
+        NumPolys -= Num;
+        while (Num) {
+            *(struct RGB3 *)&SprM[0]->r0 = Rgbs[ModGt4->Col0];
+            *(struct RGB3 *)&SprM[0]->r1 = Rgbs[ModGt4->Col1];
+            *(struct RGB3 *)&SprM[0]->r2 = Rgbs[ModGt4->Col3];
+            *(struct RGB3 *)&SprM[0]->r3 = Rgbs[ModGt4->Col2];
+            if (Many >= 2) {
+                a = *(long *)&SprM[0]->r0;
+                b = *(long *)&SprM[0]->r1;
+                c = *(long *)&SprM[0]->r2;
+                d = *(long *)&SprM[0]->r3;
+                for (Count = 1; Count < Many; Count++) {
+                    *(long *)&SprM[Count]->r0 = a;
+                    *(long *)&SprM[Count]->r1 = b;
+                    *(long *)&SprM[Count]->r2 = c;
+                    *(long *)&SprM[Count]->r3 = d;
+                    SprM[Count]++;
+                }
+            }
+            ModGt4++;
+            Num--;
+            SprM[0]++;
+        }
+    }
+}
+
+void ProcessLights(void)
+{
+    ProcessTimedLights();
+    ProcessMobileLights();
+    LightListCurrent = LightList;
+    HeavenlyLightListCurrent = HeavenlyLightList;
+    UpdateSubdivisionLighting();
+}
+
+void ProcessAllLensFlare(void)
+{
+    int Win;
+
+    if (FlareType)
+        for (Win = 0; Win < MaxWindows; Win++)
+            ProcessLensFlares(Win);
+}
+
+void ResetLightBackList(void)
+{
+    LightBackEnd2[0] = LightBackList2[0];
+    LightBackEnd2[1] = LightBackList2[1];
+}
+
+void UndoMobileLights(void)
+{
+    struct LIGHTBACK *LightBack;
+    for (LightBack = LightBackList2[DbFrame[0]]; LightBack < LightBackEnd2[DbFrame[0]]; LightBack++)
+        ResetModelLights_Many(LightBack->Scn2->ModelHdr, LightBack->Spr[0], LightBack->Count);
+    LightBackEnd2[DbFrame[0]] = LightBackList2[DbFrame[0]];
+}
+
+void ProcessMobileLights(void)
+{
+    struct LIGHTBACK *LightBack;
+    struct LIGHTBACK *LightBack2;
+    struct LIGHTBACK *LightBack3;
+    struct LIGHTS *Lighting;
+    struct MODELREF *ModRef;
+    struct OBJSORTINFO *ObjSort;
+    struct VECT Light;
+    struct VECT LightMin;
+    struct VECT LightMax;
+    struct VECT RelBase;
+    struct COLOUR *Colour;
+    struct COLOUR Col;
+    int Red, Green, Blue;
+    int Br, Bg, Bb;
+    int Tr, Tg, Tb;
+    int Full2, Fall2;
+    int ShiftVal;
+    int Scale2;
+    int Dist2;
+    int Bright;
+    int a, b, c, d, e, f, g;
+    char **SprA;
+    char **SprB;
+    char *temp;
+    unsigned char *r;
+
+    LightBack2 = LightBackList2[DbFrame[0]];
+    LightBack3 = LightBack2;
+    for (Lighting = LightList; Lighting < LightListCurrent; Lighting++) {
+        Light = Lighting->Location;
+        Red = Lighting->Colour.r;
+        Green = Lighting->Colour.g;
+        Blue = Lighting->Colour.b;
+
+        Full2 = Lighting->PowerSqrd.Full2;
+        Fall2 = Lighting->PowerSqrd.Fall2;
+
+        ShiftVal = 0;
+        while (Fall2 > 0x7fff) {
+            Full2 /= 4;
+            Fall2 /= 4;
+            ShiftVal++;
+        }
+        Scale2 = (Fall2 - Full2) / 256;
+
+        LightMin.vx = Light.vx - Lighting->Radius;
+        LightMin.vy = Light.vy - Lighting->Radius;
+        LightMin.vz = Light.vz - Lighting->Radius;
+
+        LightMax.vx = Light.vx + Lighting->Radius;
+        LightMax.vy = Light.vy + Lighting->Radius;
+        LightMax.vz = Light.vz + Lighting->Radius;
+
+        for (ObjSort = ObjSortInfo; ObjSort < &ObjSortInfo[ObjSortIndx]; ObjSort++) {
+            if (LightMin.vx < ObjSort->Max.vx && LightMax.vx > ObjSort->Min.vx &&
+                LightMin.vz < ObjSort->Max.vz && LightMax.vz > ObjSort->Min.vz &&
+                LightMin.vy < ObjSort->Max.vy && LightMax.vy > ObjSort->Min.vy) {
+                if (*(int *)&ObjSort->ObjPntr->Pad & 0x800000)
+                    continue;
+                for (LightBack = LightBack3; LightBack < LightBack2; LightBack++) {
+                    if (LightBack->Object == ObjSort->Num)
+                        goto AlreadyThere;
+                }
+                if (LightBack2 == &LightBackList2[DbFrame[0]][128])
+                    goto NoMorePossible;
+                LightBack = LightBack2++;
+                LightBack->Object = ObjSort->Num;
+                LightBack->Scn2 = ObjSort->ObjPntr;
+
+                LightBack->Count = ObjSort->Count;
+
+                SprA = LightBack->Spr[0];
+                SprB = LightBack->Spr[1];
+
+                b = ObjSort->Pols[0][1];
+                c = ObjSort->Pols[0][2];
+                *SprA = (char *)&currdb->modpolsg4[b];
+                *SprB = (char *)&currdb->modpolsg4[c];
+
+                for (a = 1; a < LightBack->Count; a++) {
+                    d = ObjSort->Pols[a][1];
+                    e = ObjSort->Pols[a][2];
+
+                    f = d - b;
+                    g = e - c;
+
+                    b = d;
+                    c = e;
+
+                    *++SprA = (char *)(f * sizeof(struct POLY_GT4));
+                    *++SprB = (char *)(g * sizeof(struct POLY_GT4));
+                }
+AlreadyThere:
+                RelBase.vx = Light.vx - ObjSort->ObjPntr->Origin.vx;
+                RelBase.vy = Light.vy - ObjSort->ObjPntr->Origin.vy;
+                RelBase.vz = Light.vz - ObjSort->ObjPntr->Origin.vz;
+
+                ModRef = ModelRefIndx[ObjSort->Num].Ref;
+                for (a = 0; a < ModelRefIndx[ObjSort->Num].Many; a++, ModRef++) {
+                    Dist2 = GetDist2Shift_(ModRef, &RelBase, ShiftVal);
+
+                    if (Dist2 > Fall2)
+                        continue;
+                    Dist2 -= Full2;
+
+                    if (Dist2 < 0) {
+                        Br = Red;
+                        Bg = Green;
+                        Bb = Blue;
+                    } else {
+                        Dist2 = Dist2 / Scale2;
+                        Bright = 255 - Dist2;
+
+                        Br = Bright * Red / 256;
+                        Bg = Bright * Green / 256;
+                        Bb = Bright * Blue / 256;
+                    }
+
+                    r = ModRef->Ref;
+
+                    for (b = 0; b < 4; b++, r++) {
+                        if (*r == 255)
+                            break;
+
+                        if (*r < 128)
+                            SprA = LightBack->Spr[0];
+                        else
+                            SprA = LightBack->Spr[1];
+
+                        temp = *SprA;
+                        Colour = (struct COLOUR *)(temp + Conv[*r]);
+                        temp = (char *)Colour;
+
+                        Tr = Colour->r + Br;
+                        Tg = Colour->g + Bg;
+                        Tb = Colour->b + Bb;
+
+                        if (Tr > 255) Tr = 255;
+                        if (Tg > 255) Tg = 255;
+                        if (Tb > 255) Tb = 255;
+
+                        Colour->r = Tr;
+                        Colour->g = Tg;
+                        Colour->b = Tb;
+
+                        Col = *Colour;
+
+                        for (c = 1; c < LightBack->Count; c++) {
+                            Colour = (struct COLOUR *)(temp + (int)*++SprA);
+                            temp = (char *)Colour;
+                            *Colour = Col;
+                        }
+                    }
+                }
+            }
+NoMorePossible:;
+        }
+    }
+    LightBackEnd2[DbFrame[0]] = LightBack2;
+}
+
+void InitialiseLightEveryFrame(void)
+{
+    if (ChrisCount == 1) {
+        LightListCurrent = LightList;
+        HeavenlyLightListCurrent = HeavenlyLightList;
+    }
+}
+
+void TendToDefaultAmbience(struct CREATURE *Cre, int InverseRate)
+{
+    short dif;
+
+    if (!InverseRate)
+        InverseRate = 1;
+    dif = Cre->DefaultAmbience.r - Cre->Ambience.r;
+    if (dif < InverseRate)
+        Cre->Ambience.r += dif;
+    else
+        Cre->Ambience.r += dif / InverseRate;
+    dif = Cre->DefaultAmbience.g - Cre->Ambience.g;
+    if (dif < InverseRate)
+        Cre->Ambience.g += dif;
+    else
+        Cre->Ambience.g += dif / InverseRate;
+    dif = Cre->DefaultAmbience.b - Cre->Ambience.b;
+    if (dif < InverseRate)
+        Cre->Ambience.b += dif;
+    else
+        Cre->Ambience.b += dif / InverseRate;
+}
+
+int CalcLightBright(struct LIGHTS *Light, struct SVECT *Rel, short OverBright)
+{
+    unsigned long FallStart;
+    unsigned long FallEnd;
+    unsigned long Dist2;
+    unsigned long Numerator;
+    unsigned long Denominator;
+
+    FallEnd = (Light->PowerSqrd.Fall2 * OverBright) >> 6;
+    Dist2 = Rel->vx * Rel->vx + Rel->vy * Rel->vy + Rel->vz * Rel->vz;
+    if (Dist2 < FallEnd) {
+        Numerator = FallEnd - Dist2;
+        FallStart = (Light->PowerSqrd.Full2 * OverBright) >> 6;
+        Denominator = FallEnd - FallStart;
+        while (Numerator & 0xfff00000) {
+            Numerator >>= 2;
+            Denominator >>= 2;
+        }
+        if (Denominator)
+            return (Numerator << 12) / Denominator;
+        return 0x1000;
+    }
+    return 0;
+}
+
+void SetLensFlarePointsHex(struct SCRPNT Coord, int Size, struct SCRPNT *Points)
+{
+    int x0;
+    int y0;
+    int y1;
+
+    x0 = rcossin_tbl[682][0] * Size * CurrWin->StandardSize.sx / 1310720;
+    y0 = rcossin_tbl[682][1] * Size * CurrWin->StandardSize.sy / 983040;
+    y1 = Size * CurrWin->StandardSize.sy / 240;
+    Points[0] = Coord;
+    Points[1] = (struct SCRPNT){Coord.sx, Coord.sy - y1};
+    Points[2] = (struct SCRPNT){Coord.sx + x0, Coord.sy - y0};
+    Points[3] = (struct SCRPNT){Coord.sx + x0, Coord.sy + y0};
+    Points[4] = (struct SCRPNT){Coord.sx, Coord.sy + y1};
+    Points[5] = (struct SCRPNT){Coord.sx - x0, Coord.sy + y0};
+    Points[6] = (struct SCRPNT){Coord.sx - x0, Coord.sy - y0};
+    Points[7] = Points[1];
+    Points[8] = Points[2];
+}
+
+void SetLensFlarePointsAny(struct SCRPNT Coord, int Size, struct SCRPNT *Points, int NumPoints)
+{
+    int x;
+    int a;
+    int AngStep;
+    int Ang; /* not in SYM, but the table address is reduced from an angle stepped by AngStep */
+
+    AngStep = 4096 / NumPoints;
+    Points[0] = Coord;
+    for (a = 0, Ang = 0; a <= NumPoints / 2; a++, Ang += AngStep) {
+        x = rcossin_tbl[Ang][0] * Size * CurrWin->StandardSize.sx / 1310720;
+        Points[a + 1].sx = Coord.sx + x;
+        (&Points[NumPoints + 1])[-a].sx = Coord.sx - x;
+        (&Points[NumPoints + 1])[-a].sy = Points[a + 1].sy =
+            Coord.sy + rcossin_tbl[Ang][1] * Size * CurrWin->StandardSize.sy / 983040;
+    }
+    Points[NumPoints + 1] = Points[1];
+    Points[NumPoints + 2] = Points[2];
+}
+
+void DrawLensFlareSparkle(struct SCRPNT Coord, int NumPoints, int Size, unsigned long *Ot, struct COLOUR Colour)
+{
+    int x;
+    int y;
+    int a;
+    int AngStep;
+    struct LINE_G2 *Line;
+    int Ang;
+
+    AngStep = 4096 / NumPoints;
+    if (NextGeneralG4 + NumPoints > LastGeneralG4)
+        return;
+    for (a = 0, Ang = 0; a < NumPoints / 2; a++, Ang += AngStep) {
+        x = rcossin_tbl[Ang][0] * Size * CurrWin->StandardSize.sx;
+        y = rcossin_tbl[Ang][1] * Size * CurrWin->StandardSize.sy;
+        if (a & 1) {
+            x /= 1120000;
+            y /= 840000;
+        } else {
+            x /= 800000;
+            y /= 600000;
+        }
+        Line = (struct LINE_G2 *)NextGeneralG4;
+        *(struct COLOUR *)&Line->r0 = Colour;
+        *(struct COLOUR *)&Line->r1 = (struct COLOUR){0, 0, 0, 0x3a};
+        *(struct SCRPNT *)&Line->x0 = Coord;
+        *(struct SCRPNT *)&Line->x1 = (struct SCRPNT){Coord.sx - x, Coord.sy - y};
+        setLineG2(Line);
+        AddPrim_(Ot, Line);
+        Line = (struct LINE_G2 *)++NextGeneralG4;
+        *(struct COLOUR *)&Line->r0 = Colour;
+        *(struct COLOUR *)&Line->r1 = (struct COLOUR){0, 0, 0, 0x3a};
+        *(struct SCRPNT *)&Line->x0 = Coord;
+        *(struct SCRPNT *)&Line->x1 = (struct SCRPNT){Coord.sx + x, Coord.sy + y};
+        setLineG2(Line);
+        AddPrim_(Ot, Line);
+        NextGeneralG4++;
+    }
+}
+
+void DrawLensFlares(struct LENSFLARE *LensFlare, struct SCRPNT BaseCoord, int BaseSize, unsigned long *Ot, struct BIGCOLOUR *BigColour)
+{
+    struct SCRPNT Points[27];
+    struct SCRPNT Coord;
+    int Size;
+    struct COLOUR Colour;
+
+    for (; LensFlare->Type; LensFlare++) {
+        Coord.sx = CurrWin->Geom.sx + (BaseCoord.sx - CurrWin->Geom.sx) * LensFlare->Dist / 4096;
+        Coord.sy = CurrWin->Geom.sy + (BaseCoord.sy - CurrWin->Geom.sy) * LensFlare->Dist / 4096;
+        Size = BaseSize * LensFlare->Scale / 4096;
+        Colour.r = BigColour->r * LensFlare->Intensity >> 16;
+        Colour.g = BigColour->g * LensFlare->Intensity >> 16;
+        Colour.b = BigColour->b * LensFlare->Intensity >> 16;
+        switch (LensFlare->Type) {
+        case 1: {
+            SetLensFlarePointsAny(Coord, Size, Points, 12);
+            DrawLensFlareG4(Points, 12, Ot, Colour);
+            DrawLensFlareSparkle(Coord, 8, Size, Ot, Colour);
+            break; }
+        case 2: {
+            SetLensFlarePointsHex(Coord, Size, Points);
+            DrawLensFlareF4(Points, 6, Ot, Colour);
+            break; }
+        }
+    }
+}
+
+void ProcessLensFlare(struct LIGHTS *Light, unsigned long *Ot)
+{
+    struct SCRPNT Coord;
+    struct VECT Tran;
+    struct SVECT RelSVect;
+    int Bright;
+    int Size;
+    struct BIGCOLOUR BigColour;
+    struct LENSFLARE *LensFlareTable;
+    short FlareScale;
+
+    FlareScale = 64 << Light->LensFlareScale;
+    switch (Light->LensFlareType) {
+    case 1:
+        LensFlareTable = LensFlare_TypeA;
+        break;
+    case 2:
+        LensFlareTable = LensFlare_TypeB;
+        break;
+    case 3:
+        LensFlareTable = LensFlare_TypeC;
+        break;
+    case 4:
+        LensFlareTable = LensFlare_TypeD;
+        break;
+    }
+    RelSVect.vx = Light->Location.vx - CurrCamPos->vx;
+    RelSVect.vy = Light->Location.vy - CurrCamPos->vy;
+    RelSVect.vz = Light->Location.vz - CurrCamPos->vz;
+    gte_ldv0(&RelSVect);
+    gte_rtv0();
+    gte_stlvnl(&Tran);
+    if (Tran.vz >= 256) {
+        Bright = CalcLightBright(Light, &RelSVect, FlareScale);
+        if (Bright) {
+            gte_rtps();
+            gte_stsxy(&Coord);
+            if (Bright >= 0x1000) {
+                BigColour.r = Light->Colour.r << 4;
+                BigColour.g = Light->Colour.g << 4;
+                BigColour.b = Light->Colour.b << 4;
+                Size = Bright / 128;
+            } else {
+                BigColour.r = Bright * Light->Colour.r / 256;
+                BigColour.g = Bright * Light->Colour.g / 256;
+                BigColour.b = Bright * Light->Colour.b / 256;
+                Size = 32;
+            }
+            DrawLensFlares(LensFlareTable, Coord, Size, Ot, &BigColour);
+        }
+    }
+}
+
+void ProcessLensFlares(int Win)
+{
+    struct CREATURE *Cre;
+    unsigned long *Ot;
+    short *LightStop;
+    short *LightNumPntr;
+    struct LIGHTS *Lighting;
+
+    CurrWin = &GameWindows[Win];
+    CurrCamPos = &CurrWin->CamPos;
+    CurrCamMat = &CurrWin->CamMat;
+    Ot = &currdb->Ot[Win][50];
+    SetRotMatrix(CurrCamMat);
+    /* splat names this address alltpages+0x2C */
+    gte_SetTransMatrix((struct MATRIX *)((char *)alltpages + 0x2C));
+    for (Lighting = LightList; Lighting < LightListCurrent; Lighting++)
+        if (Lighting->LensFlareType)
+            ProcessLensFlare(Lighting, Ot);
+    Cre = CurrWin->Creature;
+    if (Cre && Cre->Box.MoveSpace >= 0) {
+        LightNumPntr = FixedLightList + MoveCollMap.Coll3dSpace[Cre->Box.MoveSpace].StartLight;
+        LightStop = FixedLightList + MoveCollMap.Coll3dSpace[Cre->Box.MoveSpace + 1].StartLight;
+        for (; LightNumPntr < LightStop; LightNumPntr++)
+            if (FixedLightData[*LightNumPntr].LensFlareType)
+                ProcessLensFlare(&FixedLightData[*LightNumPntr], Ot);
+    }
+}

@@ -1,0 +1,602 @@
+#include "types.h"
+
+/* defined below; gcc defers these to the end of the file in this order */
+void NoAmmoWeaponChange(struct PLAYER *Player);
+char QWeapon_NextPrev(struct PLAYER *Player, int Weapon_Type, int Next);
+void QuakeWeaponChange(struct CREATURE *Cre, struct PLAYERCONTROLS *Controls);
+short PrimaryWeaponMovement(struct CREATURE *Gun, struct PLAYERCONTROLS *Controls);
+void GenQuakePlayerGun(struct CREATURE *Cre);
+struct SHORTPAIR Weapon_Generic(struct CREATURE *Gun, struct WEAPON_ANIM *Cur_GunState, struct WEAPON_ANIM *End_GunState, struct PLAYERCONTROLS *Controls);
+void Hyper_SubModelAnim(struct CREATURE *Gun, struct WEAPON_ANIM *Weapon_Movement, char Weapon_Type);
+void Weapon_HoldFire(struct CREATURE *Gun, int Vcounts_Amount, short *FireStatus, struct PLAYERCONTROLS *Controls);
+void Weapon_Animations(struct CREATURE *Gun, short AnimStart, int VCount_Amount, char Weapon_Type);
+
+extern char WeaponNameTokens[12][3];
+extern int NewVcounts;
+void bprintf(struct WINDOW *Window, char *_format, ...);
+char QWeapon_NextPrev(struct PLAYER *Player, int Weapon_Type, int Next);
+
+extern struct WEAPON_ANIM **WeaponSequences[];
+extern short DrawCollisionOn;
+struct SHORTPAIR Weapon_Generic(struct CREATURE *Gun, struct WEAPON_ANIM *Cur_GunState, struct WEAPON_ANIM *End_GunState, struct PLAYERCONTROLS *Controls);
+void Weapon_Animations(struct CREATURE *Gun, short AnimStart, int VCount_Amount, char Weapon_Type);
+void Weapon_HoldFire(struct CREATURE *Gun, int Vcounts_Amount, short *FireStatus, struct PLAYERCONTROLS *Controls);
+void Hyper_SubModelAnim(struct CREATURE *Gun, struct WEAPON_ANIM *Weapon_Movement, char Weapon_Type);
+struct MATRIX *RotMatrixYXZ(struct SVECT *r, struct MATRIX *m);
+struct MATRIX *MulMatrix0(struct MATRIX *m0, struct MATRIX *m1, struct MATRIX *m2);
+void RotateS(struct MATRIX *m, struct SVECT *v1, struct SVECT *o2);
+void RotateL(struct MATRIX *m, struct VECT *v1, struct VECT *v2);
+void AddCross(struct VECT *Pos, int Radius, struct COLOUR Colour);
+struct SVECT CalcPlayerCameraModifications(struct CREATURE *Cre);
+int rand(void);
+void *memset(void *, int, int);
+
+#define INTERP(a, b) ((((a) - (b)) * (Gun->ShadowPos.vy - Gun->Params[3])) / Gun->ShadowPos.vy)
+
+extern struct WINDOW GameWindows[];
+extern int (*WeaponFireFunctions[])();
+extern unsigned int LevelTicks;
+extern struct IDENTITYNAME GunModels[];
+extern int Sound_QuadDamage;
+struct SOUNDINFO Quad_SoundInfo;
+struct GLOBMODHDR *GetModelHdr(struct IDENTITYNAME Name);
+void FreeModelPackets(struct CREATURE *Cre);
+int SoundTestRunning(struct SOUNDINFO *SoundInfo);
+int SoundHere(int SFXNumber, struct VECT *loc, struct SOUNDINFO *SoundInfo);
+void NoAmmoWeaponChange(struct PLAYER *Player);
+char QWeapon_NextPrev(struct PLAYER *Player, int Weapon_Type, int Next);
+
+struct GLOBMODHDR *GetModelHdr(struct IDENTITYNAME Name);
+void FreeModelPackets(struct CREATURE *Cre);
+void NoAmmoWeaponChange(struct PLAYER *Player);
+
+extern enum QuakeWeaponTypes WeaponBits[];
+extern enum QuakeAmmoTypes AmmoTypes[];
+int MinAmmo[12];
+static enum QuakeWeaponTypes WeaponTypes[8];
+
+extern int MaxWindows;
+extern struct WINDOW GameWindows[];
+extern int (*WeaponFireFunctions[])();
+struct CREATURE *GetNextCre(int UseExpendable);
+struct MATRIX *RotMatrixYXZ(struct SVECT *r, struct MATRIX *m);
+void MyScaleMatrix(struct MATRIX *MatrixOut, struct MATRIX *MatrixIn, int Scale);
+
+void AlterSubModAng(struct GLOBMODHDR *GlobHdr, short FrameNum, short SubModelNum, short AngX, int AngY, int AngZ);
+
+extern int SoundReload;
+int SoundTestRunning(struct SOUNDINFO *SoundInfo);
+int SoundByCreature(int SFXNumber, struct CREATURE *Cre);
+struct ANIMHDR *FindAnimHdr(struct GLOBMODHDR *Hdr, struct IDENTITYNAME Name);
+
+extern unsigned int LevelTicks;
+extern int Sound_QuadDamage;
+extern int SoundChaingunFire1;
+extern int SoundChaingunFire2;
+extern int SoundChaingunFire3;
+extern int SoundHyperblasterFire2;
+struct SOUNDINFO Quad_SoundInfo;
+int SoundHere(int SFXNumber, struct VECT *loc, struct SOUNDINFO *SoundInfo);
+int SoundByPlayer(int SFXNumber, struct CREATURE *Cre);
+int SoundStopSoundID(short SoundID, short Channel);
+int SoundTestIfRunning(short SoundID, short Channel);
+
+void QuakeWeaponChange(struct CREATURE *Cre, struct PLAYERCONTROLS *Controls)
+{
+    struct PLAYER *Player;
+    struct PTIMERS *PTimers;
+    struct CREATURE *Gun;
+    int ChangeWeaponIcon;
+    char Temp_Weapon;
+
+    ChangeWeaponIcon = 0;
+    Player = Cre->Player;
+    Gun = (struct CREATURE *)Cre->Params[0];
+    PTimers = &Player->Extras.PTimers;
+    if (Controls->ChangeWeapUpTapped) {
+        PTimers->WeapChange_Timer = 70;
+        Temp_Weapon = QWeapon_NextPrev(Player, Player->Extras.FastWeaponSelect, 1);
+        if (Temp_Weapon)
+            Player->Extras.FastWeaponSelect = Temp_Weapon;
+        ChangeWeaponIcon = 1;
+    } else if (Controls->ChangeWeapDownTapped) {
+        PTimers->WeapChange_Timer = 70;
+        Temp_Weapon = QWeapon_NextPrev(Player, Player->Extras.FastWeaponSelect, 0);
+        if (Temp_Weapon)
+            Player->Extras.FastWeaponSelect = Temp_Weapon;
+        ChangeWeaponIcon = 1;
+    } else {
+        PTimers->WeapChange_Timer -= NewVcounts;
+        if ((signed char)PTimers->WeapChange_Timer < -1)
+            *(signed char *)&PTimers->WeapChange_Timer = -1;
+        if (Player->Extras.FastWeaponSelect != Gun->WayDest)
+            Gun->WayDest = Player->Extras.FastWeaponSelect;
+    }
+    if (ChangeWeaponIcon) {
+        Player->Extras.Next_WeaponSelected = QWeapon_NextPrev(Player, Player->Extras.FastWeaponSelect, 1);
+        Player->Extras.Previous_WeaponSelected = QWeapon_NextPrev(Player, Player->Extras.FastWeaponSelect, 0);
+        if (Cre->Player->Window)
+            bprintf(Cre->Player->Window, "Selected %s", WeaponNameTokens[Player->Extras.FastWeaponSelect]);
+    }
+}
+
+short PrimaryWeaponMovement(struct CREATURE *Gun, struct PLAYERCONTROLS *Controls)
+{
+    struct WEAPON_ANIM *Weap_Move1;
+    struct WEAPON_ANIM *Weap_Move2;
+    struct CREATURE *Cre;
+    struct PLAYER *Player;
+    struct SVECT ModelOffset;
+    struct SVECT Offset;
+    struct SVECT Angs;
+    struct VECT VectOffset;
+    struct MATRIX Mat;
+    static struct SHORTPAIR VCFire;
+    int ToProcess;
+    int ThisPass;
+    int LastGunIndx;
+    int LastGunSeq;
+
+    Cre = (struct CREATURE *)Gun->Params[0];
+    Player = Cre->Player;
+    memset(&ModelOffset, 0, sizeof(ModelOffset));
+    Gun->Box.Area = 1;
+    ToProcess = NewVcounts;
+    Gun->ModelOpaque = Cre->ModelOpaque;
+    LastGunSeq = Gun->Params[1];
+    Weap_Move1 = WeaponSequences[Gun->WayPres][LastGunSeq];
+    while (ToProcess) {
+        ThisPass = ToProcess;
+        if (Gun->Params[3] < ToProcess)
+            ThisPass = Gun->Params[3];
+        LastGunSeq = Gun->Params[1];
+        LastGunIndx = Gun->Params[2];
+        Gun->Params[3] -= ThisPass;
+        Weap_Move1 = WeaponSequences[Gun->WayPres][LastGunSeq];
+        Weap_Move2 = WeaponSequences[Gun->WayPres][LastGunSeq + 1];
+        VCFire = Weapon_Generic(Gun, Weap_Move1, Weap_Move2, Controls);
+        ToProcess -= ThisPass;
+        if (VCFire.a)
+            ToProcess = 0;
+        Weapon_Animations(Gun, Weap_Move1[Gun->Params[2]].AnimStart, ThisPass, Player->Extras.Current_WeaponSelected);
+        Weapon_HoldFire(Gun, ThisPass, &VCFire.b, Controls);
+        if (LastGunIndx != Gun->Params[2] || LastGunSeq != Gun->Params[1]) {
+            Gun->Vel.vx += INTERP(Weap_Move1[LastGunIndx].Rot.vx, Gun->Vel.vx);
+            Gun->Vel.vy += INTERP(Weap_Move1[LastGunIndx].Rot.vy, Gun->Vel.vy);
+            Gun->Vel.vz += INTERP(Weap_Move1[LastGunIndx].Rot.vz, Gun->Vel.vz);
+            Gun->MoveVel.vx += INTERP(Weap_Move1[LastGunIndx].Pos.vx, Gun->MoveVel.vx);
+            Gun->MoveVel.vy += INTERP(Weap_Move1[LastGunIndx].Pos.vy, Gun->MoveVel.vy);
+            Gun->MoveVel.vz += INTERP(Weap_Move1[LastGunIndx].Pos.vz, Gun->MoveVel.vz);
+            Weap_Move1 = WeaponSequences[Gun->WayPres][Gun->Params[1]];
+            if (Weap_Move1[Gun->Params[2]].RTimer)
+                Gun->ShadowPos.vy = ((rand() * Weap_Move1[Gun->Params[2]].Timer >> 15) + 1) * 10;
+            else
+                Gun->ShadowPos.vy = Weap_Move1[Gun->Params[2]].Timer;
+            Gun->Params[3] = Gun->ShadowPos.vy;
+        }
+        Hyper_SubModelAnim(Gun, Weap_Move1, Player->Extras.Current_WeaponSelected);
+    }
+    Gun->Ang.vx = Gun->Vel.vx + INTERP(Weap_Move1[Gun->Params[2]].Rot.vx, Gun->Vel.vx);
+    Gun->Ang.vy = Gun->Vel.vy + INTERP(Weap_Move1[Gun->Params[2]].Rot.vy, Gun->Vel.vy);
+    Gun->Ang.vz = Gun->Vel.vz + INTERP(Weap_Move1[Gun->Params[2]].Rot.vz, Gun->Vel.vz);
+    Gun->Ang.vx += Player->TargetPitchSeek;
+    RotMatrixYXZ(&Gun->Ang, &Gun->Matrix);
+    Offset = CalcPlayerCameraModifications(Cre);
+    Angs = (struct SVECT){-(Cre->Ang.vx + Offset.vx), Cre->Ang.vy + Offset.vy, Cre->Ang.vz + Offset.vz};
+    RotMatrixYXZ(&Angs, &Mat);
+    MulMatrix0(&Mat, &Gun->Matrix, &Gun->Matrix);
+    VectOffset.vx = INTERP(Weap_Move1[Gun->Params[2]].Pos.vx, Gun->MoveVel.vx) + Gun->MoveVel.vx;
+    VectOffset.vy = INTERP(Weap_Move1[Gun->Params[2]].Pos.vy, Gun->MoveVel.vy) + Gun->MoveVel.vy;
+    VectOffset.vz = INTERP(Weap_Move1[Gun->Params[2]].Pos.vz, Gun->MoveVel.vz) + Gun->MoveVel.vz;
+    RotateL(&Mat, &VectOffset, &Gun->Draw.Location);
+    Gun->Draw.Location.vx += Cre->Box.Location.vx;
+    Gun->Draw.Location.vy += Cre->Box.Location.vy + (0x11e - Cre->HeadHeight);
+    Gun->Draw.Location.vz += Cre->Box.Location.vz;
+    Gun->Box.Location = Gun->Draw.Location;
+    Gun->Box.MoveSpace = Cre->Box.MoveSpace;
+    RotateS(&Gun->Matrix, &ModelOffset, &Offset);
+    Gun->Draw.Location.vx += Offset.vx;
+    Gun->Draw.Location.vy += Offset.vy;
+    Gun->Draw.Location.vz += Offset.vz;
+    if (DrawCollisionOn)
+        AddCross(&Gun->Draw.Location, 0x80, *&(struct COLOUR){0xff, 0xff, 0xff, 0});
+    return VCFire.b;
+}
+
+void GenQuakePlayerGun(struct CREATURE *Cre)
+{
+    struct CREATURE *Gun;
+    struct PLAYER *Player;
+    struct WINDOW *Window;
+    int Win;
+
+    Player = Cre->Player;
+    Gun = GetNextCre(1);
+    if (Gun) {
+        Gun->Life = 1;
+        Gun->Control = 0x20;
+        Gun->Draw.Location = Cre->Draw.Location;
+        Gun->Primary = 0;
+        Gun->Params[0] = (int)Cre;
+        Cre->Params[0] = (int)Gun;
+        RotMatrixYXZ(&Gun->Ang, &Gun->Matrix);
+        MyScaleMatrix(&Gun->Matrix, &Gun->Matrix, 0x200);
+        Gun->WayPres = Player->Extras.Current_WeaponSelected;
+        Gun->WayDest = Player->Extras.Current_WeaponSelected;
+        Gun->Params[1] = 3;
+        Gun->Params[2] = 0;
+        Gun->IdealYaw = 1;
+        Gun->ShadowPos.vy = 1;
+        Gun->Params[3] = 0;
+        Gun->WayOld = 0;
+        Gun->ShadowPos.vx = 1;
+        Gun->IdealLocation.vx = (int)WeaponFireFunctions[Gun->WayDest];
+        Gun->ShieldColour.Pad = 0;
+        Gun->SequenceHdr = 0;
+        Gun->AnimFlags = 0;
+        Gun->SequenceData = 0;
+        Player->Extras.Weapon = Gun;
+        for (Window = GameWindows, Win = 0; Window < &GameWindows[MaxWindows]; Window++, Win++)
+            if (Window != Player->Window)
+                Gun->WinData[Win].NoDraw = 1;
+    }
+}
+
+/* do-while(0) wrappers found by decomp-permuter; they change gcc's block layout */
+struct SHORTPAIR Weapon_Generic(struct CREATURE *Gun, struct WEAPON_ANIM *Cur_GunState, struct WEAPON_ANIM *End_GunState, struct PLAYERCONTROLS *Controls)
+{
+  struct CREATURE *Cre;
+  struct PLAYER *Player;
+  struct PTIMERS *PTimers;
+  int Is_Quad;
+  short FireStatus;
+  int WinNo;
+  int (*Func)();
+  Cre = (struct CREATURE *) Gun->Params[0];
+  Player = Cre->Player;
+  WinNo = Player->Window - GameWindows;
+  FireStatus = 0;
+  PTimers = &Player->Extras.PTimers;
+  Is_Quad = LevelTicks < PTimers->QuadTimer;
+  if (!Gun->Params[3])
+  {
+    Gun->Params[2]++;
+  }
+  if (Gun->Params[1] == 3)
+  {
+    if ((&Cur_GunState[Gun->Params[2]]) == End_GunState)
+    {
+      if (((signed char) PTimers->WeapChange_Timer) <= 0)
+      {
+        Gun->Params[1] = 0;
+        Gun->Params[2] = 0;
+        Gun->WayOld = 0;
+        Player->Extras.Current_WeaponSelected = (Gun->WayPres = Gun->WayDest);
+        Gun->ModelHdr = GetModelHdr(GunModels[Gun->WayPres]);
+        FreeModelPackets(Gun);
+        if (Gun->WayPres == 9)
+        {
+          Gun->AnimFrame = WinNo * 10;
+        }
+        else
+        {
+          Gun->AnimFrame = 0;
+        }
+      }
+      else
+      {
+        Gun->Params[2]--;
+        return (struct SHORTPAIR){1, 0};
+      }
+    }
+  }
+  else
+    if ((Gun->Params[1] == 0) && ((&Cur_GunState[Gun->Params[2]]) == End_GunState))
+  {
+    Gun->Params[1] = 2;
+    Gun->IdealLocation.vx = (int) WeaponFireFunctions[Player->Extras.Current_WeaponSelected];
+    Gun->Params[2] = 0;
+    return (struct SHORTPAIR){0, FireStatus};
+  }
+  else
+    if ((Gun->WayPres != Player->Extras.FastWeaponSelect) && (Gun->Params[1] != 1))
+  {
+    Gun->Params[1] = 3;
+    Gun->Params[2] = 0;
+    return (struct SHORTPAIR){0, FireStatus};
+  }
+  else
+  {
+    if (Gun->Params[1] == 2)
+    {
+      if (Controls->FireHeld || Gun->WayOld)
+      {
+        Func = (int (*)()) Gun->IdealLocation.vx;
+        Gun->Params[2] = 0;
+        if (!Gun->WayOld)
+        {
+          FireStatus = Func(Cre);
+        }
+        if ((FireStatus == 2) || Gun->WayOld)
+        {
+          Gun->WayOld = 0;
+          NoAmmoWeaponChange(Player);
+          Player->Extras.Next_WeaponSelected = QWeapon_NextPrev(Player, Player->Extras.FastWeaponSelect, 1);
+          Player->Extras.Previous_WeaponSelected = QWeapon_NextPrev(Player, Player->Extras.FastWeaponSelect, 0);
+        }
+        else
+        {
+          if (Is_Quad && (!SoundTestRunning(&Quad_SoundInfo)))
+          {
+            SoundHere(Sound_QuadDamage, (struct VECT *) (&Cre->Box), &Quad_SoundInfo);
+          }
+          Gun->Params[1] = 1;
+        }
+      }
+      else
+        if ((&Cur_GunState[Gun->Params[2]]) == End_GunState)
+      {
+        Gun->Params[1] = 2;
+        Gun->Params[2] = 0;
+        return (struct SHORTPAIR){0, FireStatus};
+      }
+    }
+    if ((Gun->Params[1] == 1) && ((&Cur_GunState[Gun->Params[2]]) == End_GunState))
+    {
+      Gun->Params[1] = 2;
+ do { Gun->Params[2] = 0; return (struct SHORTPAIR){0, FireStatus}; } while (0);
+    }
+  }
+  return (struct SHORTPAIR){0, FireStatus};
+}
+
+void NoAmmoWeaponChange(struct PLAYER *Player)
+{
+    struct CREATURE *PlayerCre;
+    struct CREATURE *Gun;
+    int i;
+
+    PlayerCre = Player->Creature;
+    Gun = (struct CREATURE *)PlayerCre->Params[0];
+    for (i = 0;; i++) {
+        if ((Player->Extras.WeaponsAvailable & WeaponBits[WeaponTypes[i]]) &&
+            Player->Extras.AmmoCount[AmmoTypes[WeaponTypes[i]]] >= MinAmmo[WeaponTypes[i]]) {
+            Gun->WayDest = Player->Extras.FastWeaponSelect = WeaponTypes[i];
+            return;
+        }
+    }
+}
+
+void Hyper_SubModelAnim(struct CREATURE *Gun, struct WEAPON_ANIM *Weapon_Movement, char Weapon_Type)
+{
+    struct CREATURE *Cre;
+    struct PLAYER *Player;
+    short *BarrelAngle;
+    int WinNo;
+
+    Cre = (struct CREATURE *)Gun->Params[0];
+    Player = Cre->Player;
+    WinNo = Player->Window - GameWindows;
+    BarrelAngle = &Player->Extras.HBAngle;
+    if (Weapon_Type == 9) {
+        if (Gun->Params[1] != 1) {
+            if (Gun->Params[1] == 2)
+                *BarrelAngle = 0x1000;
+        } else {
+            switch (Gun->Params[2]) {
+            case 1:
+                *BarrelAngle = 0x1000 - (Weapon_Movement[Gun->Params[2]].Timer - Gun->Params[3] + 2) * 40;
+                break;
+            case 2:
+                *BarrelAngle = 0xce0 - (Weapon_Movement[Gun->Params[2]].Timer - Gun->Params[3] + 2) * 40;
+                break;
+            case 3:
+                *BarrelAngle = 0x830 - (Weapon_Movement[Gun->Params[2]].Timer - Gun->Params[3] + 2) * 40;
+                break;
+            case 4:
+                *BarrelAngle = 0x510 - (Weapon_Movement[Gun->Params[2]].Timer - Gun->Params[3] + 2) * 40;
+                break;
+            case 6:
+                if (Weapon_Movement[Gun->Params[2]].Timer == Gun->Params[3])
+                    *BarrelAngle = 0x1000;
+                *BarrelAngle = (Gun->Params[3] << 12) / Weapon_Movement[Gun->Params[2]].Timer;
+                break;
+            }
+        }
+        AlterSubModAng(Gun->ModelHdr, WinNo * 10, 6, *BarrelAngle & 0xfff, -1, -1);
+    }
+}
+
+char QWeapon_NextPrev(struct PLAYER *Player, int Weapon_Type, int Next)
+{
+    int Increment;
+
+    Increment = -1;
+    if (Next)
+        Increment = 1;
+    while (1) {
+        Weapon_Type += Increment;
+        if (Weapon_Type <= 0)
+            Weapon_Type = 12;
+        else if (Weapon_Type > 12)
+            Weapon_Type = 1;
+        if (!(Player->Extras.WeaponsAvailable & WeaponBits[Weapon_Type]))
+            continue;
+        if (Player->Extras.AmmoCount[AmmoTypes[Weapon_Type]] < MinAmmo[Weapon_Type])
+            continue;
+        break;
+    }
+    if (Weapon_Type == Player->Extras.FastWeaponSelect)
+        return 0;
+    return Weapon_Type;
+}
+
+void Weapon_HoldFire(struct CREATURE *Gun, int Vcounts_Amount, short *FireStatus, struct PLAYERCONTROLS *Controls)
+{
+    struct CREATURE *Cre;
+    struct PLAYER *Player;
+    int Is_Quad;
+    int (*Func)();
+
+    Cre = (struct CREATURE *)Gun->Params[0];
+    Player = Cre->Player;
+    Is_Quad = LevelTicks < Player->Extras.PTimers.QuadTimer;
+    if (Gun->Params[1] != 1)
+        return;
+    switch (Player->Extras.Current_WeaponSelected) {
+    case 4:
+        if (Controls->FireHeld) {
+            if (Gun->Params[2] == 2)
+                Gun->Params[2] = 0;
+            Gun->ShadowPos.vz += Vcounts_Amount;
+            if (Gun->ShadowPos.vz >= 30 && Gun->Params[2] != 2) {
+                Func = (int (*)())Gun->IdealLocation.vx;
+                *FireStatus = Func(Cre);
+                if (*FireStatus == 2)
+                    Gun->Params[1] = 2;
+                else if (Is_Quad && !SoundTestRunning(&Quad_SoundInfo))
+                    SoundHere(Sound_QuadDamage, (struct VECT *)&Cre->Box, &Quad_SoundInfo);
+                Gun->ShadowPos.vz = 0;
+            }
+        } else {
+            Gun->ShadowPos.vz = 0;
+            if (Gun->Params[2] == 1)
+                Gun->Params[2] = 2;
+        }
+        break;
+    case 5:
+        if (Controls->FireHeld) {
+            if (!Gun->WayOld && Gun->Params[2] == 17)
+                Gun->Params[2] = 9;
+        } else {
+            Gun->ShadowPos.vz = 0;
+            Gun->ShadowPos.vx = 1;
+            if (Gun->Params[2] == 9)
+                Gun->Params[2] = 27;
+        }
+        if (Gun->IdealYaw != Gun->Params[2]) {
+            Gun->IdealYaw = Gun->Params[2];
+            if (!Gun->Params[2])
+                SoundByPlayer(SoundChaingunFire1, Gun);
+            if (Gun->Params[2] == 10 && !SoundTestIfRunning(Gun->SoundID, Gun->SoundChannel))
+                SoundByPlayer(SoundChaingunFire2, Gun);
+            if (Gun->Params[2] == 18) {
+                SoundStopSoundID(Gun->SoundID, Gun->SoundChannel);
+                SoundByPlayer(SoundChaingunFire3, Gun);
+            }
+            if (Gun->WayOld) {
+                if (!Gun->Params[2])
+                    Gun->Params[1] = 2;
+            } else {
+                if (!Gun->Params[2] || Gun->Params[2] == 9 || Gun->Params[2] == 17 || Gun->Params[2] >= 18)
+                    return;
+                if (Gun->Params[2] < 5)
+                    Gun->ShadowPos.vx = 1;
+                else if (Gun->Params[2] < 9) {
+                    if (Controls->FireHeld)
+                        Gun->ShadowPos.vx = 2;
+                    else
+                        Gun->ShadowPos.vx = 1;
+                }
+                else if (Gun->Params[2] >= 10)
+                    Gun->ShadowPos.vx = 3;
+                if (Player->Extras.AmmoCount[(int)AmmoTypes[Player->Extras.FastWeaponSelect]] < Gun->ShadowPos.vx)
+                    Gun->ShadowPos.vx = Player->Extras.AmmoCount[(int)AmmoTypes[Player->Extras.FastWeaponSelect]];
+                Func = (int (*)())Gun->IdealLocation.vx;
+                *FireStatus = Func(Cre);
+                if (*FireStatus == 2)
+                    Gun->WayOld = 1;
+                else if (Is_Quad && !SoundTestRunning(&Quad_SoundInfo))
+                    SoundHere(Sound_QuadDamage, (struct VECT *)&Cre->Box, &Quad_SoundInfo);
+            }
+        }
+        break;
+    case 9:
+        if (Controls->FireHeld) {
+            if (!Gun->WayOld) {
+                if (Gun->Params[2] == 5)
+                    Gun->Params[2] = 1;
+                Gun->ShadowPos.vz += Vcounts_Amount;
+                if (Gun->ShadowPos.vz >= 30 && Gun->Params[2] != 6) {
+                    Func = (int (*)())Gun->IdealLocation.vx;
+                    *FireStatus = Func(Cre);
+                    if (*FireStatus == 2)
+                        Gun->WayOld = 1;
+                    else if (Is_Quad && !SoundTestRunning(&Quad_SoundInfo))
+                        SoundHere(Sound_QuadDamage, (struct VECT *)&Cre->Box, &Quad_SoundInfo);
+                    Gun->ShadowPos.vz = 0;
+                }
+            }
+        } else
+            Gun->ShadowPos.vz = 0;
+        if (Gun->IdealYaw != Gun->Params[2]) {
+            Gun->IdealYaw = Gun->Params[2];
+            if (!Gun->Params[2] && !SoundTestIfRunning(Gun->SoundID, Gun->SoundChannel))
+                SoundByPlayer(SoundChaingunFire2, Gun);
+            if (Gun->Params[2] == 6) {
+                SoundStopSoundID(Gun->SoundID, Gun->SoundChannel);
+                SoundByPlayer(SoundHyperblasterFire2, Gun);
+            }
+            if (Gun->WayOld) {
+                if (!Gun->Params[2])
+                    Gun->Params[1] = 2;
+            }
+        }
+        break;
+    case 6:
+        if (Controls->FireHeld && Gun->AnimFrame >= 380 && Gun->SequenceData < 380) {
+            Gun->AnimFrame = 380;
+            Gun->Params[2] = 1;
+            Gun->Params[3] += Vcounts_Amount;
+        }
+        break;
+    }
+}
+
+void Weapon_Animations(struct CREATURE *Gun, short AnimStart, int VCount_Amount, char Weapon_Type)
+{
+    struct SOUNDINFO GTemp;
+    struct ANIMHDR *SetAnim;
+
+    if (Weapon_Type == 2 && Gun->ShieldColour.Pad) {
+        GTemp.Channel = Gun->SoundChannel;
+        GTemp.SoundID = Gun->SoundID;
+        if (!SoundTestRunning(&GTemp)) {
+            SoundByCreature(SoundReload, Gun);
+            Gun->ShieldColour.Pad = 0;
+        }
+    }
+    if (Weapon_Type == 3 || Weapon_Type == 6 || Weapon_Type == 7 || Weapon_Type == 8 || Weapon_Type == 11) {
+        if (Gun->Params[1] == 1) {
+            if (Gun->SequenceHdr) {
+                Gun->AnimFrame += VCount_Amount;
+                if (Gun->AnimFrame > Gun->SequenceHdr->AnimDetails.Stop) {
+                    Gun->SequenceHdr = 0;
+                    Gun->AnimFrame = 0;
+                    Gun->AnimFlags = (Gun->AnimFlags | 1) & ~2;
+                }
+            } else if (AnimStart == Gun->Params[1] && !(Gun->AnimFlags & 2)) {
+                switch (Weapon_Type) {
+                case 6:
+                    SetAnim = FindAnimHdr(Gun->ModelHdr, (struct IDENTITYNAME){"Set"});
+                    break;
+                case 7:
+                    SetAnim = FindAnimHdr(Gun->ModelHdr, (struct IDENTITYNAME){"Spin"});
+                    break;
+                case 3:
+                    SetAnim = FindAnimHdr(Gun->ModelHdr, (struct IDENTITYNAME){"Fire"});
+                    break;
+                case 8:
+                    SetAnim = FindAnimHdr(Gun->ModelHdr, (struct IDENTITYNAME){"Fire"});
+                    break;
+                case 11:
+                    SetAnim = FindAnimHdr(Gun->ModelHdr, (struct IDENTITYNAME){"Fire"});
+                    break;
+                }
+                Gun->SequenceHdr = SetAnim;
+                Gun->AnimFrame = SetAnim->AnimDetails.Start;
+                Gun->AnimFlags = (Gun->AnimFlags & ~1) | 2;
+            }
+        }
+    }
+}

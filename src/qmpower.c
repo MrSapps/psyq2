@@ -1,0 +1,150 @@
+#include "types.h"
+
+/* defined below; gcc defers these to the end of the file in this order */
+void Power_SetPump1On(void);
+void Power_SetPump2On(void);
+void Power_NextPump(void);
+void Power_CheckPumps(void);
+void MissionLoadSaveHub_80023978(int Write);
+void PrintMissionDetails_80023F7C(void); void InitMissionPower(void);
+void PrintMissionDetails_80023F7C(void);
+struct POWERDATA *PowerData;
+void Power_NextPump(void);
+void Power_CheckPumps(void);
+int Event_DoNamed(struct IDENTITYNAME name3, struct CREATURE *Cre);
+
+#define IDNAME(s) ((struct IDENTITYNAME){s})
+
+void HelpComputer_NewMessage(struct IDENTITYNAME Orders, struct IDENTITYNAME Objective, int FrameDelay);
+
+extern struct QENGINELEVINTERFACE Engine;
+extern struct MISSIONEVENT ThisMissionEvents_8009B8D4[];
+extern struct MISSIONEVENT *MissionEvents;
+extern char *MissionSpecificMemory;
+extern void (*MissionPrintStatus)();
+extern void (*GameHubLoadSaveData)();
+extern short SelfPlay;
+extern struct IDENTITYNAME NextLevelName;
+extern struct IDENTITYNAME MainStartName;
+void *MY_malloc_namehb(int s, char *name);
+char *PrintIdentityName(struct IDENTITYNAME Name);
+char *PrintBool(int Bool);
+void MissionLoadSaveHub_80023978(int Write);
+
+extern char GameDeathWatchA;
+extern char GameDeathWatchB;
+extern char GameDeathWatchC;
+extern struct IDENTITYNAME NextLevelName;
+extern struct IDENTITYNAME MainStartName;
+struct SAVEFILEHDR *OpenSaveMemory(struct IDENTITYNAME Name, int Writeable);
+void CloseWritableSaveMemoryFile(struct IDENTITYNAME Name, short Flags);
+void HelpComputer_SetMessages(struct IDENTITYNAME Orders, struct IDENTITYNAME Objective);
+void HelpComputer_GetMessages(struct IDENTITYNAME *Orders, struct IDENTITYNAME *Objective);
+int HelpComputer_Reset(void);
+void *memset(void *s, int c, unsigned int n);
+
+static const struct IDENTITYNAME MissionName = {"Mission 3"};
+
+void Power_NextPump(void)
+{
+    if (PowerData->TurnedOnPump1 && PowerData->TurnedOnPump2)
+        HelpComputer_NewMessage(IDNAME("Unit3Curr4"), IDNAME("Unit3Miss1"), 50);
+    else
+        HelpComputer_NewMessage(IDNAME("Unit3Curr3"), IDNAME("Unit3Miss1"), 50);
+}
+
+void Power_SetPump1On(void)
+{
+    if (!PowerData->TurnedOnPump1) {
+        PowerData->TurnedOnPump1 = 1;
+        Power_NextPump();
+    }
+    Power_CheckPumps();
+}
+
+void Power_CheckPumps(void)
+{
+    if (PowerData->TurnedOnPump2 && PowerData->TurnedOnPump1)
+        Event_DoNamed(IDNAME("WasteFill"), 0);
+}
+
+void Power_SetPump2On(void)
+{
+    if (!PowerData->TurnedOnPump2) {
+        PowerData->TurnedOnPump2 = 1;
+        Power_NextPump();
+    }
+    Power_CheckPumps();
+}
+
+void MissionLoadSaveHub_80023978(int Write)
+{
+    struct SAVEFILEHDR *FileHdr;
+    struct POWERDATA *ThisData;
+
+    FileHdr = OpenSaveMemory(MissionName, Write);
+    if (FileHdr) {
+        ThisData = (struct POWERDATA *)(FileHdr + 1);
+        if (Write) {
+            if (GameDeathWatchA)
+                PowerData->KilledRocketGirl = 0;
+            else
+                PowerData->KilledRocketGirl = 1;
+            PowerData->IcarusToKill = GameDeathWatchB;
+            HelpComputer_GetMessages(&PowerData->HelpOrders, &PowerData->HelpObjective);
+            *ThisData = *PowerData;
+            FileHdr->Size = sizeof(struct POWERDATA);
+            CloseWritableSaveMemoryFile(MissionName, 2);
+        } else {
+            *PowerData = *ThisData;
+            if (PowerData->KilledRocketGirl)
+                GameDeathWatchA = 0;
+            else
+                GameDeathWatchA = 1;
+            GameDeathWatchB = PowerData->IcarusToKill;
+            HelpComputer_SetMessages(PowerData->HelpOrders, PowerData->HelpObjective);
+        }
+    } else {
+        memset(PowerData, 0, sizeof(struct POWERDATA));
+        GameDeathWatchB = PowerData->IcarusToKill = 2;
+        GameDeathWatchC = 0;
+        PowerData->KilledRocketGirl = 0;
+        PowerData->TurnedOnPump2 = 0;
+        PowerData->TurnedOnPump1 = 0;
+        PowerData->DestroyedCore = 0;
+        GameDeathWatchA = 1;
+        if (!NextLevelName.Name[0]) {
+            NextLevelName = *(struct IDENTITYNAME *)"Power1";
+            MainStartName = *(struct IDENTITYNAME *)"Default";
+            HelpComputer_Reset();
+        }
+    }
+}
+
+void PrintMissionDetails_80023F7C(void);
+
+void InitMissionPower(void)
+{
+    MissionSpecificMemory = MY_malloc_namehb(sizeof(struct POWERDATA), "Power Mission");
+    PowerData = (struct POWERDATA *)MissionSpecificMemory;
+    Engine.MissionData = PowerData;
+    MissionEvents = ThisMissionEvents_8009B8D4;
+    MissionPrintStatus = PrintMissionDetails_80023F7C;
+    GameHubLoadSaveData = MissionLoadSaveHub_80023978;
+    SelfPlay = 0;
+    GameHubLoadSaveData(0);
+    PrintIdentityName(NextLevelName);
+    PrintIdentityName(MainStartName);
+}
+
+void PrintMissionDetails_80023F7C(void)
+{
+    PrintIdentityName(PowerData->HelpObjective);
+    PrintIdentityName(PowerData->HelpOrders);
+    PrintBool(PowerData->IcarusToKill);
+    PrintBool(PowerData->KilledRocketGirl);
+    PrintBool(PowerData->TurnedOnPump1);
+    PrintBool(PowerData->TurnedOnPump2);
+    PrintBool(PowerData->DestroyedCore);
+    PrintBool(PowerData->HelpCompStatus);
+}

@@ -1,0 +1,46 @@
+#include "types.h"
+
+/* defined below; gcc defers these to the end of the file in this order */
+void ProcessAllCameras(void);
+void UpdateWindowStuff(struct WINDOW *Win);
+extern int MaxWindows;
+extern struct WINDOW GameWindows[];
+extern struct COLLHEADER CollMap;
+void MYRotMatrixYXZ2(struct SVECT *ang, struct MATRIX *m);
+void ReverseMatrix(struct MATRIX *MatrixOut, struct MATRIX *MatrixIn);
+void ScaleCameraMatrix(struct MATRIX *MatrixOut, struct MATRIX *MatrixIn, short x, short y);
+void RotateS(struct MATRIX *m, struct SVECT *v1, struct SVECT *o2);
+
+void ProcessAllCameras(void)
+{
+    int Win;
+
+    for (Win = 0; Win < MaxWindows; Win++) {
+        GameWindows[Win].SkyClear = 1;
+        GameWindows[Win].CameraRoutine(Win);
+    }
+}
+
+void UpdateWindowStuff(struct WINDOW *Win)
+{
+    {
+        {
+            {
+                static struct SVECT Source = {0, 0, 0x1000};
+                struct VECT Test;
+
+                MYRotMatrixYXZ2(&Win->CamAng, &Win->CamMatNorm);
+                ScaleCameraMatrix(&Win->CamMat, &Win->CamMatNorm, Win->StandardSize.sx, Win->StandardSize.sy);
+                ReverseMatrix(&Win->CamMatNormFlip, &Win->CamMatNorm);
+                RotateS(&Win->CamMatNormFlip, &Source, &Win->ScreenPlane.Normal);
+                Win->ScreenPlane.Point.vx = Win->ScreenPlane.Normal.vx / 8;
+                Win->ScreenPlane.Point.vy = Win->ScreenPlane.Normal.vy / 8;
+                Win->ScreenPlane.Point.vz = Win->ScreenPlane.Normal.vz / 8;
+                if (Win->CamSpace < 0)
+                    Win->Area = 0;
+                else
+                    Win->Area = CollMap.Coll3dSpace[Win->CamSpace].Area;
+            }
+        }
+    }
+}

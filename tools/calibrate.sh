@@ -1,7 +1,7 @@
 #!/bin/bash
 # Compile every calib/<name>.c and diff each function it defines against asm/<name>.s.
 #   tools/calibrate.sh [cc1psx flags]        default: -O3 -G8 -g
-# Env: PSYQ (SDK dir, as for cc-psx.sh). Prints one line per function (OK, ~~ = only a symbol name
+# Env: PSYQ (SDK dir, as for cc-psx.sh), CALIB (dir of the .c files, default calib/). Prints one line per function (OK, ~~ = only a symbol name
 # differs, -- = differs); exit 1 if any differ.
 # A calib file whose original was built with other flags names them in a /* calib-flags: ... */
 # comment, which overrides [flags] for that file. Loop over SDKs/flags to compare compilers, e.g.
@@ -11,7 +11,7 @@ CROSS=${MIPS_PREFIX:-mipsel-linux-gnu-}
 flags=${*:--O3 -G8 -g}
 tmp=$(mktemp -d); trap 'rm -rf "$tmp"' EXIT
 ok=0; names=0; bad=0
-for c in "$R"/calib/*.c; do
+for c in "${CALIB:-$R/calib}"/*.c; do
     n=$(basename "$c" .c)
     # a file built with other flags than the game says so: /* calib-flags: -O0 -G8 */
     fflags=$(sed -nE 's|.*calib-flags: *([^*]*[^ *]) *\*/.*|\1|p' "$c" | head -1)

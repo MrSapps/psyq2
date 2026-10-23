@@ -1,0 +1,1353 @@
+/* The game was built with -g (it has SYM files), and here it shows: InitialisePlayerSounds only
+   matches with -g (cse flushes its table at a different point, which changes which registers
+   hold the byte-packing masks). Every other function in this file matches either way. */
+#include "types.h"
+
+/* defined below; gcc defers these to the end of the file in this order */
+void InitMultiQuakePlayer(int Win);
+void MP_player_male(struct edict_s *self);
+void ReInitMultiQuakePlayer(int Win);
+void PlayerToxicSound(struct CREATURE *Cre);
+void PlayerLavaSound(struct CREATURE *Cre);
+int AnimateCreature(struct CREATURE *Cre, int TicksPassed, int *EndFrame);
+void StartAnim(struct CREATURE *Cre, struct ANIMHDR *Anim);
+void GenerateWaterSplash(struct VECT *Location, int Area);
+int QuakePlayerJump(struct CREATURE *Cre, int JumpTapped);
+void PrimaryQuakeDeadPlayerBody(struct CREATURE *Cre);
+void PrimaryQuakeDyingPlayer(struct CREATURE *Cre);
+void KillQuakePlayer(struct CREATURE *Cre);
+void FlashPowerUp(struct CREATURE *Cre);
+void QCre_Move(struct CREATURE *Cre);
+void FindPlayerTarget(struct PLAYER *Player);
+void PrimaryQuakePlayer(struct CREATURE *Cre);
+void CheckForAllWeap(struct PLAYER *Player);
+struct CREATURE *InitialiseQuakePlayer(int Win, struct STARTPOSITION *Start);
+void InitialisePlayerSounds(void);
+void InitialisePlayerSounds(void); void PreInitPlayerMale(struct GLOBMODHDR *Hdr);
+int rand(void); void AnimateQuakePlayer(struct CREATURE *Cre, int AnimType);
+void QuakePlayerCheckUnderwater(struct CREATURE *Cre);
+void QuakeSinglePlayerStuff(struct PLAYER *Player);
+void GamePlayerLoadSave(int PlayerIndx, int Save);
+
+/* defined in this file (qplayer.obj), so $gp-relative */
+int sound_burn1;
+int sound_spawnplayer;
+struct ANIMHDR *QMMAnim_Stand;
+
+extern struct QENGINELEVINTERFACE Engine;
+
+struct STARTPOSITION *GetRandomMultiplayerStart(void);
+struct CREATURE *InitialiseQuakePlayer(int Win, struct STARTPOSITION *Start);
+void CheckForAllWeap(struct PLAYER *Player);
+int SoundByCreature(int SFXNumber, struct CREATURE *Cre);
+void StartAnim(struct CREATURE *Cre, struct ANIMHDR *Anim);
+void InitMultiQuakePlayer(int Win);
+
+int sound_jump1;
+extern int NewVcounts;
+extern struct PARTCOLOURS ParticleColours_Blue;
+void PlayerNoise(struct edict_s *who, struct VECT *where, int type);
+struct PARTICLE *AddParticlesSL(struct VECT *Pos, struct SVECT *Vel, struct PARTCOLOURS *PColour0, struct PARTCOLOURS *PColour1, int NumToDraw, int Timer, int Size, int Area);
+int rand(void);
+
+
+int sound_gasp1;
+int sound_u_brea2;
+int sound_u_brea1;
+int sound_watr_in;
+int sound_watr_out;
+int sound_watr_un;
+void GenerateWaterSplash(struct VECT *Location, int Area);
+int SoundByCreature(int SFXNumber, struct CREATURE *Cre);
+extern unsigned int LevelTicks;
+int sound_drown1;
+void DoDamage(struct CREATURE *Victim, struct CREATURE *Attacker, int Damage, int Type, int Flags);
+
+extern struct ANIMHDR *QMMAnim_Stand;
+extern struct ANIMHDR *QMMAnim_Run;
+extern struct ANIMHDR *QMMAnim_Attack;
+extern struct ANIMHDR *QMMAnim_Death1;
+extern struct ANIMHDR *QMMAnim_Death2;
+extern struct ANIMHDR *QMMAnim_Death3;
+extern struct ANIMHDR *QMMAnim_Jump;
+extern struct ANIMHDR *QMMAnim_Pain1;
+extern struct ANIMHDR *QMMAnim_Pain2;
+extern struct ANIMHDR *QMMAnim_Pain3;
+int AnimateCreature(struct CREATURE *Cre, int TicksPassed, int *EndFrame);
+void StartAnim(struct CREATURE *Cre, struct ANIMHDR *Anim);
+
+extern short FlyModeOn;
+extern int NewVcounts;
+extern unsigned int LevelTicks;
+extern int LevelIsMultiPlayer;
+extern short Console_Flags;
+extern struct PLAYER Players[];
+extern struct WINDOW GameWindows[];
+extern struct QENGINELEVINTERFACE Engine;
+int gSinglePlayerHintTime;
+int sound_wade3;
+int sound_step1;
+int sound_step2;
+int Sound_Pain25;
+int Sound_Pain50;
+int Sound_Pain75;
+int Sound_Pain100;
+int Seek(short *a, short b, short c);
+void Event_ProcessTriggers(struct CREATURE *Cre, int typemask);
+void RotMatrixYXZ(struct SVECT *r, struct MATRIX *m);
+void FindPlayerTarget(struct PLAYER *Player);
+void FlashPowerUp(struct CREATURE *Cre);
+int FindBoxMoveSpace(struct COLLBOX3D *Box, int Main);
+void MapPadInputToCommands(int Player, struct PLAYERCONTROLS *OutControls);
+void ProcessGunSight(struct PLAYER *Player);
+void QuakeWeaponChange(struct CREATURE *Cre, struct PLAYERCONTROLS *Controls);
+int QuakePlayerJump(struct CREATURE *Cre, int JumpTapped);
+int SoundAtLocation(int SFXNumber, struct VECT *loc);
+void RotateRelSpeedsLadder(struct MATRIX *M, struct SVECT *Rel, struct SVECT *Vel, struct SVECT *Norm, struct SVECT *OutPut);
+void RotateRelSpeedsFly(struct MATRIX *M, struct SVECT *Rel, struct SVECT *Vel, struct SVECT *Norm);
+void RotateRelSpeeds(short Ang, short x, short z, struct SVECT *OutPut);
+void QCre_Move(struct CREATURE *Cre);
+short PrimaryWeaponMovement(struct CREATURE *Gun, struct PLAYERCONTROLS *Controls);
+void KillQuakePlayer(struct CREATURE *Cre);
+void AnimateQuakePlayer(struct CREATURE *Cre, int AnimType);
+void SetWinFade(int Win, struct COLOUR Colour, short FadeType, int Time, int InitTime);
+void ProcessQuakeGeneralCreEffects(struct CREATURE *Cre);
+void QuakePlayerCheckUnderwater(struct CREATURE *Cre);
+
+extern int NewVcounts;
+int EffectyDeath(struct CREATURE *Cre);
+void ProcessQuakeGeneralCreEffects(struct CREATURE *Cre);
+void AddCreToNextBumpList(struct CREATURE *Cre);
+void QuakeCreatureSmash(struct CREATURE *Cre, struct SVECT *Force);
+void QCre_Move(struct CREATURE *Cre);
+void PrimaryKillFade(struct CREATURE *Cre);
+
+extern int LevelIsMultiPlayer;
+int Seek(short *a, short b, short c);
+void AnimateQuakePlayer(struct CREATURE *Cre, int AnimType);
+void ProcessQuakeDeath(struct CREATURE *Cre);
+void PrimaryQuakeDeadPlayerBody(struct CREATURE *Cre);
+
+extern int Mission;
+int QWeapon_NextPrev(struct PLAYER *Player, int Weapon_Type, int Next);
+void *memset(void *, int, int);
+
+int sound_death4;
+int sound_drown1;
+extern int LevelIsMultiPlayer;
+extern unsigned int GameTimeOutTime;
+extern unsigned int GameTime;
+extern int GameRunningMode;
+extern struct QLEVELINTERFACE *LevelInterface;
+extern struct PLAYER Players[];
+void Q2CreDropItemOnDeath(struct CREATURE *Cre);
+void InGame_GOTO_DIED2(void);
+void RotMatrixYXZ(struct SVECT *r, struct MATRIX *m);
+void KillModel(void *m);
+void PrimaryQuakeDyingPlayer(struct CREATURE *Cre);
+
+extern unsigned int LevelTicks;
+extern int Sound_Invulnerability;
+extern int Sound_QuadDamage;
+extern struct WINDOW GameWindows[];
+int SoundAtLocation(int SFXNumber, struct VECT *loc);
+void SetWinFade(int Win, struct COLOUR Colour, short FadeType, int Time, int InitTime);
+
+extern int ChrisCount1;
+extern long *DummyMemory;
+extern struct CREATURE **ThisBumpList;
+extern struct CREATURE **ThisBumpListEnd;
+extern struct COLLHEADER CollMap;
+extern struct CREATURE Creatures[];
+void RotateL(struct MATRIX *m, struct VECT *v1, struct VECT *v2);
+struct CREATURE *LineIntersectCreCylinder(struct VECT *Start, struct VECT *Stop, struct CREATURE *Cre, struct VECT *ISect, struct CREATURE **Bump, struct CREATURE **BumpEnd);
+int Visable3d(struct COLLHEADER *Map, struct VECT *Start, struct VECT *End, int S0);
+long ratan2(long y, long x);
+void VectorNormal(struct VECT *v0, struct VECT *v1);
+
+extern struct MISSIONEND MissionEnd[6];
+extern int GlobalKey;
+extern int VBLevelTicks;
+extern short Console_Flags;
+extern struct IDENTITYNAME MainStartName;
+extern struct IDENTITYNAME NextZoneName;
+extern struct IDENTITYNAME NextLevelName;
+struct SAVEFILEHDR *OpenSaveMemory(struct IDENTITYNAME Name, int Writeable);
+void CloseWritableSaveMemoryFile(struct IDENTITYNAME Name, short Flags);
+char *PrintIdentityName(struct IDENTITYNAME Name);
+char *GetStringFromStringtable(struct IDENTITYNAME StringName);
+void ResetGlobalSecretsKills(char *CurrentMapTitle);
+
+struct ANIMHDR *QMMAnim_Run;
+struct ANIMHDR *QMMAnim_Pain1;
+struct ANIMHDR *QMMAnim_Pain2;
+struct ANIMHDR *QMMAnim_Pain3;
+struct GLOBMODHDR *PlayerMaleRed_ModHdr;
+struct ANIMHDR *QMMAnim_Attack;
+struct ANIMHDR *QMMAnim_Death1;
+struct ANIMHDR *QMMAnim_Death2;
+struct ANIMHDR *QMMAnim_Death3;
+struct ANIMHDR *QMMAnim_Jump;
+struct GLOBMODHDR *PlayerMalePurple_ModHdr;
+struct GLOBMODHDR *PlayerMaleAqua_ModHdr;
+struct GLOBMODHDR *PlayerMale_ModHdr;
+int ModNameCmp(struct IDENTITYNAME *Name1, struct IDENTITYNAME *Name2);
+struct ANIMHDR *FindAnimHdr(struct GLOBMODHDR *Hdr, struct IDENTITYNAME Name);
+void PrintAnimData(struct GLOBMODHDR *Hdr);
+
+extern short MaxAmmo[];
+extern struct IDENTITYNAME GunModels[];
+extern int WeaponBits[];
+struct GLOBMODHDR *GetModelHdr(struct IDENTITYNAME Name);
+
+int sound_fall2;
+int sound_land1;
+void NewTrueMove3d(struct CREATURE *Cre, int a, int b, int c);
+
+extern struct SHORTPAIR PlayerHitRadius;
+extern struct VECT *PlayerOldOrigin;
+extern int *PlayerOldMoveSpace;
+extern struct CREATURE Creatures[];
+struct CREATURE *GetNextCre(int UseExpendable);
+int GetFloorOffset(struct CREATURE *Cre);
+int SetupBoxDrop(struct COLLBOX3D *Box, struct VECT *Location, struct SCRPNT CollSize, struct SHORTPAIR MainSpaceDrop, struct SHORTPAIR HitSize);
+void GenQuakePlayerGun(struct CREATURE *Cre);
+char *strncpy(char *, const char *, int);
+int printf(const char *, ...);
+
+int sound_burn2;
+int sound_fall1;
+int sound_fry;
+int sound_gasp2;
+int sound_lava1;
+int sound_lava2;
+int sound_lava_in;
+int sound_spawnitem;
+int sound_step3;
+int sound_step4;
+int sound_wade1;
+int sound_wade2;
+int GetSoundNum(struct IDENTITYNAME Name);
+int GetSoundClone(int OriginalSoundNum);
+void SetRandomPitch(int SoundNum, int MaxPlus, int MaxMinus);
+
+void ReInitMultiQuakePlayer(int Win)
+{
+    if (Engine.GameConfig.sMultiMode != 5)
+        InitMultiQuakePlayer(Win);
+}
+
+void PrimaryQuakeDyingPlayer(struct CREATURE *Cre)
+{
+    struct SVECT Vel;
+
+    if (Cre->Health <= Cre->Params[0]) {
+        QuakeCreatureSmash(Cre, &(struct SVECT){0, 0, 0});
+        return;
+    }
+    AddCreToNextBumpList(Cre);
+    Seek(&Cre->Vel.vx, 0, NewVcounts * 40);
+    Seek(&Cre->Vel.vy, 0, NewVcounts * 40);
+    Seek(&Cre->Vel.vz, 0, NewVcounts * 40);
+    QCre_Move(Cre);
+    if (LevelIsMultiPlayer) {
+        if (!Cre->AnimFlags)
+            AnimateQuakePlayer(Cre, 4);
+        else {
+            Cre->Control |= 0x80000;
+            ProcessQuakeDeath(Cre);
+            Cre->Box.Min.vy = 0x8f;
+            Cre->Primary = PrimaryQuakeDeadPlayerBody;
+            Cre->Box.VectBox.Min.vy = Cre->Box.Location.vy + 0x8f;
+            Cre->Control |= 0x8000;
+        }
+    }
+    if (!LevelIsMultiPlayer)
+        Cre->Control |= 0x80000;
+}
+
+void PrimaryQuakeDeadPlayerBody(struct CREATURE *Cre)
+{
+    if (!EffectyDeath(Cre)) {
+        ProcessQuakeGeneralCreEffects(Cre);
+        AddCreToNextBumpList(Cre);
+        if (Cre->Health <= Cre->Params[0]) {
+            if (Cre->EdictT)
+                Cre->EdictT->takedamage = 0;
+            QuakeCreatureSmash(Cre, &(struct SVECT){0, 0, 0});
+            return;
+        }
+    }
+    QCre_Move(Cre);
+    if ((short)(Cre->Life -= NewVcounts) <= 0) {
+        Cre->Life = 1;
+        Cre->Primary = PrimaryKillFade;
+    }
+}
+
+void KillQuakePlayer(struct CREATURE *Cre)
+{
+    struct CREATURE *Gun;
+    int KillerNum;
+    int KilledNum;
+
+    if (Cre->HitType == 9 || Cre->HitType == 10)
+        *(signed char *)&Cre->HitBy = -1;
+    KillerNum = *(signed char *)&Cre->HitBy;
+    KilledNum = Cre->Player - Players;
+    if (KillerNum == -1) {
+        if (Cre->Player->Extras.Underwater)
+            SoundByCreature(sound_drown1, Cre);
+        else
+            SoundByCreature(sound_death4, Cre);
+    }
+    if (LevelIsMultiPlayer) {
+        Q2CreDropItemOnDeath(Cre);
+        if (KillerNum < 4 && KilledNum < 4)
+            LevelInterface->QMultiPlayer_AdvanceScoresCheckLevelComplete(KillerNum, KilledNum);
+    } else {
+        InGame_GOTO_DIED2();
+        Engine.PrintF("Continues %d\n", Engine.GameConfig.cContinues);
+    }
+    Cre->Ang.vx = 0;
+    RotMatrixYXZ(&Cre->Ang, &Cre->Matrix);
+    Cre->Player->Window->Creature = 0;
+    Gun = (struct CREATURE *)Cre->Params[0];
+    Cre->Params[0] = -40;
+    if (Gun)
+        KillModel(Gun);
+    Cre->Life = 1500;
+    Cre->Primary = PrimaryQuakeDyingPlayer;
+    if (GameRunningMode == 1 || GameRunningMode == 2) {
+        GameRunningMode = 3;
+        GameTimeOutTime = GameTime + 1200;
+    }
+}
+
+void FlashPowerUp(struct CREATURE *Cre)
+{
+    struct PLAYER *Player = Cre->Player;
+    struct PTIMERS *PTimers = &Player->Extras.PTimers;
+    struct COLOUR Fade_Colour = {0};
+    int Seconds_Timer;
+    int Sound_Effect;
+
+    if (LevelTicks < PTimers->QuadTimer) {
+        Seconds_Timer = (PTimers->QuadTimer - LevelTicks) / 300;
+        Sound_Effect = Sound_QuadDamage;
+        Fade_Colour = *&(struct COLOUR){0x28, 0, 0x28, 0};
+    } else if (LevelTicks < PTimers->InvTimer) {
+        Seconds_Timer = (PTimers->InvTimer - LevelTicks) / 300;
+        Sound_Effect = Sound_Invulnerability;
+        Fade_Colour = *&(struct COLOUR){0x1e, 0x1e, 0, 0};
+    } else if (LevelTicks < PTimers->EnviroTimer) {
+        Seconds_Timer = (PTimers->EnviroTimer - LevelTicks) / 300;
+        Sound_Effect = Sound_Invulnerability;
+        Fade_Colour = *&(struct COLOUR){0, 0x23, 0, 0};
+    } else if (LevelTicks < PTimers->BreatherTimer) {
+        Seconds_Timer = (PTimers->BreatherTimer - LevelTicks) / 300;
+        Sound_Effect = Sound_Invulnerability;
+        Fade_Colour = *&(struct COLOUR){0, 0x0a, 0, 0};
+    } else
+        return;
+    if (Seconds_Timer < 3 && Seconds_Timer != PTimers->PowerUp_Timer) {
+        PTimers->PowerUp_Timer = Seconds_Timer;
+        PTimers->Fade_Timer = LevelTicks + 150;
+        SoundAtLocation(Sound_Effect, &Cre->Box.Location);
+    } else if (LevelTicks > PTimers->Fade_Timer) {
+        SetWinFade(Player->Window - GameWindows, Fade_Colour, 3, 1, 1);
+        PTimers->Fade_Timer = 0;
+    }
+}
+
+void QCre_Move(struct CREATURE *Cre)
+{
+    long dp;
+    short OldVelY;
+
+    OldVelY = Cre->Vel.vy;
+    NewTrueMove3d(Cre, 1, 1, 0);
+    if (Cre->Box.WallNorm.vy < Cre->Box.FloorNormMin) {
+        int MinVelY;
+        int GenY;
+
+        dp = Cre->Box.WallNorm.vx * Cre->Vel.vx / 4096 + Cre->Box.WallNorm.vy * Cre->Vel.vy / 4096
+            + Cre->Box.WallNorm.vz * Cre->Vel.vz / 4096;
+        MinVelY = 0;
+        if (Cre->Vel.vy < 0)
+            MinVelY = Cre->Vel.vy;
+        Cre->Vel.vx -= (Cre->Box.WallNorm.vx * dp) >> 12;
+        Cre->Vel.vy -= (Cre->Box.WallNorm.vy * dp) >> 12;
+        Cre->Vel.vz -= (Cre->Box.WallNorm.vz * dp) >> 12;
+        GenY = Cre->Vel.vy;
+        if (GenY < MinVelY) {
+            Cre->Vel.vx = Cre->Vel.vx * MinVelY / GenY;
+            Cre->Vel.vy = Cre->Vel.vy * MinVelY / GenY;
+            Cre->Vel.vz = Cre->Vel.vz * MinVelY / GenY;
+        }
+    }
+    {
+        int Damage;
+        int Delta;
+        struct PTIMERS *PTimers;
+        struct PLAYER *Player;
+
+        Player = Cre->Player;
+        PTimers = &Player->Extras.PTimers;
+        if (Cre->Box.OnFloor) {
+            Delta = (Cre->Vel.vy - OldVelY) >> 4;
+            Delta = Delta * Delta / 6144;
+            if (Delta >= 8 && !(Cre->Box.InShallowWater || Cre->Box.InWater)) {
+                Player->Extras.Fall_Value = (Delta << 12) / 360;
+                if (Player->Extras.Fall_Value > 0x1c7)
+                    Player->Extras.Fall_Value = 0x1c7;
+                PTimers->Fall_Timer = LevelTicks + 90;
+                if (Delta > 30) {
+                    if (Cre->Health > 0)
+                        SoundByCreature(sound_fall2, Cre);
+                    Damage = (Delta - 30) >> 1;
+                    if (Damage <= 0)
+                        Damage = 1;
+                    if (!(Console_Flags & 0x40))
+                        DoDamage(Cre, Cre, Damage, 0x13, 0);
+                } else
+                    SoundByCreature(sound_land1, Cre);
+            }
+        }
+    }
+}
+
+void FindPlayerTarget(struct PLAYER *Player)
+{
+    struct CREATURE **Bump;
+    struct CREATURE **CutDownBump;
+    struct CREATURE **CutDownBumpEnd;
+    struct CREATURE *Cre;
+    int Win;
+    short ClipValidate;
+
+    Cre = Player->Creature;
+    Player->TargetCreIndx = -1;
+    ClipValidate = ChrisCount1;
+    if (Player->Window) {
+        int a;
+        struct VECT FireDirection;
+        struct VECT FireVect;
+        struct VECT MoveVel;
+        struct VECT StopPos;
+        struct VECT HitPos;
+        short StartSpace;
+        struct CREATURE *Target;
+        short Low;
+        short High;
+
+        Win = Player->Window - GameWindows;
+        CutDownBumpEnd = (struct CREATURE **)DummyMemory;
+        Low = GameWindows[Win].Size.sx * 160 / 512;
+        High = GameWindows[Win].Size.sx * 400 / 512;
+        for (Bump = ThisBumpList; Bump < ThisBumpListEnd; Bump++) {
+            if (*Bump != Cre && ClipValidate == (*Bump)->WinData[Win].ClipValidate
+                && (*Bump)->WinData[Win].ScreenXY.sx >= Low
+                && (*Bump)->WinData[Win].ScreenXY.sx <= High)
+                *CutDownBumpEnd++ = *Bump;
+        }
+        CutDownBumpEnd = (struct CREATURE **)DummyMemory;
+        CutDownBump = CutDownBumpEnd;
+        for (Bump = ThisBumpList; Bump < ThisBumpListEnd; Bump++)
+            *CutDownBumpEnd++ = *Bump;
+        FireDirection = *&(struct VECT){0, 0, 0x2000};
+        MoveVel = Player->Window->CamPos;
+        StartSpace = Player->Window->CamSpace;
+        RotateL(&Cre->Matrix, &FireDirection, &FireVect);
+        FireVect.vy = -FireVect.vy;
+        Player->TargetDir.vx = (short)FireVect.vx / 2;
+        Player->TargetDir.vy = (short)FireVect.vy / 2;
+        Player->TargetDir.vz = (short)FireVect.vz / 2;
+        for (a = 0; a < 11; a++) {
+            StopPos.vx = MoveVel.vx + FireVect.vx;
+            StopPos.vy = MoveVel.vy + FireVect.vy;
+            StopPos.vz = MoveVel.vz + FireVect.vz;
+            Target = LineIntersectCreCylinder(&MoveVel, &StopPos, Cre, &HitPos, CutDownBump, CutDownBumpEnd);
+            if (Target) {
+                if (Visable3d(&CollMap, &MoveVel, &HitPos, StartSpace))
+                    break;
+                Target = 0;
+            }
+            FireDirection.vy = -FireDirection.vy;
+            if (!(a & 1))
+                FireDirection.vy += 0x200;
+            RotateL(&Cre->Matrix, &FireDirection, &FireVect);
+            FireVect.vy = -FireVect.vy;
+        }
+        if (Target) {
+            Player->TargetPitch = ratan2(-FireDirection.vy, FireDirection.vz);
+            VectorNormal(&FireVect, &FireVect);
+            Player->TargetDir.vx = FireVect.vx;
+            Player->TargetDir.vy = FireVect.vy;
+            Player->TargetDir.vz = FireVect.vz;
+            Player->TargetCreIndx = Target - Creatures;
+        } else {
+            Player->TargetPitch = 0;
+            Player->TargetCreIndx = -1;
+        }
+    }
+}
+
+void PrimaryQuakePlayer(struct CREATURE *Cre)
+{
+    int AnimType;
+    int PlayerSpeed;
+    int NoSeekLook;
+    char a;
+    char b;
+    struct PLAYER *Player;
+    int SeekA;
+    int SeekB;
+    int SeekC;
+    int sx;
+    int sz;
+    int TicksRemain;
+    int Controlled;
+    int PrevInWater;
+    struct SVECT MultiRenderAng;
+    struct PLAYERCONTROLS MapCtrls;
+
+    AnimType = -1;
+    Player = Cre->Player;
+    TicksRemain = NewVcounts;
+    if (Cre->Box.InCrouch)
+        SeekA = 0x190;
+    else if (Cre->Box.InLowCrouch)
+        SeekA = 0x11e;
+    else
+        SeekA = 0x240;
+    Seek(&Cre->HeadHeight, SeekA, NewVcounts * 4);
+    PrevInWater = Cre->Box.InWater;
+    Cre->Box.InWater = 0;
+    Cre->Box.InShallowWater = 0;
+    Cre->Box.InAirFlow = 0;
+    Cre->Box.DontJump = 0;
+    Cre->Box.InCrouch = 0;
+    Cre->Box.InLowCrouch = 0;
+    Cre->Box.InTeleporter = 0;
+    Event_ProcessTriggers(Cre, 1);
+    if (!TicksRemain)
+        return;
+    RotMatrixYXZ(&Cre->Ang, &Cre->Matrix);
+    FindPlayerTarget(Player);
+    if (Cre->Box.OnFloor | Cre->Box.OnSolidBox | Cre->Box.OnCreature)
+        AnimType = 0;
+    FlashPowerUp(Cre);
+    if (Cre->Box.MoveSpace < 0)
+        FindBoxMoveSpace(&Cre->Box, -1);
+    if (Cre->Box.InTeleporter) {
+        Cre->Box.WasInTeleporter = 1;
+        Cre->ModelOpaque -= NewVcounts * 128;
+        if (Cre->ModelOpaque < 0)
+            Cre->ModelOpaque = 0;
+    } else if (Cre->Box.WasInTeleporter) {
+        Cre->ModelOpaque += NewVcounts * 32;
+        if (Cre->ModelOpaque >= 0x1000) {
+            Cre->ModelOpaque = 0x1000;
+            Cre->Box.WasInTeleporter = 0;
+        }
+    }
+    if (Cre->Box.InLowCrouch)
+        PlayerSpeed = 0x640;
+    else if (Cre->Box.InShallowWater || Cre->Box.InWater || Cre->Box.InCrouch)
+        PlayerSpeed = 0x7d0;
+    else
+        PlayerSpeed = 0xaf0;
+    if (Cre->EdictT) {
+        if (Console_Flags & 4)
+            Cre->EdictT->flags |= 0x20;
+        else
+            Cre->EdictT->flags &= ~0x20;
+    }
+    if (FlyModeOn)
+        Cre->Control |= 0x1000;
+    else
+        Cre->Control &= ~0x1000;
+    Seek(&Player->TargetPitchSeek, Player->TargetPitch, NewVcounts * 4);
+    MapPadInputToCommands(Player - Players, &MapCtrls);
+    if (MapCtrls.AutoCentreAdd && Engine.GameConfig.bAutoCenter)
+        Player->RecentreCountUp += NewVcounts;
+    else
+        Player->RecentreCountUp = 0;
+    Controlled = (MapCtrls.ForwardSpeed | MapCtrls.SideSpeed) != 0;
+    if (PrevInWater && !Cre->Box.InWater && Cre->Box.WallNorm.vy < 0x800 && !Cre->Box.OnLadder
+        && !(Cre->Control & 0x1000)) {
+        MapCtrls.JumpTapped = 1;
+        Cre->Box.DontJump = 0;
+        Player->JumpCount = 0;
+        Cre->Box.FloorNorm.vy = 0x1000;
+        Cre->Box.FloorNorm.vz = 0;
+        Cre->Box.FloorNorm.vx = 0;
+    }
+    SeekA = NewVcounts;
+    SeekB = SeekA << 2;
+    if (Cre->Box.InWater) {
+        if (Controlled)
+            SeekC = SeekA * 30;
+        else
+            SeekC = SeekA * 14;
+    } else
+        SeekC = SeekA * 38;
+    Seek(&Player->RelVel.vz, (PlayerSpeed * MapCtrls.ForwardSpeed) >> 7, SeekC);
+    Seek(&Player->RelVel.vx, (PlayerSpeed * MapCtrls.SideSpeed) >> 7, SeekC);
+    NoSeekLook = 0;
+    if (Engine.GameConfig.MultiPlayerParams[Player - Players].controllerSelected < 6) {
+        NoSeekLook = 1;
+        Player->AngVel.vy = (MapCtrls.TurnSpeed * 3) >> 2;
+        Player->AngVel.vx = (MapCtrls.LookUpSpeed * 3) >> 2;
+    } else {
+        if (Player->AngVel.vx * MapCtrls.LookUpSpeed < 0)
+            Seek(&Player->AngVel.vx, (MapCtrls.LookUpSpeed * 3) >> 2, SeekB);
+        else
+            Seek(&Player->AngVel.vx, (MapCtrls.LookUpSpeed * 3) >> 2, SeekA);
+        if (MapCtrls.TurnSpeed > 0) {
+            if (Player->AngVel.vy < 0)
+                Seek(&Player->AngVel.vy, (MapCtrls.TurnSpeed * 3) >> 2, SeekB);
+            else
+                Seek(&Player->AngVel.vy, (MapCtrls.TurnSpeed * 3) >> 2, SeekA);
+        } else if (MapCtrls.TurnSpeed < 0) {
+            if (Player->AngVel.vy > 0)
+                Seek(&Player->AngVel.vy, (MapCtrls.TurnSpeed * 3) >> 2, SeekB);
+            else
+                Seek(&Player->AngVel.vy, (MapCtrls.TurnSpeed * 3) >> 2, SeekA);
+        } else
+            Seek(&Player->AngVel.vy, 0, SeekB);
+    }
+    Player->RecentreBits <<= 1;
+    if (MapCtrls.DigLookUpPressed || MapCtrls.DigLookDownPressed)
+        Player->RecentreBits |= 1;
+    if (MapCtrls.DigLookUpPressed && MapCtrls.DigLookDownPressed && (Player->RecentreBits & 7) != 7)
+        Player->RecentreLookup = 1;
+    if ((Player->RecentreBits & 3) == 1)
+        Player->RecentreLookup = 0;
+    if (!MapCtrls.LookUpSpeed) {
+        if (Player->RecentreLookup && !(Cre->Control & 0x1000) && !Cre->Box.OnLadder) {
+            Cre->Ang.vx = Cre->Ang.vx * 5 / 6;
+            Seek(&Cre->Ang.vx, 0, NewVcounts);
+            Player->AngVel.vx = 0;
+            if (!Cre->Ang.vx)
+                Player->RecentreLookup = 0;
+        } else if (!NoSeekLook)
+            Seek(&Player->AngVel.vx, 0, SeekB);
+    } else
+        Player->RecentreCountUp = 0;
+    if (!(Cre->Control & 0x80000)) {
+        if (Engine.GameConfig.bCrossHairs)
+            ProcessGunSight(Player);
+        QuakeWeaponChange(Cre, &MapCtrls);
+        if (!(Cre->Control & 0x1000) && !(Cre->Box.InWater || Cre->Box.InCrouch || Cre->Box.InLowCrouch))
+            if (QuakePlayerJump(Cre, MapCtrls.JumpTapped))
+                AnimType = 2;
+    } else
+        AnimType = 4;
+    if (!LevelIsMultiPlayer && (Cre->Box.OnFloor | Cre->Box.OnSolidBox) && Player->RecentreCountUp >= 200) {
+        Player->RecentreCountUp = 200;
+        Player->RecentreLookup = 1;
+    }
+    Cre->Ang.vx += Player->AngVel.vx * NewVcounts / 10;
+    Cre->Ang.vy += Player->AngVel.vy * NewVcounts / 10;
+    if (Cre->Ang.vx < -0x400) {
+        Cre->Ang.vx = -0x400;
+        Player->AngVel.vx = 0;
+    }
+    if (Cre->Ang.vx > 0x400) {
+        Cre->Ang.vx = 0x400;
+        Player->AngVel.vx = 0;
+    }
+    if ((Cre->Box.OnFloor || Cre->Box.OnLadder) && !Cre->Box.OnRope) {
+        sx = Player->RelVel.vx;
+        if (sx < 0)
+            sx = -sx;
+        sz = Player->RelVel.vz;
+        if (sz < 0)
+            sz = -sz;
+        if (sx > (int)((unsigned)PlayerSpeed >> 1) || sz > (int)((unsigned)PlayerSpeed >> 1)) {
+            if (LevelTicks > Player->Extras.NextFootstepFrame) {
+                if (Cre->Box.InShallowWater) {
+                    Player->Extras.NextFootstepFrame = LevelTicks + 320;
+                    SoundAtLocation(sound_wade3, &Cre->Draw.Location);
+                } else {
+                    Player->Extras.NextFootstepFrame = LevelTicks + 120;
+                    if (Player->Extras.NextFootstepToggle = !Player->Extras.NextFootstepToggle)
+                        SoundAtLocation(sound_step1, &Cre->Draw.Location);
+                    else
+                        SoundAtLocation(sound_step2, &Cre->Draw.Location);
+                }
+            }
+        }
+    }
+    if (!(Cre->Control & 0x80000))
+        Cre->Ang.vz = -Player->RelVel.vx / 192;
+    if (AnimType == 0 && (Player->RelVel.vx | Player->RelVel.vz))
+        AnimType = 1;
+    RotMatrixYXZ(&Cre->Ang, &Cre->Matrix);
+    if (Cre->Box.InWater && MapCtrls.JumpDepressed && Cre->Vel.vy >= -0x300)
+        Seek(&Cre->Vel.vy, -0x300, NewVcounts * 64);
+    if (Cre->Box.OnLadder)
+        RotateRelSpeedsLadder(&Cre->Matrix, &Player->RelVel, &Cre->Vel, &Cre->Box.WallNorm, &Cre->Vel);
+    else if (!Cre->Box.InWater || FlyModeOn || Controlled) {
+        if (FlyModeOn || Cre->Box.InWater)
+            RotateRelSpeedsFly(&Cre->Matrix, &Player->RelVel, &Cre->Vel, &Cre->Box.WallNorm);
+        else {
+            RotateRelSpeeds(Cre->Ang.vy, Player->RelVel.vx, Player->RelVel.vz, &MultiRenderAng);
+            Seek(&Cre->Vel.vx, MultiRenderAng.vx, NewVcounts * 40);
+            Seek(&Cre->Vel.vz, MultiRenderAng.vz, NewVcounts * 40);
+        }
+    } else {
+        RotateRelSpeeds(Cre->Ang.vy, Player->RelVel.vx, Player->RelVel.vz, &MultiRenderAng);
+        Seek(&Cre->Vel.vx, MultiRenderAng.vx, NewVcounts * 10);
+        Seek(&Cre->Vel.vz, MultiRenderAng.vz, NewVcounts * 10);
+    }
+    if ((Cre->Box.InWater && !FlyModeOn) || Controlled) {
+        if (!Cre->Box.OnLadder)
+            Seek(&Cre->Vel.vy, 0x300, NewVcounts * 6);
+    }
+    Cre->Box.OnLadder = 0;
+    QCre_Move(Cre);
+    if (PrimaryWeaponMovement((struct CREATURE *)Cre->Params[0], &MapCtrls) && !AnimType)
+        AnimType = 5;
+    if (Cre->Health <= 0 && !(Cre->Control & 0x80000)) {
+        KillQuakePlayer(Cre);
+        AnimateQuakePlayer(Cre, 4);
+        return;
+    }
+    if (*(signed char *)&Cre->HitType) {
+        AnimType = 3;
+        Cre->HitType = 0;
+    }
+    gSinglePlayerHintTime = 0;
+    if (Cre->Health < Cre->LastHealth || Player->Extras.Armour_Count < Player->Extras.Last_Armour_Count) {
+        if (Player->Extras.Armour_Count < Player->Extras.Last_Armour_Count) {
+            a = (Player->Extras.Armour_Count - Player->Extras.Last_Armour_Count) / 2 + 2;
+            if (a >= 6)
+                a = 5;
+            SetWinFade(Cre->Player->Window - GameWindows, (struct COLOUR){0x40, 0x40, 0x40, 0}, 2, a, a);
+        } else if (Cre->Health < Cre->LastHealth) {
+            a = (Cre->LastHealth - Cre->Health) / 2 + 2;
+            if (a >= 6)
+                a = 5;
+            SetWinFade(Cre->Player->Window - GameWindows, (struct COLOUR){0x40, 0, 0, 0}, 2, a, a);
+        }
+        if (Player->Extras.PTimers.Damage_Timer <= LevelTicks) {
+            Player->Extras.PTimers.Damage_Timer = LevelTicks + 210;
+            if (Cre->Health < 25)
+                b = Sound_Pain25;
+            else if (Cre->Health < 50)
+                b = Sound_Pain50;
+            else if (Cre->Health < 75)
+                b = Sound_Pain75;
+            else
+                b = Sound_Pain100;
+            SoundAtLocation(b, &Cre->Box.Location);
+        }
+    }
+    Cre->LastHealth = Cre->Health;
+    Player->Extras.Last_Armour_Count = Player->Extras.Armour_Count;
+    if (LevelIsMultiPlayer) {
+        AnimateQuakePlayer(Cre, AnimType);
+        MultiRenderAng = Cre->Ang;
+        MultiRenderAng.vx = -MultiRenderAng.vx >> 2;
+        RotMatrixYXZ(&MultiRenderAng, &Cre->Matrix);
+    }
+    ProcessQuakeGeneralCreEffects(Cre);
+    QuakePlayerCheckUnderwater(Cre);
+}
+
+void CheckForAllWeap(struct PLAYER *Player)
+{
+    short MaxAmmo_Type;
+    int WeapCount;
+
+    if (Console_Flags & 0x20) {
+        MaxAmmo_Type = Player->Extras.Max_AmmoType;
+        for (WeapCount = 1; WeapCount < 12; WeapCount++) {
+            if (GetModelHdr(GunModels[WeapCount]))
+                Player->Extras.WeaponsAvailable |= WeaponBits[WeapCount];
+        }
+        Player->Extras.AmmoCount[0] = MaxAmmo[MaxAmmo_Type];
+        Player->Extras.AmmoCount[1] = MaxAmmo[MaxAmmo_Type + 1];
+        Player->Extras.AmmoCount[2] = MaxAmmo[MaxAmmo_Type + 2];
+        Player->Extras.AmmoCount[3] = MaxAmmo[MaxAmmo_Type + 3];
+        Player->Extras.AmmoCount[4] = MaxAmmo[MaxAmmo_Type + 4];
+        Player->Extras.AmmoCount[5] = MaxAmmo[MaxAmmo_Type + 5];
+        Player->Extras.FastWeaponSelect = Player->Extras.Current_WeaponSelected;
+        Player->Extras.Next_WeaponSelected = QWeapon_NextPrev(Player, Player->Extras.FastWeaponSelect, 1);
+        Player->Extras.Previous_WeaponSelected = QWeapon_NextPrev(Player, Player->Extras.FastWeaponSelect, 0);
+    }
+}
+
+void InitMultiQuakePlayer(int Win)
+{
+    struct PLAYER *Player;
+    struct CREATURE *Cre;
+
+    Cre = InitialiseQuakePlayer(Win, GetRandomMultiplayerStart());
+    if (!Cre)
+        for (;;)
+            ;
+    Cre->HitBy = 4;
+    Player = Cre->Player;
+    CheckForAllWeap(Player);
+    Player->Extras.ExtraBits = 0;
+    StartAnim(Cre, QMMAnim_Stand);
+    SoundByCreature(sound_spawnplayer, Cre);
+}
+
+struct CREATURE *InitialiseQuakePlayer(int Win, struct STARTPOSITION *Start)
+{
+    struct CREATURE *Cre;
+    short *PlayerColourId;
+
+    Cre = GetNextCre(1);
+    if (Cre) {
+        Cre->Player = &Players[Win];
+        Cre->Life = 1;
+        Cre->TypeIdent = 0x27;
+        Cre->Health = 100;
+        memset(Cre->Player, 0, sizeof(struct PLAYER));
+        Cre->Player->Creature = Cre;
+        QuakeSinglePlayerStuff(Cre->Player);
+        if (LevelIsMultiPlayer) {
+            switch (Engine.GameConfig.sMultiMode) {
+            case 0:
+            case 3:
+            case 5:
+                PlayerColourId = &Engine.GameConfig.MultiPlayerParams[Win].playerSelected;
+                break;
+            case 1:
+            case 2:
+            case 4:
+                PlayerColourId = &Engine.GameConfig.MultiPlayerParams[Win].teamSelected;
+                break;
+            }
+            switch (*PlayerColourId) {
+            case 0:
+                Cre->ModelHdr = PlayerMale_ModHdr;
+                break;
+            case 1:
+                Cre->ModelHdr = PlayerMaleRed_ModHdr;
+                break;
+            case 2:
+                Cre->ModelHdr = PlayerMalePurple_ModHdr;
+                break;
+            case 3:
+                Cre->ModelHdr = PlayerMaleAqua_ModHdr;
+                break;
+            }
+        }
+        Cre->WinData[Win].NoDraw = 1;
+        Cre->Primary = PrimaryQuakePlayer;
+        Cre->HeightOffset = GetFloorOffset(Cre);
+        Cre->HeadHeight = 0x1f4;
+        Cre->TotalHeight = 0x240;
+        Players->TargetPitchSeek = 0;
+        Cre->Control = 1;
+        Cre->Player->Window = &GameWindows[Win];
+        Cre->DefaultAmbience = *&(struct COLOUR){0x20, 0x20, 0x20, 0};
+        Cre->Ambience = *&(struct COLOUR){0x20, 0x20, 0x20, 0};
+        GameWindows[Win].Creature = Cre;
+        GamePlayerLoadSave(Cre->Player - Players, 0);
+        memset(&Cre->Player->Extras.PTimers, 0, sizeof(struct PTIMERS));
+        {
+            {
+                struct VECT Location;
+
+                Location = Start->Location;
+                Location.vy -= 0x11e;
+                Cre->Player->CamTarg = Cre->Box.Location = Cre->Draw.Location = Location;
+            }
+        }
+        Cre->Ang = (struct SVECT){0, Start->AngY, 0};
+        RotMatrixYXZ(&Cre->Ang, &Cre->Matrix);
+        if (!SetupBoxDrop(&Cre->Box, &Start->Location, (struct SCRPNT){0x11e, 0x23c}, (struct SHORTPAIR){-1, 0x400}, PlayerHitRadius)) {
+            printf("Error Player out of space; cre %d @ %d %d %d\n", Cre - Creatures, Cre->Box.Location.vx,
+                Cre->Box.Location.vy, Cre->Box.Location.vz);
+            while (1)
+                ;
+        }
+        Cre->Box.UseExtraCollisionTypes = 1;
+        GenQuakePlayerGun(Cre);
+        strncpy(Cre->Player->Name, Engine.GameConfig.MultiPlayerParams[Win].playerName, 7);
+        InitialisePlayerSounds();
+        GamePlayerLoadSave(Cre->Player - Players, 1);
+        if (!LevelIsMultiPlayer) {
+            PlayerOldOrigin[Win] = Cre->Box.Location;
+            PlayerOldMoveSpace[Win] = Cre->Box.MoveSpace;
+        }
+        return Cre;
+    }
+    return 0;
+}
+
+int QuakePlayerJump(struct CREATURE *Cre, int JumpTapped)
+{
+    struct PLAYER *Player;
+
+    Player = Cre->Player;
+    if (Player->JumpCount) {
+        if (Cre->Vel.vy >= 0 || Player->JumpCount < NewVcounts)
+            Player->JumpCount = 0;
+        else
+            Player->JumpCount -= NewVcounts;
+        return 0;
+    }
+    if (!JumpTapped)
+        return 0;
+    if (Cre->Box.DontJump)
+        return 0;
+    if (Cre->Box.FloorNorm.vy > Cre->Box.FloorNormMin || Cre->Box.OnLadder) {
+        if (Cre->Box.OnLadder) {
+            Cre->ForceVel.vx = -Cre->Box.WallNorm.vx;
+            Cre->ForceVel.vz = -Cre->Box.WallNorm.vz;
+        }
+        Cre->ForceVel.vy = -0xc00;
+        Player->JumpCount = 0x240;
+        Cre->Control |= 0x4000;
+        PlayerNoise(Cre->EdictT, &Cre->Box.Location, 0);
+        SoundByCreature(sound_jump1, Cre);
+        return 1;
+    }
+    return 0;
+}
+
+void PlayerToxicSound(struct CREATURE *Cre)
+{
+    SoundByCreature(sound_burn1, Cre);
+}
+
+void PlayerLavaSound(struct CREATURE *Cre)
+{
+    static int Silent = 0;
+
+    if ((++Silent & 3) == 0)
+        SoundByCreature(sound_burn1, Cre);
+}
+
+void InitialisePlayerSounds(void)
+{
+    sound_burn1 = GetSoundNum((struct IDENTITYNAME){"pla_burn1"});
+    if (!sound_burn1)
+        sound_burn1 = GetSoundNum((struct IDENTITYNAME){"pla_burn2"});
+    sound_burn2 = sound_burn1;
+    sound_death4 = GetSoundNum((struct IDENTITYNAME){"pla_death4"});
+    sound_drown1 = GetSoundNum((struct IDENTITYNAME){"pla_drown1"});
+    sound_fall2 = GetSoundNum((struct IDENTITYNAME){"pla_fall2"});
+    sound_fall1 = sound_fall2;
+    sound_fry = sound_burn1;
+    sound_gasp1 = GetSoundNum((struct IDENTITYNAME){"pla_gasp1"});
+    sound_gasp2 = GetSoundNum((struct IDENTITYNAME){"pla_gasp2"});
+    sound_jump1 = GetSoundNum((struct IDENTITYNAME){"pla_jump1"});
+    sound_land1 = GetSoundNum((struct IDENTITYNAME){"pla_land1"});
+    sound_lava1 = sound_burn1;
+    sound_lava2 = sound_burn1;
+    sound_lava_in = sound_burn1;
+    sound_step1 = GetSoundNum((struct IDENTITYNAME){"pla_step1"});
+    sound_step2 = GetSoundNum((struct IDENTITYNAME){"pla_step2"});
+    sound_step3 = sound_step1;
+    sound_step4 = sound_step2;
+    sound_u_brea2 = GetSoundNum((struct IDENTITYNAME){"pla_u_brea~2"});
+    sound_u_brea1 = sound_u_brea2;
+    sound_wade3 = GetSoundNum((struct IDENTITYNAME){"pla_wade3"});
+    sound_wade1 = sound_wade3;
+    sound_wade2 = sound_wade3;
+    sound_watr_in = GetSoundNum((struct IDENTITYNAME){"pla_watr_in"});
+    sound_watr_out = GetSoundNum((struct IDENTITYNAME){"pla_watr_out"});
+    sound_watr_un = GetSoundNum((struct IDENTITYNAME){"pla_watr_un"});
+    sound_spawnplayer = GetSoundNum((struct IDENTITYNAME){"msc_tele1"});
+    sound_spawnitem = GetSoundNum((struct IDENTITYNAME){"itm_respawn1"});
+
+    sound_u_brea1 = GetSoundClone(sound_u_brea2);
+
+    SetRandomPitch(sound_gasp1, 4, -5);
+
+    SetRandomPitch(sound_drown1, 4, -5);
+
+    SetRandomPitch(sound_burn1, 0, -2);
+    SetRandomPitch(sound_burn2, 0, -2);
+
+    SetRandomPitch(sound_wade3, 3, -3);
+
+    Sound_Pain25 = GetSoundNum((struct IDENTITYNAME){"mal_pn25_1"});
+    Sound_Pain50 = GetSoundNum((struct IDENTITYNAME){"mal_pn50_1"});
+    Sound_Pain75 = GetSoundNum((struct IDENTITYNAME){"mal_pn75_1"});
+    Sound_Pain100 = GetSoundNum((struct IDENTITYNAME){"mal_pn100_1"});
+}
+
+void MP_player_male(struct edict_s *self)
+{
+    struct CREATURE *Cre;
+
+    Cre = self->Extra.Creature;
+    self->s.skinnum = 2;
+    ((struct CREATURE *)self->Extra.Creature)->Health = 30;
+    self->gib_health = -30;
+    StartAnim(Cre, QMMAnim_Stand);
+}
+
+void InitialisePlayerSounds(void);
+
+void PreInitPlayerMale(struct GLOBMODHDR *Hdr)
+{
+    if (!Hdr)
+        return;
+    if (ModNameCmp(&Hdr->ModelName, (struct IDENTITYNAME *)"Male2") == 1
+        || ModNameCmp(&Hdr->ModelName, (struct IDENTITYNAME *)"Male4") == 1) {
+        PlayerMale_ModHdr = Hdr;
+        QMMAnim_Stand = FindAnimHdr(Hdr, (struct IDENTITYNAME){"Stand"});
+        QMMAnim_Run = FindAnimHdr(Hdr, (struct IDENTITYNAME){"Run"});
+        QMMAnim_Attack = FindAnimHdr(Hdr, (struct IDENTITYNAME){"Attak"});
+        QMMAnim_Death1 = FindAnimHdr(Hdr, (struct IDENTITYNAME){"Death 1"});
+        QMMAnim_Death2 = FindAnimHdr(Hdr, (struct IDENTITYNAME){"Death 2"});
+        QMMAnim_Death3 = FindAnimHdr(Hdr, (struct IDENTITYNAME){"Death 3"});
+        QMMAnim_Jump = FindAnimHdr(Hdr, (struct IDENTITYNAME){"Jump"});
+        QMMAnim_Pain1 = FindAnimHdr(Hdr, (struct IDENTITYNAME){"Pain 1"});
+        QMMAnim_Pain2 = FindAnimHdr(Hdr, (struct IDENTITYNAME){"Pain 2"});
+        QMMAnim_Pain3 = FindAnimHdr(Hdr, (struct IDENTITYNAME){"Pain 3"});
+        QMMAnim_Stand->AnimDetails.Wrap = QMMAnim_Stand->AnimDetails.Start;
+        QMMAnim_Run->AnimDetails.Wrap = QMMAnim_Run->AnimDetails.Start;
+        PrintAnimData(PlayerMale_ModHdr);
+        InitialisePlayerSounds();
+    } else if (ModNameCmp(&Hdr->ModelName, (struct IDENTITYNAME *)"Male2red") == 1
+        || ModNameCmp(&Hdr->ModelName, (struct IDENTITYNAME *)"Male4red") == 1) {
+        Hdr->AnimHdr = PlayerMale_ModHdr->AnimHdr;
+        Hdr->AnimData = PlayerMale_ModHdr->AnimData;
+        Hdr->SortData = PlayerMale_ModHdr->SortData;
+        Hdr->ExtraSortData = PlayerMale_ModHdr->ExtraSortData;
+        PlayerMaleRed_ModHdr = Hdr;
+        Hdr->NumFrames = PlayerMale_ModHdr->NumFrames;
+        Hdr->MaxStack = PlayerMale_ModHdr->MaxStack;
+    } else if (ModNameCmp(&Hdr->ModelName, (struct IDENTITYNAME *)"Male2purple") == 1
+        || ModNameCmp(&Hdr->ModelName, (struct IDENTITYNAME *)"Male4purple") == 1) {
+        Hdr->AnimHdr = PlayerMale_ModHdr->AnimHdr;
+        Hdr->AnimData = PlayerMale_ModHdr->AnimData;
+        Hdr->SortData = PlayerMale_ModHdr->SortData;
+        Hdr->ExtraSortData = PlayerMale_ModHdr->ExtraSortData;
+        PlayerMalePurple_ModHdr = Hdr;
+        Hdr->NumFrames = PlayerMale_ModHdr->NumFrames;
+        Hdr->MaxStack = PlayerMale_ModHdr->MaxStack;
+    } else if (ModNameCmp(&Hdr->ModelName, (struct IDENTITYNAME *)"Male2aqua") == 1
+        || ModNameCmp(&Hdr->ModelName, (struct IDENTITYNAME *)"Male4aqua") == 1) {
+        Hdr->AnimHdr = PlayerMale_ModHdr->AnimHdr;
+        Hdr->AnimData = PlayerMale_ModHdr->AnimData;
+        Hdr->SortData = PlayerMale_ModHdr->SortData;
+        Hdr->ExtraSortData = PlayerMale_ModHdr->ExtraSortData;
+        PlayerMaleAqua_ModHdr = Hdr;
+        Hdr->NumFrames = PlayerMale_ModHdr->NumFrames;
+        Hdr->MaxStack = PlayerMale_ModHdr->MaxStack;
+    }
+    PrintIdentityName(Hdr->ModelName);
+}
+
+int rand(void);
+
+void AnimateQuakePlayer(struct CREATURE *Cre, int AnimType)
+{
+    int TicksRemain;
+    int OldTicksRemain;
+    int FrameB;
+    int CantOut;
+    int DontReplay;
+    struct ANIMHDR *NextAnim;
+
+    CantOut = 0;
+    DontReplay = 1;
+    NextAnim = 0;
+    TicksRemain = NewVcounts;
+    OldTicksRemain = TicksRemain - 1;
+    if (AnimType == 5) {
+        NextAnim = QMMAnim_Attack;
+        DontReplay = 0;
+    }
+    if (AnimType != 4) {
+        if (Cre->SequenceHdr == QMMAnim_Death1 || Cre->SequenceHdr == QMMAnim_Death2
+            || Cre->SequenceHdr == QMMAnim_Death3)
+            NextAnim = 0;
+    } else if (Cre->SequenceHdr == QMMAnim_Death1 || Cre->SequenceHdr == QMMAnim_Death2
+        || Cre->SequenceHdr == QMMAnim_Death3)
+        NextAnim = 0;
+    else {
+        switch (rand() % 3) {
+        case 0:
+            NextAnim = QMMAnim_Death1;
+            break;
+        case 1:
+            NextAnim = QMMAnim_Death2;
+            break;
+        case 2:
+            NextAnim = QMMAnim_Death3;
+            break;
+        }
+    }
+    if (AnimType == 3) {
+        switch (rand() % 3) {
+        case 0:
+            NextAnim = QMMAnim_Pain1;
+            break;
+        case 1:
+            NextAnim = QMMAnim_Pain2;
+            break;
+        case 2:
+            NextAnim = QMMAnim_Pain3;
+            break;
+        }
+    }
+    if (AnimType == 2)
+        NextAnim = QMMAnim_Jump;
+    if (AnimType == 0) {
+        if (Cre->SequenceHdr != QMMAnim_Attack || (Cre->AnimFlags & 1))
+            NextAnim = QMMAnim_Stand;
+    }
+    if (AnimType == 1)
+        NextAnim = QMMAnim_Run;
+    if (Cre->SequenceHdr == QMMAnim_Jump) {
+        if (NextAnim == Cre->SequenceHdr)
+            DontReplay = 0;
+        else {
+            if (!(Cre->AnimFlags & 1) && AnimType != 4)
+                CantOut = 1;
+            if (!(Cre->AnimFlags & 2)) {
+                if (Cre->AnimFrame + TicksRemain > Cre->SequenceHdr->AnimDetails.Start + 30) {
+                    Cre->AnimFlags |= 2;
+                    TicksRemain = 0;
+                    Cre->AnimFrame = Cre->SequenceHdr->AnimDetails.Start + 30;
+                }
+            }
+            if (Cre->AnimFlags & 2) {
+                if (!(Cre->Box.OnFloor | Cre->Box.OnSolidBox | Cre->Box.OnCreature | Cre->Box.OnLadder))
+                    TicksRemain = 0;
+            }
+        }
+    }
+    while (TicksRemain && TicksRemain != OldTicksRemain) {
+        OldTicksRemain = TicksRemain;
+        TicksRemain = AnimateCreature(Cre, OldTicksRemain, &FrameB);
+    }
+    if (Cre->SequenceHdr == QMMAnim_Death1 || Cre->SequenceHdr == QMMAnim_Death2
+        || Cre->SequenceHdr == QMMAnim_Death3)
+        CantOut = 1;
+    else if ((Cre->SequenceHdr == QMMAnim_Pain1 || Cre->SequenceHdr == QMMAnim_Pain2
+                 || Cre->SequenceHdr == QMMAnim_Pain3)
+        && FrameB < Cre->SequenceHdr->AnimDetails.Stop - Cre->SequenceHdr->AnimDetails.Start && AnimType != 4)
+        CantOut = 1;
+    if (NextAnim && !CantOut) {
+        if (Cre->SequenceHdr != NextAnim || NextAnim->AnimDetails.Wrap == NextAnim->AnimDetails.Stop
+            || !DontReplay)
+            StartAnim(Cre, NextAnim);
+    }
+}
+
+int AnimateCreature(struct CREATURE *Cre, int TicksPassed, int *EndFrame)
+{
+    if (Cre->SequenceHdr) {
+        Cre->AnimFrame += TicksPassed;
+        if (Cre->AnimFrame > Cre->SequenceHdr->AnimDetails.Stop) {
+            Cre->AnimFlags |= 1;
+            TicksPassed = Cre->AnimFrame - Cre->SequenceHdr->AnimDetails.Stop;
+            *EndFrame = Cre->SequenceHdr->AnimDetails.Stop - Cre->SequenceHdr->AnimDetails.Start + 10;
+            Cre->AnimFrame = Cre->SequenceHdr->AnimDetails.Wrap;
+            return TicksPassed;
+        }
+        *EndFrame = Cre->AnimFrame - Cre->SequenceHdr->AnimDetails.Start;
+        return 0;
+    }
+    return 0;
+}
+
+void StartAnim(struct CREATURE *Cre, struct ANIMHDR *Anim)
+{
+    if (Anim && Cre) {
+        Cre->SequenceHdr = Anim;
+        Cre->AnimFrame = Anim->AnimDetails.Start;
+        Cre->AnimFlags &= ~3;
+    }
+}
+
+void QuakePlayerCheckUnderwater(struct CREATURE *Cre)
+{
+    struct PLAYER *Player;
+    struct PTIMERS *PTimers;
+    int Damage;
+    static int RebreatherPitch;
+
+    Player = Cre->Player;
+    PTimers = &Player->Extras.PTimers;
+    if (Cre->Control & 0x80000)
+        return;
+    if (Cre->Box.InWater) {
+        if (!Player->Extras.Underwater) {
+            PlayerNoise(Cre->EdictT, &Cre->Box.Location, 0);
+            if (Player->Extras.PTimers.Splash_Timer < LevelTicks)
+                SoundByCreature(sound_watr_in, Cre);
+            Player->Extras.NextGurgleFrame = LevelTicks + 300;
+        }
+        Player->Extras.Underwater += NewVcounts;
+        if (LevelTicks < PTimers->BreatherTimer)
+            Player->Extras.Underwater = 1;
+        if (LevelTicks > Player->Extras.NextGurgleFrame) {
+            Damage = Player->Extras.Underwater;
+            Player->Extras.NextGurgleFrame = LevelTicks + 300;
+            if (Damage > 0xe10) {
+                Damage >>= 10;
+                if (Damage >= 8)
+                    Damage = 7;
+                DoDamage(Cre, Cre, Damage, 8, 0);
+                if ((Player->Extras.PTimers.GurgleSound_Timer ^= 1) & 1) {
+                    switch (rand() & 1) {
+                    case 0:
+                        SoundByCreature(sound_gasp1, Cre);
+                        break;
+                    case 1:
+                        SoundByCreature(sound_drown1, Cre);
+                        break;
+                    }
+                }
+            } else {
+                Player->Extras.NextGurgleFrame = LevelTicks + 750;
+                if (LevelTicks < PTimers->BreatherTimer) {
+                    PlayerNoise(Cre->EdictT, &Cre->Box.Location, 0);
+                    if (RebreatherPitch = !RebreatherPitch)
+                        SoundByCreature(sound_u_brea1, Cre);
+                    else
+                        SoundByCreature(sound_u_brea2, Cre);
+                } else
+                    SoundByCreature(sound_watr_un, Cre);
+            }
+        }
+    } else {
+        if (Player->Extras.Underwater) {
+            PlayerNoise(Cre->EdictT, &Cre->Box.Location, 0);
+            SoundByCreature(sound_watr_out, Cre);
+        }
+        Player->Extras.Underwater = 0;
+        if (Cre->Box.InShallowWater) {
+            if (!Player->Extras.ShallowWater) {
+                SoundByCreature(sound_watr_in, Cre);
+                Player->Extras.PTimers.Splash_Timer = LevelTicks + 100;
+                GenerateWaterSplash(&Cre->Box.Location, Cre->Box.Area);
+            }
+            Player->Extras.ShallowWater++;
+        } else
+            Player->Extras.ShallowWater = 0;
+    }
+}
+
+void GenerateWaterSplash(struct VECT *Location, int Area)
+{
+    int a;
+    int b;
+    struct SVECT Vel[15];
+    struct PARTICLE *Particle;
+
+    for (b = 0; b < 4; b++) {
+        for (a = 0; a < 15; a++) {
+            Vel[a].vx = (rand() - 0x4000) >> 9;
+            Vel[a].vy = (rand() - 0x4000) >> 9;
+            Vel[a].vz = (rand() - 0x4000) >> 9;
+        }
+        Particle = AddParticlesSL(Location, Vel, &ParticleColours_Blue, &ParticleColours_Blue, 15, 25, 0xc00, Area);
+        if (Particle)
+            Particle->Drift.vy = 4;
+    }
+}
+
+void QuakeSinglePlayerStuff(struct PLAYER *Player)
+{
+    struct CREATURE *Cre;
+
+    Cre = Player->Creature;
+    memset(&Player->Extras, 0, sizeof(struct PLAYEREXTRAS));
+    Cre->Health = 100;
+    Player->Extras.Max_Health = 100;
+    Player->Extras.GunSightType = 1;
+    Player->Extras.Underwater = 0;
+    if (!Player->Extras.WeaponsAvailable) {
+        switch (Mission) {
+        case 1:
+            Player->Extras.WeaponsAvailable = 1;
+            Player->Extras.FastWeaponSelect = 1;
+            break;
+        case 2:
+            Player->Extras.WeaponsAvailable = 0x1f;
+            Player->Extras.FastWeaponSelect = 4;
+            break;
+        case 3:
+            Player->Extras.WeaponsAvailable = 0x1df;
+            Player->Extras.FastWeaponSelect = 5;
+            break;
+        case 4:
+            Player->Extras.WeaponsAvailable = 0x7df;
+            Player->Extras.FastWeaponSelect = 9;
+            break;
+        case 5:
+            Player->Extras.WeaponsAvailable = 0x7df;
+            Player->Extras.FastWeaponSelect = 10;
+            break;
+        default:
+            Player->Extras.WeaponsAvailable = 1;
+            Player->Extras.FastWeaponSelect = 1;
+            break;
+        }
+    }
+    Player->Extras.PTimers.WeapChange_Timer = 0;
+    Player->Extras.Current_WeaponSelected = Player->Extras.FastWeaponSelect;
+    Player->Extras.Next_WeaponSelected = QWeapon_NextPrev(Player, Player->Extras.FastWeaponSelect, 1);
+    Player->Extras.Previous_WeaponSelected = QWeapon_NextPrev(Player, Player->Extras.FastWeaponSelect, 0);
+}
+
+void GamePlayerLoadSave(int PlayerIndx, int Save)
+{
+    struct QPLAYERSTATUS *PlayerStatus;
+    struct CREATURE *Cre;
+    struct SAVEFILEHDR *FileHdr;
+    struct PLAYER *Player;
+    struct IDENTITYNAME SaveName = {"PlayerSave"};
+    short MissCount;
+
+    Player = &Players[PlayerIndx];
+    if (LevelIsMultiPlayer)
+        return;
+    SaveName.Name[10] = '0' + PlayerIndx;
+    FileHdr = OpenSaveMemory(SaveName, Save);
+    Cre = Player->Creature;
+    if (Save) {
+        if (!FileHdr)
+            return;
+        PlayerStatus = (struct QPLAYERSTATUS *)(FileHdr + 1);
+        PlayerStatus->DestLevelName = NextLevelName;
+        PlayerStatus->DestStartName = MainStartName;
+        PlayerStatus->DestZoneName = NextZoneName;
+        PrintIdentityName(PlayerStatus->DestLevelName);
+        PrintIdentityName(PlayerStatus->DestStartName);
+        PrintIdentityName(PlayerStatus->DestZoneName);
+        PlayerStatus->ConsoleFlags = Console_Flags;
+        PlayerStatus->Location = Cre->Box.Location;
+        PlayerStatus->Ang = Cre->Ang;
+        PlayerStatus->Health = Cre->Health;
+        PlayerStatus->VBLevelTicks = VBLevelTicks;
+        PlayerStatus->PlayerExtras = Player->Extras;
+        for (MissCount = 0; MissCount < 6; MissCount++)
+            PlayerStatus->MissionEnd[MissCount] = MissionEnd[MissCount];
+        FileHdr->Size = sizeof(struct QPLAYERSTATUS);
+        CloseWritableSaveMemoryFile(SaveName, 2);
+    } else if (FileHdr) {
+        PlayerStatus = (struct QPLAYERSTATUS *)(FileHdr + 1);
+        Player->Extras = PlayerStatus->PlayerExtras;
+        GlobalKey = Player->Extras.ExtraBits & 0xfff;
+        Console_Flags = PlayerStatus->ConsoleFlags;
+        Cre->Box.Location = PlayerStatus->Location;
+        Cre->Ang = PlayerStatus->Ang;
+        Cre->Health = PlayerStatus->Health;
+        for (MissCount = 0; MissCount < 6; MissCount++)
+            MissionEnd[MissCount] = PlayerStatus->MissionEnd[MissCount];
+        ResetGlobalSecretsKills(GetStringFromStringtable((struct IDENTITYNAME){"MapTitle"}));
+        VBLevelTicks = PlayerStatus->VBLevelTicks;
+    } else {
+        memset(MissionEnd, 0, sizeof(MissionEnd));
+        QuakeSinglePlayerStuff(Player);
+    }
+}

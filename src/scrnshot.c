@@ -1,0 +1,109 @@
+#include "types.h"
+
+/* defined below; gcc defers these to the end of the file in this order */
+int SaveBMP(void);
+extern int LevelIsMultiPlayer;
+extern struct LEVELDATA *ThisLevelData;
+extern struct RECT desrect;
+extern long *DummyMemory;
+extern struct DB *currdb;
+int ScrnShotNum;
+char *BMPBuffer;
+short *BMPPixel16;
+int sprintf(char *s, const char *fmt, ...);
+int PCopen(char *name, int flags, int perms);
+int PCcreat(char *name, int perms);
+int PCclose(int h);
+int PCwrite(int h, void *buf, int len);
+void *memset(void *s, int c, unsigned int n);
+int StoreImage(struct RECT *rect, unsigned long *p);
+
+int SaveBMP(void)
+{
+    struct BITMAPFILEHEADER BMPFileHeader;
+    struct BITMAPINFOHEADER BMPInfoHeader;
+    int Handle;
+    char *buf2;
+    static char OutName[50];
+    int h;
+    int x;
+    int y;
+    int width;
+    int HeaderWidth;
+    int HeaderHeight;
+
+    width = 512;
+    HeaderHeight = 384;
+    HeaderWidth = width;
+    while (1) {
+        if (LevelIsMultiPlayer)
+            sprintf(OutName, "c:\\ScrnShot\\%s\\multi%03d.Bmp", ThisLevelData, ScrnShotNum);
+        else
+            sprintf(OutName, "c:\\ScrnShot\\%3.6s%02d.Bmp", ThisLevelData, ScrnShotNum);
+        Handle = PCopen(OutName, 0, 0);
+        if (Handle < 0)
+            break;
+        PCclose(Handle);
+        ScrnShotNum++;
+    }
+    h = PCcreat(OutName, 0);
+    if (h == -1)
+        return -2;
+    memset(&BMPFileHeader, 0, sizeof(BMPFileHeader));
+    BMPFileHeader.bfType = 0x4d42;
+    PCwrite(h, &BMPFileHeader.bfType, 2);
+    BMPFileHeader.bfReserved1 = 0;
+    PCwrite(h, &BMPFileHeader.bfReserved1, 2);
+    BMPFileHeader.bfReserved2 = 0;
+    PCwrite(h, &BMPFileHeader.bfReserved2, 2);
+    BMPFileHeader.bfSize = HeaderWidth * 3 * HeaderHeight + 0x36;
+    PCwrite(h, &BMPFileHeader.bfSize, 4);
+    BMPFileHeader.bfOffBits = 0x36;
+    PCwrite(h, &BMPFileHeader.bfOffBits, 4);
+    memset(&BMPInfoHeader, 0, sizeof(BMPInfoHeader));
+    BMPInfoHeader.biSize = 0x28;
+    PCwrite(h, &BMPInfoHeader.biSize, 4);
+    BMPInfoHeader.biWidth = HeaderWidth;
+    PCwrite(h, &BMPInfoHeader.biWidth, 4);
+    BMPInfoHeader.biHeight = HeaderHeight;
+    PCwrite(h, &BMPInfoHeader.biHeight, 4);
+    BMPInfoHeader.biPlanes = 1;
+    PCwrite(h, &BMPInfoHeader.biPlanes, 2);
+    BMPInfoHeader.biBitCount = 24;
+    PCwrite(h, &BMPInfoHeader.biBitCount, 2);
+    BMPInfoHeader.biCompression = 0;
+    PCwrite(h, &BMPInfoHeader.biCompression, 4);
+    BMPInfoHeader.biSizeImage = 0;
+    PCwrite(h, &BMPInfoHeader.biSizeImage, 4);
+    BMPInfoHeader.biXPelsPerMeter = 0;
+    PCwrite(h, &BMPInfoHeader.biXPelsPerMeter, 4);
+    BMPInfoHeader.biYPelsPerMeter = 0;
+    PCwrite(h, &BMPInfoHeader.biYPelsPerMeter, 4);
+    BMPInfoHeader.biClrUsed = 0;
+    PCwrite(h, &BMPInfoHeader.biClrUsed, 4);
+    BMPInfoHeader.biClrImportant = 0;
+    PCwrite(h, &BMPInfoHeader.biClrImportant, 4);
+    desrect.w = width;
+    desrect.h = 1;
+    desrect.x = 0;
+    BMPPixel16 = (short *)DummyMemory;
+    desrect.x = currdb->DrawEnv[0].ofs[0];
+    BMPBuffer = (char *)(BMPPixel16 + width);
+    y = 239;
+    desrect.y = currdb->DrawEnv[0].ofs[1] + y;
+    for (; y >= 0; y--) {
+        buf2 = BMPBuffer;
+        StoreImage(&desrect, (unsigned long *)BMPPixel16);
+        for (x = 0; x < width; x++) {
+            *buf2++ = ((unsigned short)BMPPixel16[x] >> 7) & 0xf8;
+            *buf2++ = ((unsigned short)BMPPixel16[x] >> 2) & 0xf8;
+            *buf2++ = (BMPPixel16[x] & 0x1f) << 3;
+        }
+        PCwrite(h, BMPBuffer, width * 3);
+        if (y % 5 == 0 || y % 5 == 2 || y % 5 == 4)
+            PCwrite(h, BMPBuffer, width * 3);
+        desrect.y--;
+    }
+    PCclose(h);
+    return 0;
+}

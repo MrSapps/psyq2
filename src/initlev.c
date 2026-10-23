@@ -1,0 +1,521 @@
+#include "types.h"
+
+/* defined below; gcc defers these to the end of the file in this order */
+void InitialiseAfterReset(void);
+void AquireResources(void);
+void ClearLots(void);
+void DisplayBuildInfo(int); void ChrisInitEveryFrame(void);
+void InitEveryLevel(void);
+void InitGt4s(void);
+void AquireGt4s(int numgt4s, int NumSubPolys);
+void LoadGameData(void);
+void ResetAllCameras(void); void InitLevel(void);
+struct STARTPOSITION *GetRandomMultiplayerStart(void);
+extern short Language;
+extern unsigned char moviequitflag;
+extern int FlareType;
+extern struct ZONEDATA *ThisZoneData;
+extern short level_ambience;
+extern struct IDENTITYNAME MainStartName;
+void ClearSaveMemory();
+void SetupGameSpecific();
+void InitWaterStuffZone();
+void MallocParticles();
+unsigned long MaxMallocSize();
+void AquireGt4s(int numgt4s, int NumSubPolys);
+int InitSamplesForLevel(void);
+void LoadLevelData(struct IDENTITYNAME StartName);
+void FadeOutLoading();
+void LoadInGameVram();
+void FinishedLoading();
+void GameInitStuff();
+
+extern unsigned long CurrTime;
+extern int viewdist;
+extern int lasttime;
+extern struct DIVPOLYGON4 divp;
+extern struct DIVPOLYGON4 divp2;
+int vv = 0;
+extern int LevelIsMultiPlayer;
+extern int InSelfPlayMode;
+extern short CrIdent;
+extern short numuserfunctions;
+extern void (*LevelPreInitFunc)();
+extern void (*LevelInitFunc)();
+extern void **OnZoneLoadTable;
+extern void (*LevelSpecific)();
+extern void (*LevelExtraDraw)();
+extern short *SkyData;
+extern short SkyOffsetY;
+extern struct COLOUR SkyColour;
+extern struct COLOUR WindowColour;
+long GetRCnt();
+void srand();
+void InitHeaps(void);
+void DownloadPals(void);
+void InitCluts(void);
+void InitEveryLevel(void);
+void LoadGameData(void);
+void SetCurrentZoneData(void);
+void RestoreSavedData(void);
+void OnLoadZone(void);
+int ModNameCmp(struct IDENTITYNAME *Name1, struct IDENTITYNAME *Name2);
+void StoreLevelStartState(void);
+void *memset();
+
+extern short *FreeListPntr;
+extern unsigned char *SceneBuffFreePntr;
+extern short *FreeListEnd;
+extern short *FreeListGt4;
+extern char *PolsToFreeListPntr;
+extern short maxmodpolsg4;
+extern struct DB db[2];
+extern unsigned char SceneBuffFreeList[255];
+extern struct SCENE SceneBuffs[255];
+extern char PolsToFreeList[256];
+void InitSubdivision(void);
+#define setlen(p, _len) (*(((unsigned char *)(p)) + 3) = (unsigned char)(_len))
+#define setcode(p, _code) (*(((unsigned char *)(p)) + 7) = (unsigned char)(_code))
+#define setPolyGT4(p) setlen(p, 12), setcode(p, 0x3c)
+void SetSemiTrans(void *p, int abe);
+void SetShadeTex(void *p, int tge);
+
+extern int ActivationCountdown;
+extern short SkyNullData[1];
+extern unsigned char DbFrame[];
+extern unsigned char TbFrame[];
+extern int LastInputTime;
+extern int NoInputTime;
+extern int (*NoInputTimeOutRoutine)();
+extern int GlobalKills;
+extern int GlobalSecretsCount;
+extern int GlobalSecretsFound;
+extern struct CREATURE **HeavenlyDrawListPntr;
+extern struct CREATURE **HeavenlyDrawListEnd;
+extern int CutOffDist;
+extern int ObjSortIndx;
+extern short *SkyData;
+extern short SkyOffsetY;
+extern short FailedGetCre;
+extern short SucceedGetCre;
+extern short ExitLevel;
+extern int ChrisCount;
+extern int lastfire;
+extern short MaxMbuf;
+extern short MaxPackets;
+extern struct QENGINELEVINTERFACE Engine;
+extern struct CREATURE Creatures[48];
+extern struct CREATURE *HeavenlyDrawList[12];
+void InitTpages(void);
+void *memset();
+void InitialiseSceneEveryLevel(void);
+void InitialiseBumpListStart(void);
+void InitThickLines(void);
+void InitialiseMissiles(void);
+void InitLights(void);
+void InitShadowPolys(void);
+void GameLevelStuff(void);
+void InitWindowText(void);
+#define setPolyFT3(p) setlen(p, 7), setcode(p, 0x24)
+
+static void InitTpageDums(void)
+{
+    {
+        struct POLY_FT3 *Poly;
+        int b;
+        int a;
+
+        for (a = 0; a < 2; a++) {
+            Poly = db[a].TpageDum;
+            for (b = 0; b < 8; b++, Poly++) {
+                setPolyFT3(Poly);
+                Poly->x0 = 1000;
+                Poly->y0 = 1000;
+                Poly->x1 = 1001;
+                Poly->y1 = 1001;
+                Poly->x2 = 1000;
+                Poly->y2 = 1001;
+            }
+        }
+    }
+}
+
+extern int MaxSubPols;
+extern struct SUBPACK *SubPack;
+extern short *SubToFreeList;
+extern short *SubPackFree;
+void *MY_malloc_name(int s, char *name);
+
+static int Gt4BufferSize(int MaxGt4, int MaxSubPols)
+{
+    int Size;
+    int NumPackets;
+
+    NumPackets = (MaxGt4 + 31) / 32;
+    Size = (MaxGt4 + MaxSubPols * 16) * sizeof(struct POLY_GT4) * 2;
+    Size += MaxSubPols * sizeof(struct SUBPACK);
+    Size += (MaxSubPols * 2 + 1) * sizeof(short);
+    Size += MaxSubPols * sizeof(short);
+    Size += NumPackets * sizeof(short);
+    return Size;
+}
+
+extern struct LEVELDATA *ThisLevelData;
+extern unsigned int LevelTicks;
+extern int LevelChange;
+extern struct LINE_F2 *NextLineF2;
+extern struct POLY_G4 *LastGeneralG4;
+extern struct POLY_G4 *NextGeneralG4;
+extern struct POLY_FT3 *LastTpChange;
+extern struct POLY_FT3 *NextTpChange;
+extern struct DUMMYGPU *LastDummyGpu;
+extern struct DUMMYGPU *NextDummyGpu;
+extern struct DRAWENV *LastChangeDrawEnv;
+extern struct DRAWENV *ChangeDrawEnv;
+extern struct LINE_F2 *LastLineF2;
+extern struct POLY_FT4 *LastPolyFt4;
+extern struct POLY_FT4 *NextPolyFt4;
+extern struct POLY_FT4 *ParticleFt4;
+extern struct SPRT *SpriteAnySize;
+extern struct SPRT *LastSpriteAnySize;
+extern struct SPRT_16 *Sprite816;
+extern struct SPRT_16 *LastSprite816;
+extern int ChrisCount1;
+extern void (*VBlankSpecific)();
+extern int LevelCounterLast;
+extern struct LINE_G2 *NextLine;
+extern int NewVcounts;
+extern struct LINE_G2 *LastLine;
+extern int LevelCounter;
+extern int ClearingNecessary;
+extern struct DB *currdb;
+void GameCheckTimeout(void);
+void FrameShadowPolys(void);
+void InitialiseBumpListFrame(void);
+int Event_DoNamed(struct IDENTITYNAME name3, struct CREATURE *Cre);
+void SetSpriteTpage(void);
+void InitialiseMenuEveryFrame(void);
+void InitialiseLightEveryFrame(void);
+void InitialiseSceneEveryFrame(void);
+void GameEveryFrame(void);
+void InitGameEveryFrame(void);
+void InitWaterStuffFrame(void);
+void Event_ProcessTimers(void);
+
+extern struct WINDOW GameWindows[];
+struct STARTPOSITION *FindStartPosition(struct IDENTITYNAME Name);
+int rand();
+
+void InitialiseAfterReset(void)
+{
+    Language = 32;
+    moviequitflag = 0;
+    FlareType = 1;
+    ClearSaveMemory();
+    SetupGameSpecific();
+}
+
+void DisplayBuildInfo(int);
+
+void ChrisInitEveryFrame(void)
+{
+    static int ThisLevel = -2;
+
+    if (ThisLevelData->MaxPlayers)
+        ClearingNecessary = 0;
+    else
+        ClearingNecessary = 1;
+    GameCheckTimeout();
+    FrameShadowPolys();
+    InitialiseBumpListFrame();
+    if (!VBlankSpecific)
+        Event_DoNamed((struct IDENTITYNAME){"ALWAYS"}, 0);
+    LevelCounterLast = LevelCounter;
+    HeavenlyDrawListPntr = HeavenlyDrawList;
+    LevelCounter += NewVcounts;
+    ChrisCount1 = ChrisCount++;
+    ChangeDrawEnv = currdb->ChangeDrawEnv;
+    LastChangeDrawEnv = &currdb->ChangeDrawEnv[96];
+    NextDummyGpu = currdb->DummyGpu;
+    LastDummyGpu = &currdb->DummyGpu[64];
+    NextLine = currdb->Lines;
+    LastLine = &currdb->Lines[32];
+    NextLineF2 = currdb->LineF2;
+    LastLineF2 = &currdb->LineF2[80];
+    NextPolyFt4 = currdb->GeneralFt4;
+    LastPolyFt4 = &currdb->GeneralFt4[16];
+    NextTpChange = currdb->TpageDum;
+    LastTpChange = &currdb->TpageDum[8];
+    NextGeneralG4 = currdb->GeneralG4;
+    LastGeneralG4 = &currdb->GeneralG4[288];
+    Sprite816 = currdb->Sprite816;
+    LastSprite816 = &currdb->Sprite816[256];
+    SpriteAnySize = currdb->SpriteAnySize;
+    LastSpriteAnySize = &currdb->SpriteAnySize[16];
+    ParticleFt4 = currdb->PartFt4;
+    SetSpriteTpage();
+    InitialiseMenuEveryFrame();
+    InitialiseLightEveryFrame();
+    InitialiseSceneEveryFrame();
+    GameEveryFrame();
+    InitGameEveryFrame();
+    InitWaterStuffFrame();
+    Event_ProcessTimers();
+    if (LevelTicks > 100 && LevelTicks < 1700) {
+        if (ThisLevel != LevelChange)
+            ThisLevel = LevelChange;
+        DisplayBuildInfo(1);
+    }
+}
+
+void InitEveryLevel(void)
+{
+    InitTpages();
+    Engine.LevelEvents = 0;
+    DbFrame[0] = 0;
+    TbFrame[0] = 0;
+    memset(Creatures, 0, sizeof(Creatures));
+    MaxMbuf = 0;
+    MaxPackets = 0;
+    SkyData = SkyNullData;
+    SkyOffsetY = 0;
+    ActivationCountdown = 0;
+    LastInputTime = 0;
+    NoInputTime = 0;
+    NoInputTimeOutRoutine = 0;
+    InitialiseSceneEveryLevel();
+    InitialiseBumpListStart();
+    InitThickLines();
+    InitialiseMissiles();
+    InitLights();
+    InitShadowPolys();
+    InitTpageDums();
+    GlobalSecretsCount = 0;
+    GlobalSecretsFound = 0;
+    GlobalKills = 0;
+    GameLevelStuff();
+    HeavenlyDrawListPntr = HeavenlyDrawList;
+    ObjSortIndx = 0;
+    FailedGetCre = 0;
+    SucceedGetCre = 0;
+    ChrisCount = 0;
+    HeavenlyDrawListEnd = &HeavenlyDrawList[12];
+    ExitLevel = 0;
+    lastfire = 0;
+    CutOffDist = 0x7fffffff;
+    InitWindowText();
+}
+
+void InitGt4s(void)
+{
+    struct POLY_GT4 *Gt40;
+    struct POLY_GT4 *Gt41;
+    int a;
+    int NumPackets;
+
+    NumPackets = (maxmodpolsg4 + 31) / 32;
+    InitSubdivision();
+    for (a = 0; a < NumPackets; a++)
+        FreeListGt4[a] = a * 32;
+    Gt40 = db[0].modpolsg4;
+    Gt41 = db[1].modpolsg4;
+    for (a = 0; a < maxmodpolsg4; Gt40++, Gt41++, a++) {
+        setPolyGT4(Gt40);
+        SetSemiTrans(Gt40, 0);
+        SetShadeTex(Gt40, 0);
+        setPolyGT4(Gt41);
+        SetSemiTrans(Gt41, 0);
+        SetShadeTex(Gt41, 0);
+    }
+    PolsToFreeListPntr = PolsToFreeList;
+    SceneBuffFreePntr = SceneBuffFreeList;
+    FreeListPntr = FreeListGt4;
+    FreeListEnd = FreeListGt4 + NumPackets;
+    for (a = 0; a < 255;) {
+        SceneBuffFreeList[a] = a + 1;
+        SceneBuffs[a++].Pols[0] = 0;
+    }
+}
+
+void AquireGt4s(int numgt4s, int NumSubPolys)
+{
+    struct POLY_GT4 *Buffer;
+    int Size;
+
+    if (numgt4s < 0)
+        maxmodpolsg4 = 0;
+    else if (numgt4s)
+        maxmodpolsg4 = numgt4s;
+    else
+        maxmodpolsg4 = 0x1000;
+    if (NumSubPolys < 0)
+        MaxSubPols = 0;
+    else if (NumSubPolys)
+        MaxSubPols = NumSubPolys;
+    else
+        MaxSubPols = 0x70;
+    maxmodpolsg4 = (maxmodpolsg4 + 31) & ~31;
+    Size = Gt4BufferSize(maxmodpolsg4, MaxSubPols);
+    if (Size) {
+        Buffer = MY_malloc_name(Size, "Gt4's");
+        db[0].modpolsg4 = Buffer;
+        Buffer += maxmodpolsg4;
+        db[1].modpolsg4 = Buffer;
+        Buffer += maxmodpolsg4;
+        db[0].subpolsg4 = Buffer;
+        Buffer += MaxSubPols * 16;
+        db[1].subpolsg4 = Buffer;
+        Buffer += MaxSubPols * 16;
+        SubPack = (struct SUBPACK *)Buffer;
+        SubToFreeList = (short *)(SubPack + MaxSubPols);
+        SubPackFree = SubToFreeList + (MaxSubPols * 2 + 1);
+        FreeListGt4 = SubPackFree + MaxSubPols;
+    } else {
+        db[0].modpolsg4 = 0;
+    }
+    InitGt4s();
+}
+
+void AquireResources(void)
+{
+    InitWaterStuffZone();
+    MallocParticles(ThisZoneData->Resource.NumParticles);
+    {
+        int NumGt4s = ThisZoneData->Resource.NumGt4s;
+        int NumSubPolys = ThisZoneData->Resource.NumSubPolys;
+        {
+            unsigned long NumPackets;
+            unsigned long PacketTotalSize;
+            unsigned long SubSize;
+            unsigned long MaxSize;
+            MaxSize = MaxMallocSize();
+            SubSize = NumSubPolys * 1664 + NumSubPolys * 212 + (NumSubPolys * 2 + 1) * 2 + NumSubPolys * 2;
+            PacketTotalSize = 3330;
+            NumPackets = (MaxSize - SubSize) / PacketTotalSize;
+            if (NumPackets > 256)
+                NumPackets = 256;
+            NumPackets *= 32;
+            if (NumGt4s < 0)
+                NumPackets = -NumGt4s;
+            AquireGt4s(NumPackets, NumSubPolys);
+        }
+    }
+}
+
+void LoadGameData(void)
+{
+    int FileFound;
+    level_ambience = 16;
+    FileFound = InitSamplesForLevel();
+    LoadLevelData(MainStartName);
+    FadeOutLoading();
+    if (FileFound)
+        LoadInGameVram();
+    FinishedLoading();
+    GameInitStuff();
+}
+
+void ResetAllCameras(void);
+
+void InitLevel(void)
+{
+    CurrTime = 1;
+    viewdist = 200;
+    lasttime = 180;
+    divp.pih = 320;
+    divp.piv = 240;
+    divp2.pih = 320;
+    divp2.piv = 240;
+    divp2.ndiv = 2;
+    vv++;
+    CrIdent = 0;
+    if (LevelIsMultiPlayer && !InSelfPlayMode)
+        srand(GetRCnt(0xf2000001));
+    else
+        srand(13);
+    InitHeaps();
+    DownloadPals();
+    InitCluts();
+    numuserfunctions = 0;
+    LevelPreInitFunc();
+    InitEveryLevel();
+    LoadGameData();
+    SetCurrentZoneData();
+    AquireResources();
+    OnZoneLoadTable = 0;
+    LevelSpecific = 0;
+    LevelExtraDraw = 0;
+    RestoreSavedData();
+    LevelInitFunc();
+    OnLoadZone();
+    if (ModNameCmp(&MainStartName, (struct IDENTITYNAME *)"ReloadStart") != 1)
+        StoreLevelStartState();
+    SkyData = 0;
+    SkyOffsetY = 0x70;
+    memset(&SkyColour, 0, 4);
+    WindowColour = *(struct COLOUR *)"\xc0\x10\x10";
+    ResetAllCameras();
+}
+
+struct STARTPOSITION *GetRandomMultiplayerStart(void)
+{
+    int Nearest[8];
+    int dist;
+    int xd;
+    int yd;
+    int zd;
+    short a;
+    short b;
+    short best;
+    struct IDENTITYNAME StartString;
+    struct STARTPOSITION *StartPos;
+    struct CREATURE *Cre;
+
+    StartString = *(struct IDENTITYNAME *)"MultiSpawn\0";
+    for (a = 0; a < 8; a++) {
+        StartString.Name[10] = '0' + a;
+        StartPos = FindStartPosition(StartString);
+        Nearest[a] = -1;
+        if (StartPos) {
+            for (b = 0; b < Engine.GameConfig.sNumPlayers; b++) {
+                Cre = GameWindows[b].Creature;
+                if (Cre && Cre->Health > 0) {
+                    xd = StartPos->Location.vx - Cre->Box.Location.vx;
+                    yd = StartPos->Location.vy - Cre->Box.Location.vy;
+                    zd = StartPos->Location.vz - Cre->Box.Location.vz;
+                    xd /= 8;
+                    yd /= 8;
+                    zd /= 8;
+                    dist = xd * xd + yd * yd + zd * zd;
+                    if (Nearest[a] < 0 || dist < Nearest[a])
+                        Nearest[a] = dist;
+                }
+            }
+        }
+    }
+    best = -1;
+    dist = -1;
+    for (a = 0; a < 8; a++) {
+        if (Nearest[a] > dist) {
+            best = a;
+            dist = Nearest[a];
+        }
+    }
+    if (best >= 0) {
+        StartString.Name[10] = '0' + best;
+        return FindStartPosition(StartString);
+    }
+    /* a goto, not a loop: the original doesn't hoist the name masks out of it */
+again:
+    a = rand() & 7;
+    StartString.Name[10] = '0' + a;
+    StartPos = FindStartPosition(StartString);
+    if (!StartPos)
+        goto again;
+    return StartPos;
+
+}
+
+void ClearLots(void)
+{
+}
