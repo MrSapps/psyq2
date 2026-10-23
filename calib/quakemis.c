@@ -1543,3 +1543,58 @@ Glint: /* SYM lists a label "Glint" in this function */
         AddParticlesSL(&Cre->Box.Location, Vel, &ParticleColours_Green, &ParticleColours_Green, 15, 15, 20000, StopArea);
     }
 }
+
+int AnyoneFireRocketL(struct CREATURE *Aggressor, struct VECT *Start, struct SVECT *Dir, int Damage)
+{
+    struct CREATURE *Cre;
+    short Space;
+    int a;
+
+    Cre = GetNextCre(1);
+    if (Cre) {
+        GetFireLocSpace(Aggressor, Start, &Space);
+        Cre->Life = 20000;
+        Cre->Primary = PrimaryRocketActive;
+        Cre->ModelHdr = GetModelHdr((struct IDENTITYNAME){"Rocket"});
+        if (Cre->ModelHdr)
+            Cre->HeightOffset = GetFloorOffset(Cre);
+        else
+        {
+            for (a = 0; a < MaxWindows; a++) {
+                Cre->WinData[a].NoDraw = 1;
+            }
+        }
+        Cre->Draw.Location = *Start;
+        Cre->Box.Location = Cre->Draw.Location;
+        Cre->Vel = *Dir;
+        Cre->Control |= 0x2000;
+        Cre->DefaultAmbience = *&(struct COLOUR){0x7f, 0x7f, 0x7f, 0};
+        Cre->Ambience = *&(struct COLOUR){0x7f, 0x7f, 0x7f, 0};
+        Cre->Box.PrimarySpace = Space;
+        Cre->Box.MoveSpace = -1;
+        Cre->Box.Area = CollMap.Coll3dSpace[Cre->Box.PrimarySpace].Area;
+        SetupCollBoxMinMax(&Cre->Box, *&(struct SVECT){20, 20, 20});
+        if (Aggressor->Player)
+            Cre->HitBy = Aggressor->Player - Players;
+        else
+            Cre->HitBy = 4;
+        Cre->SequenceData = (int)Aggressor;
+        Cre->Params[0] = Damage;
+        /* `a` is reused as a temp here (line table: separate lines 1417/1418). combine folds these copies
+           away, but their refs raise a's allocation priority above the loop's strength-reduced pointer,
+           which puts a in v1 and the pointer in a0 */
+        a = Dir->vx * Dir->vx + Dir->vz * Dir->vz;
+        a = SquareRootNR(a);
+        Cre->Ang = (struct SVECT){-ratan2(Dir->vy, a), Aggressor->Ang.vy, 0};
+        Cre->Params[1] = 0;
+        Cre->Params[2] = Cre->Ang.vy;
+        Cre->Params[3] = Cre->Ang.vx;
+        RotMatrixYXZ(&Cre->Ang, &Cre->Matrix);
+        if (Aggressor->Player)
+            SoundByCreature(SoundRocketFire, Aggressor->Player->Extras.Weapon);
+        else
+            SoundByCreature(SoundRocketFire, Aggressor);
+    } else
+        return 0;
+    return 1;
+}
