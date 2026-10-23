@@ -84,7 +84,7 @@ def items(src):
 
 
 # an old-style definition: its parameter declarations end in ';' before the body
-KR_HEAD = re.compile(r'\s*[\w\s*]*?\b\w+\s*\(\s*\w+(\s*,\s*\w+)*\s*\)\s*[^()]*$', re.S)
+KR_HEAD = re.compile(r'\s*[\w\s*]*?\b\w+\s*\(\s*(?!void\s*\))\w+(\s*,\s*\w+)*\s*\)\s*[^()]*$', re.S)
 
 
 def strip_comments(s):

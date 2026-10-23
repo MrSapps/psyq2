@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Compile src/<obj>.c files and check them against the disassembly.
 
-usage: tools/checktu.py [-v] [name...]      (default: every src/*.c with code)
+usage: tools/checktu.py [-v] [--src DIR] [name...]      (default: every src/*.c with code)
 
 For each file: the functions must come out in the original order (psylink keeps
 it), and each one must match its asm/ counterpart (tools/cmpfunc.py).
@@ -53,8 +53,14 @@ def text_symbols(obj):
 
 
 def main():
-    args = [a for a in sys.argv[1:] if not a.startswith('-')]
-    verbose = '-v' in sys.argv
+    argv = sys.argv[1:]
+    srcdir = f'{R}/src'
+    if '--src' in argv:
+        i = argv.index('--src')
+        srcdir = os.path.abspath(argv[i + 1])
+        del argv[i:i + 2]
+    args = [a for a in argv if not a.startswith('-')]
+    verbose = '-v' in argv
     objs = pieces_by_obj()
     names = args or list(objs)
     tmp = tempfile.mkdtemp()
@@ -65,7 +71,7 @@ def main():
         want = [l for p in pcs for l in labels(p)]
         piece_of = {l: p for p in pcs for l in labels(p)}
         o = f'{tmp}/{name}.o'
-        ok, err = compile_tu(f'{R}/src/{name}.c', o)
+        ok, err = compile_tu(f'{srcdir}/{name}.c', o)
         if not ok:
             print(f'{name}: compile failed')
             print('\n'.join(l for l in err.splitlines() if 'warning' not in l)[-2000:])
