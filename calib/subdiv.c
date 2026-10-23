@@ -77,3 +77,110 @@ struct SUBPACK *NewSubGt4(struct GLOBSMODGT4 *Mod, struct POLY_GT4 *Poly, unsign
     Resubdiv_(((struct SUBPACK *)temp)->Polys[1], 0, 0, Poly);
     return (struct SUBPACK *)temp;
 }
+
+short *SubToFreeList;
+short *SubToFreeListPntr;
+short *LastSubPackFree;
+short SubDivFails;
+extern struct WINDOW GameWindows[];
+void dprintf(struct WINDOW *Window, char *_format, ...);
+
+void FreeSubDivs(void)
+{
+    {
+        char *temp;
+        unsigned short *ap;
+
+        for (ap = SubToFreeList; ap < SubToFreeListPntr; ap++) {
+            temp = (char *)SubPackBase;
+            temp += *ap;
+            *--SubPackFreePntr = *ap;
+            if (((struct SUBPACK *)temp)->Source[0]) {
+                ((struct SUBPACK *)temp)->Source[0]->pad3 = 0;
+                ((struct SUBPACK *)temp)->Source[1]->pad3 = 0;
+                ((struct SUBPACK *)temp)->Source[0] = 0;
+            }
+        }
+    }
+    {
+        short NeedFree;
+        short Count;
+        int MaxZ;
+        char *Temp;
+        struct SUBPACK *SubP;
+        struct SUBPACK *ToFree;
+        int Used;
+
+        SubToFreeListPntr = SubToFreeList;
+        Used = LastSubPackFree - SubPackFreePntr;
+        NeedFree = 6;
+        if (MaxSubPols < 6)
+            NeedFree = MaxSubPols;
+        NeedFree -= Used;
+        for (Count = 0; Count < NeedFree; Count++) {
+            MaxZ = 0;
+            ToFree = 0;
+            for (SubP = SubPack; SubP < &SubPack[MaxSubPols]; SubP++) {
+                if (SubP->Source[0] && SubP->ScreenZ > MaxZ) {
+                    ToFree = SubP;
+                    MaxZ = SubP->ScreenZ;
+                }
+            }
+            if (ToFree) {
+                Temp = (char *)SubPackBase;
+                *SubToFreeListPntr++ = (char *)ToFree - Temp;
+                ToFree->Source[0]->pad3 = 0;
+                ToFree->Source[1]->pad3 = 0;
+                ToFree->Source[0] = 0;
+            } else {
+                dprintf(GameWindows, "Subdiv Confusion\n");
+            }
+        }
+    }
+    SubDivFails = 0;
+}
+
+short *SubPackFree;
+short *LastUnprotectedSubPackFree;
+short *LastSemiProtectedSubPackFree;
+void SetSemiTrans(void *p, int abe);
+void SetShadeTex(void *p, int tge);
+#define setlen(p, _len) (*(((unsigned char *)(p)) + 3) = (unsigned char)(_len))
+#define setcode(p, _code) (*(((unsigned char *)(p)) + 7) = (unsigned char)(_code))
+#define setPolyGT4(p) setlen(p, 12), setcode(p, 0x3c)
+
+void InitSubdivision(void)
+{
+    int a;
+    int c;
+    struct POLY_GT4 *Gt40;
+    struct POLY_GT4 *Gt41;
+
+    Gt40 = db[0].subpolsg4;
+    Gt41 = db[1].subpolsg4;
+    for (c = 0; c < MaxSubPols * 16; Gt40++, Gt41++, c++) {
+        setPolyGT4(Gt40);
+        SetSemiTrans(Gt40, 0);
+        SetShadeTex(Gt40, 0);
+        setPolyGT4(Gt41);
+        SetSemiTrans(Gt41, 0);
+        SetShadeTex(Gt41, 0);
+    }
+    SubPackBase = SubPack - 1;
+    for (a = 0; a < MaxSubPols; a++) {
+        SubPackFree[a] = (a + 1) * sizeof(struct SUBPACK);
+        SubPack[a].Polys[0] = db[0].subpolsg4 + a * 16;
+        SubPack[a].Polys[1] = db[1].subpolsg4 + a * 16;
+        SubPack[a].Source[0] = 0;
+    }
+    SubToFreeListPntr = SubToFreeList;
+    SubPackFreePntr = SubPackFree;
+    LastSubPackFree = SubPackFree + MaxSubPols;
+    if (MaxSubPols > 6) {
+        LastUnprotectedSubPackFree = LastSubPackFree - 6;
+        LastSemiProtectedSubPackFree = LastSubPackFree - 3;
+    } else {
+        LastUnprotectedSubPackFree = LastSubPackFree;
+        LastSemiProtectedSubPackFree = LastSubPackFree;
+    }
+}
