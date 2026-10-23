@@ -15,9 +15,9 @@ wine "$PSYQ/bin/cc1psx.exe" -quiet $flags "$tmp/a.i" -o "$tmp/a.s" 2>&1 | grep -
 [ -s "$tmp/a.s" ] || { echo "cc1psx produced no output" >&2; exit 1; }
 # maspsx reads stdin when there is any, so give it the file explicitly
 # small-data threshold: maspsx gets the compiler's -G and makes symbols defined in this file $gp-relative.
-# GNU as runs with -G0: like ASPSX 2.79 (which ccpsx runs as `aspsx -q -G8`), externs from other files
+# GNU as runs with -G0: like real ASPSX (ccpsx runs `aspsx -q -G8`), externs from other files
 # always get %hi/%lo, even when gcc emitted `.extern sym,size` with a small size.
 G=$(echo "$flags" | sed -nE 's/.*-G ?([0-9]+).*/\1/p')
 G=${G:-0}
-python3 "$R/tools/maspsx/maspsx.py" --aspsx-version=${ASPSX_VERSION:-2.79} --dont-force-G0 --use-comm-for-lcomm --use-comm-section -G"$G" "$tmp/a.s" < /dev/null > "$tmp/a.m.s"
+python3 "$R/tools/maspsx/maspsx.py" --aspsx-version=${ASPSX_VERSION:-2.81} --dont-force-G0 --use-comm-for-lcomm --use-comm-section -G"$G" "$tmp/a.s" < /dev/null > "$tmp/a.m.s"
 ${CROSS}as -EL -march=r3000 -mabi=32 -G0 -no-pad-sections -I "$R/include" -o "$out" "$tmp/a.m.s"
