@@ -60,8 +60,8 @@ of that.
 
 `calib/` holds matched functions, one file per original source file; `tools/calibrate.sh [flags]`
 recompiles them and diffs each against `asm/` (`ASPSX_VERSION=` changes maspsx's assembler model, and a
-file whose original used other flags says so in a `/* calib-flags: ... */` comment). **1024 of the 1037
-game functions match, 94.5% of the game's code, and 81 of the 90 source files are complete.**
+file whose original used other flags says so in a `/* calib-flags: ... */` comment). **1036 of the 1037
+game functions match, 99.7% of the game's code, and 89 of the 90 source files are complete.**
 
 | cc1psx                  | -O1 | -O2     | -O3     | -O3 -G0 | -O3 -G4 |
 |-------------------------|-----|---------|---------|---------|---------|
@@ -150,7 +150,7 @@ Found while matching `calib/`; the files show each in use.
   compares addresses. A file's own variable that splat suffixed (`Sound_Explosion_800B2A68`) has to be
   named that way.
 
-Of the 13 functions left, all are over 180 instructions and the near misses are register allocation,
-scheduling or cross-jumping: `ProcessSounds` and `PrimaryDoor2_PDH` are 2 and 4 instructions off,
-`ProcessWaterEffect` 8 lines, `AnyoneFireRocketL` 7, `GameCheckPaused`/`GameInitStuff` a cross-jump each.
-`DrawScene` (1531 instructions) hasn't been attempted.
+The one function left, `ProcessWaterEffect`, is 8 lines off in a 20-instruction block; see
+`calib-wip/README.md`. Two matches use contrived forms, commented in place: `GameCheckPaused` (an asm-label
+alias of `Paused`, the only way found to stop gcc cross-jumping two returns the original keeps apart) and
+`GameInitStuff` (nested `do { } while (0)` to raise one value's allocation weight).
