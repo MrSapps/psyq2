@@ -1420,3 +1420,174 @@ void DrawTelePorts(void)
                  *&(struct SHORTPAIR){ 0, 0 });
     }
 }
+
+
+static int Sound_KeyUse;
+static int Sound_KeyTry;
+static int Sound_PlatformStart;
+extern int GlobalKey;
+int MoveSolidBoxs(struct SOLIDBOX *SolidBox, struct SVECT Movement);
+
+void PrimaryDoor2_PDH(struct BRUSHMOVEBUF *MoveBuf)
+{
+    struct BRUSHMOVEBUF *MoveBuf2;
+    short in;
+    unsigned short *shortpnt;
+    struct VECT Location;
+    short OldXYZ;
+    int NewXYZ;
+    short dist;
+    struct SVECT xyz;
+    short closed;
+    struct SCENE2 *Portal;
+
+    in = -MoveBuf->Triggered;
+    memset(&xyz, 0, sizeof(xyz));
+    if (MoveBuf->Speed < 0)
+        MoveBuf->Speed = -MoveBuf->Speed;
+    MoveBuf->Triggered = 0;
+    switch (MoveBuf->OpenFlag) {
+    case 0:
+        if (in) {
+            if (!MoveBuf->Key || (MoveBuf->Key & GlobalKey)) {
+                MoveBuf->OpenFlag = 5;
+                if (MoveBuf->Key) {
+                    MoveBuf2 = (struct BRUSHMOVEBUF *)MoveBuf->Obj;
+                    Location.vx = (Scene2Data[(short)MoveBuf2].VectBox.Min.vx + Scene2Data[(short)MoveBuf2].VectBox.Max.vx) / 2;
+                    Location.vy = (Scene2Data[(short)MoveBuf2].VectBox.Min.vy + Scene2Data[(short)MoveBuf2].VectBox.Max.vy) / 2;
+                    Location.vz = (Scene2Data[(short)MoveBuf2].VectBox.Min.vz + Scene2Data[(short)MoveBuf2].VectBox.Max.vz) / 2;
+                    SoundAtLocation(Sound_KeyUse, &Location);
+                    MoveBuf->SoundJustDone = 1;
+                }
+            } else if (!MoveBuf->SoundJustDone) {
+                MoveBuf2 = (struct BRUSHMOVEBUF *)MoveBuf->Obj;
+                Location.vx = (Scene2Data[(short)MoveBuf2].VectBox.Min.vx + Scene2Data[(short)MoveBuf2].VectBox.Max.vx) / 2;
+                Location.vy = (Scene2Data[(short)MoveBuf2].VectBox.Min.vy + Scene2Data[(short)MoveBuf2].VectBox.Max.vy) / 2;
+                Location.vz = (Scene2Data[(short)MoveBuf2].VectBox.Min.vz + Scene2Data[(short)MoveBuf2].VectBox.Max.vz) / 2;
+                SoundAtLocation(Sound_KeyTry, &Location);
+                MoveBuf->SoundJustDone = 1;
+                QuakeSuggestKey(MoveBuf->Key);
+            }
+        } else
+            MoveBuf->SoundJustDone = 0;
+        return;
+    case 2:
+        MoveBuf->OpenFlag = 6;
+        return;
+    case 3:
+        in = 0;
+        break;
+    case 4:
+        in = MoveBuf->Params[1] == 3;
+        break;
+    case 1:
+        in = 1;
+        break;
+    case 5:
+        if ((short)(MoveBuf->StartDelay - NewVcounts) > 0) {
+            MoveBuf->StartDelay -= NewVcounts;
+            return;
+        }
+        MoveBuf->OpenFlag = 1;
+        NewXYZ = MoveBuf->Obj;
+        Location.vx = (Scene2Data[NewXYZ].VectBox.Min.vx + Scene2Data[NewXYZ].VectBox.Max.vx) / 2;
+        Location.vy = (Scene2Data[NewXYZ].VectBox.Min.vy + Scene2Data[NewXYZ].VectBox.Max.vy) / 2;
+        Location.vz = (Scene2Data[NewXYZ].VectBox.Min.vz + Scene2Data[NewXYZ].VectBox.Max.vz) / 2;
+        SoundAtLocation(Sound_PlatformStart, &Location);
+        return;
+    case 6:
+        if (MoveBuf->Time == 0xffff)
+            return;
+        if ((short)(MoveBuf->Time - NewVcounts) > 0) {
+            MoveBuf->Time -= NewVcounts;
+            return;
+        }
+        if (in) {
+            MoveBuf->Time = 1;
+            return;
+        }
+        MoveBuf->OpenFlag = 3;
+        NewXYZ = MoveBuf->Obj;
+        Location.vx = (Scene2Data[NewXYZ].VectBox.Min.vx + Scene2Data[NewXYZ].VectBox.Max.vx) / 2 + MoveBuf->Offset.vx;
+        Location.vy = (Scene2Data[NewXYZ].VectBox.Min.vy + Scene2Data[NewXYZ].VectBox.Max.vy) / 2 + MoveBuf->Offset.vy;
+        Location.vz = (Scene2Data[NewXYZ].VectBox.Min.vz + Scene2Data[NewXYZ].VectBox.Max.vz) / 2 + MoveBuf->Offset.vz;
+        SoundAtLocation(Sound_PlatformStart, &Location);
+        return;
+    }
+    shortpnt = (unsigned short *)&MoveBuf->Offset;
+    shortpnt += MoveBuf->Axis;
+    NewXYZ = OldXYZ = *shortpnt;
+    closed = 0;
+    if (in) {
+        if (MoveBuf->Range > 0) {
+            NewXYZ += MoveBuf->Speed * NewVcounts;
+            if (NewXYZ > MoveBuf->Range) {
+                NewXYZ = MoveBuf->Range;
+                MoveBuf->OpenFlag = 2;
+            }
+        } else {
+            NewXYZ -= MoveBuf->Speed * NewVcounts;
+            if (NewXYZ < MoveBuf->Range) {
+                NewXYZ = MoveBuf->Range;
+                MoveBuf->OpenFlag = 2;
+            }
+        }
+        if (MoveBuf->OpenFlag == 4) {
+            if (--MoveBuf->Params[0] == 0)
+                MoveBuf->OpenFlag = MoveBuf->Params[1];
+        }
+    } else {
+        if (MoveBuf->Range > 0) {
+            NewXYZ -= MoveBuf->Speed * NewVcounts;
+            if (NewXYZ < 0) {
+                NewXYZ = 0;
+                closed = 1;
+                MoveBuf->OpenFlag = 0;
+            }
+        } else {
+            NewXYZ += MoveBuf->Speed * NewVcounts;
+            if (NewXYZ > 0) {
+                NewXYZ = 0;
+                closed = 1;
+                MoveBuf->OpenFlag = 0;
+            }
+        }
+    }
+    {
+        int NoProblem;
+
+        NoProblem = 1;
+        dist = NewXYZ - OldXYZ;
+        (&xyz.vx)[MoveBuf->Axis] = dist;
+        if (MoveBuf->SolidBox)
+            NoProblem = MoveSolidBoxs(MoveBuf->SolidBox, xyz);
+        if (NoProblem) {
+            if (MoveBuf->PortalObj != -1) {
+                Portal = &Scene2Data[MoveBuf->PortalObj];
+                if (MoveBuf->OtherDoor > 0 && closed) {
+                    MoveBuf2 = &BrushMoveBufs[MoveBuf->OtherDoor - 1];
+                    if (!MoveBuf2->OpenFlag)
+                        Portal->NoDraw = closed;
+                } else
+                    Portal->NoDraw = closed;
+            }
+            while (MoveBuf) {
+                (&MoveBuf->Offset.vx)[MoveBuf->Axis] += dist;
+                MoveBuf = MoveBuf->Link;
+            }
+        } else {
+            if (MoveBuf->OpenFlag == 3) {
+                if (!(MoveBuf->Params[2] & 2)) {
+                    MoveBuf->OpenFlag = 4;
+                    MoveBuf->Params[1] = 3;
+                }
+            } else if (MoveBuf->OpenFlag == 1) {
+                if (!(MoveBuf->Params[2] & 1)) {
+                    MoveBuf->OpenFlag = 4;
+                    MoveBuf->Params[1] = 1;
+                }
+            }
+            MoveBuf->Params[0] = 16;
+        }
+    }
+}
