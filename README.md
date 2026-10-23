@@ -60,8 +60,8 @@ of that.
 
 `calib/` holds matched functions, one file per original source file; `tools/calibrate.sh [flags]`
 recompiles them and diffs each against `asm/` (`ASPSX_VERSION=` changes maspsx's assembler model, and a
-file whose original used other flags says so in a `/* calib-flags: ... */` comment). **1036 of the 1037
-game functions match, 99.7% of the game's code, and 89 of the 90 source files are complete.**
+file whose original used other flags says so in a `/* calib-flags: ... */` comment). **All 1037
+game functions match, 100% of the game's code (every source file complete).**
 
 | cc1psx                  | -O1 | -O2     | -O3     | -O3 -G0 | -O3 -G4 |
 |-------------------------|-----|---------|---------|---------|---------|
@@ -150,7 +150,8 @@ Found while matching `calib/`; the files show each in use.
   compares addresses. A file's own variable that splat suffixed (`Sound_Explosion_800B2A68`) has to be
   named that way.
 
-The one function left, `ProcessWaterEffect`, is 8 lines off in a 20-instruction block; see
-`calib-wip/README.md`. Two matches use contrived forms, commented in place: `GameCheckPaused` (an asm-label
-alias of `Paused`, the only way found to stop gcc cross-jumping two returns the original keeps apart) and
-`GameInitStuff` (nested `do { } while (0)` to raise one value's allocation weight).
+Two matches use contrived forms, commented in place: `GameCheckPaused` (an asm-label alias of `Paused`, the
+only way found to stop gcc cross-jumping two returns the original keeps apart) and `GameInitStuff` (nested
+`do { } while (0)` to raise one value's allocation weight). The last one, `ProcessWaterEffect`, needed two
+constant locals for its loop steps (`StepX = 13; StepY = 20;`): their set insns are extra "birthing" insns that
+change sched1's pick order, and reload deletes them (a pseudo that never gets a register has no SYM entry).
