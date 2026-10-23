@@ -1034,6 +1034,109 @@ struct BESTLIGHT bestlights[4];
 int CalcLightBright(struct LIGHTS *Light, struct SVECT *Rel, short OverBright);
 int abs(int);
 
+extern struct LIGHTS LightList[];
+extern struct LIGHTS *LightListCurrent;
+extern struct LIGHTS HeavenlyLightList[];
+extern struct LIGHTS *HeavenlyLightListCurrent;
+extern struct LIGHTS tempgloblight;
+extern struct COLLHEADER MoveCollMap;
+extern short *FixedLightList;
+extern struct LIGHTS *FixedLightData;
+extern struct MATRIX rgbmatrix;
+void CalcLightModel(struct CREATURE *Cre, struct LIGHTS *Light);
+void VectorNormalSS(struct SVECTOR *v0, struct SVECTOR *v1);
+void ScaleSVect(struct SVECTOR *Vec, int Scale);
+/* SetBackColor (libgte) is called without its prototype in scope: implicit int. Its int
+   return value matters to CreLights: with a void prototype its last argument is computed in
+   $v0 instead of $v1. */
+int SetBackColor();
+
+void CreLights(struct CREATURE *Cre, struct SVECTOR *LightVec)
+{
+    struct LIGHTS *Lighting;
+    short *fp;
+    short *LightStop;
+
+    lightorder[1] = 1;
+    lightorder[2] = 2;
+    lightorder[3] = 3;
+    bestlights[0].bright = 0;
+    lightorder[0] = 0;
+    bestlights[1].bright = 0;
+    bestlights[2].bright = 0;
+    NumLights = 0;
+    if (Cre->Life < 0) {
+        for (Lighting = HeavenlyLightList; Lighting < HeavenlyLightListCurrent; Lighting++)
+            CalcLightModel(Cre, Lighting);
+    } else {
+        for (Lighting = LightList; Lighting < LightListCurrent; Lighting++)
+            CalcLightModel(Cre, Lighting);
+        if (Cre->Box.MoveSpace >= 0) {
+            fp = FixedLightList + MoveCollMap.Coll3dSpace[Cre->Box.MoveSpace].StartLight;
+            LightStop = FixedLightList + MoveCollMap.Coll3dSpace[Cre->Box.MoveSpace + 1].StartLight;
+            for (; fp < LightStop; fp++)
+                CalcLightModel(Cre, &FixedLightData[*fp]);
+        } else {
+            tempgloblight.Location.vx = Cre->Draw.Location.vx + 500;
+            tempgloblight.Location.vy = Cre->Draw.Location.vy - 2000;
+            tempgloblight.Location.vz = Cre->Draw.Location.vz - 1000;
+            CalcLightModel(Cre, &tempgloblight);
+        }
+    }
+    if (NumLights > 3)
+        NumLights = 3;
+    switch (NumLights) {
+    case 3:
+        rgbmatrix.m[0][0] = bestlights[lightorder[0]].r;
+        rgbmatrix.m[1][0] = bestlights[lightorder[0]].g;
+        rgbmatrix.m[2][0] = bestlights[lightorder[0]].b;
+        rgbmatrix.m[0][1] = bestlights[lightorder[1]].r;
+        rgbmatrix.m[1][1] = bestlights[lightorder[1]].g;
+        rgbmatrix.m[2][1] = bestlights[lightorder[1]].b;
+        rgbmatrix.m[0][2] = bestlights[lightorder[2]].r;
+        rgbmatrix.m[1][2] = bestlights[lightorder[2]].g;
+        rgbmatrix.m[2][2] = bestlights[lightorder[2]].b;
+        VectorNormalSS((struct SVECTOR *)&bestlights[lightorder[0]].dir, &LightVec[0]);
+        VectorNormalSS((struct SVECTOR *)&bestlights[lightorder[1]].dir, &LightVec[1]);
+        VectorNormalSS((struct SVECTOR *)&bestlights[lightorder[2]].dir, &LightVec[2]);
+        ScaleSVect(&LightVec[0], Cre->ModelOpaque * Cre->ModelBright / 2048);
+        ScaleSVect(&LightVec[1], Cre->ModelOpaque * Cre->ModelBright / 2048);
+        ScaleSVect(&LightVec[2], Cre->ModelOpaque * Cre->ModelBright / 2048);
+        break;
+    case 2:
+        rgbmatrix.m[0][0] = bestlights[lightorder[0]].r;
+        rgbmatrix.m[1][0] = bestlights[lightorder[0]].g;
+        rgbmatrix.m[2][0] = bestlights[lightorder[0]].b;
+        rgbmatrix.m[0][1] = bestlights[lightorder[1]].r;
+        rgbmatrix.m[1][1] = bestlights[lightorder[1]].g;
+        rgbmatrix.m[2][1] = bestlights[lightorder[1]].b;
+        rgbmatrix.m[0][2] = 0;
+        rgbmatrix.m[1][2] = 0;
+        rgbmatrix.m[2][2] = 0;
+        VectorNormalSS((struct SVECTOR *)&bestlights[lightorder[0]].dir, &LightVec[0]);
+        VectorNormalSS((struct SVECTOR *)&bestlights[lightorder[1]].dir, &LightVec[1]);
+        ScaleSVect(&LightVec[0], Cre->ModelOpaque * Cre->ModelBright / 2048);
+        ScaleSVect(&LightVec[1], Cre->ModelOpaque * Cre->ModelBright / 2048);
+        break;
+    case 1:
+        rgbmatrix.m[0][0] = bestlights[lightorder[0]].r;
+        rgbmatrix.m[1][0] = bestlights[lightorder[0]].g;
+        rgbmatrix.m[2][0] = bestlights[lightorder[0]].b;
+        rgbmatrix.m[0][1] = 0;
+        rgbmatrix.m[1][1] = 0;
+        rgbmatrix.m[2][1] = 0;
+        rgbmatrix.m[0][2] = 0;
+        rgbmatrix.m[1][2] = 0;
+        rgbmatrix.m[2][2] = 0;
+        VectorNormalSS((struct SVECTOR *)&bestlights[lightorder[0]].dir, &LightVec[0]);
+        ScaleSVect(&LightVec[0], Cre->ModelOpaque * Cre->ModelBright / 2048);
+        break;
+    }
+    {
+        int Bright = Cre->ModelBright * Cre->ModelOpaque;
+        SetBackColor(Cre->Ambience.r * Bright >> 24, Cre->Ambience.g * Bright >> 24, Cre->Ambience.b * Bright >> 24);
+    }
+}
 
 void CalcLightModel(struct CREATURE *Cre, struct LIGHTS *Light)
 {
@@ -1084,7 +1187,237 @@ void CalcLightModel(struct CREATURE *Cre, struct LIGHTS *Light)
     }
 }
 
-struct QUATANIMFRAME *GetTweenedSubModXYZ(short SubModId, struct ANIMFRAMEHDRHDR *FrameHdrHdr, struct ANIMFRAMEHDRHDR *FrameHdrHdrB, short ToDo300FPSUnClipped);
+static struct QUATANIMFRAME GlobalTweenedQuatFrames[32];
+void PackedEulerToCamQuat(struct PACKEDEULER Ang, struct QUAT *Res);
+int QuatSlerp(struct QUAT *From, struct QUAT *To, int T, struct QUAT *Res);
+void dprintf(struct WINDOW *Window, char *_format, ...);
+extern struct WINDOW GameWindows[];
+
+static inline void TweenQuatFrame(struct QUATANIMFRAME *BaseFrame, struct ANIMFRAME *KeyFrameA, struct ANIMFRAME *KeyFrameB, int ToDo, int Count)
+{
+    int Scale;
+    int Scale2;
+
+    if (ToDo == Count) {
+        PackedEulerToCamQuat(KeyFrameA[1].Ang, &BaseFrame->Orient);
+        BaseFrame->Tran.vx = KeyFrameA[1].Tran.x << 1;
+        BaseFrame->Tran.vy = KeyFrameA[1].Tran.y << 2;
+        BaseFrame->Tran.vz = KeyFrameA[1].Tran.z << 1;
+    } else if (ToDo <= Count) {
+        struct QUAT Orient1;
+        struct QUAT Orient2;
+
+        Scale = ((ToDo << 12) + (Count >> 1)) / Count;
+        if (Scale < 0)
+            dprintf(GameWindows, "ToDo>Count or Scale<0!");
+        PackedEulerToCamQuat(KeyFrameA->Ang, &Orient1);
+        PackedEulerToCamQuat(KeyFrameB->Ang, &Orient2);
+        QuatSlerp(&Orient1, &Orient2, Scale, &BaseFrame->Orient);
+        Scale2 = KeyFrameA->Tran.x << 1;
+        BaseFrame->Tran.vx = ((((KeyFrameB->Tran.x << 1) - Scale2) * Scale) >> 12) + Scale2;
+        Scale2 = KeyFrameA->Tran.y << 2;
+        BaseFrame->Tran.vy = ((((KeyFrameB->Tran.y << 2) - Scale2) * Scale) >> 12) + Scale2;
+        Scale2 = KeyFrameA->Tran.z << 1;
+        BaseFrame->Tran.vz = ((((KeyFrameB->Tran.z << 1) - Scale2) * Scale) >> 12) + Scale2;
+    }
+}
+
+int PrintOutStuff;
+
+static inline int TweenLerp(int A, int B, int Scale)
+{
+    return (((B - A) * Scale) >> 12) + A;
+}
+
+static inline void TweenQuatFrameScaled(struct QUATANIMFRAME *BaseFrame, struct ANIMFRAME *KeyFrameA, struct ANIMFRAME *KeyFrameB, int ToDo, int Count)
+{
+    {
+        struct QUAT Orient1;
+        struct QUAT Orient2;
+        int Scale;
+
+        Scale = ((ToDo << 12) + (Count >> 1)) / Count;
+        if (ToDo > Count || Scale < 0)
+            dprintf(GameWindows, "ToDo>Count or Scale<0!");
+        PackedEulerToCamQuat(KeyFrameA->Ang, &Orient1);
+        PackedEulerToCamQuat(KeyFrameB->Ang, &Orient2);
+        QuatSlerp(&Orient1, &Orient2, Scale, &BaseFrame->Orient);
+        BaseFrame->Tran.vx = TweenLerp(KeyFrameA->Tran.x << 1, KeyFrameB->Tran.x << 1, Scale);
+        BaseFrame->Tran.vy = TweenLerp(KeyFrameA->Tran.y << 2, KeyFrameB->Tran.y << 2, Scale);
+        BaseFrame->Tran.vz = TweenLerp(KeyFrameA->Tran.z << 1, KeyFrameB->Tran.z << 1, Scale);
+    }
+}
+
+void GetAnimFramesForAnim(struct ANIMFRAMEHDRHDR *FrameHdrHdr, struct ANIMFRAMEHDRHDR *NextKeyFrameHdrHdr, int ToDo300FPSUnClipped, int NumSubMods)
+{
+    struct QUATANIMFRAME *BaseFrame;
+    unsigned char *Temp;
+    struct ANIMFRAME *AnimFrame;
+    struct ANIMFRAME *AnimFrameB;
+    struct TWEENHDR *TweenHdr;
+    struct TWEENHDR *TweenHdr2;
+    int SubIndx;
+    int ToDo300FPS;
+
+    BaseFrame = GlobalTweenedQuatFrames;
+    TweenHdr = (struct TWEENHDR *)(FrameHdrHdr + 1);
+    TweenHdr2 = 0;
+    ToDo300FPS = ToDo300FPSUnClipped;
+    if (ToDo300FPS > FrameHdrHdr->NumFrames - 10)
+        ToDo300FPS = FrameHdrHdr->NumFrames - 10;
+    if (!ToDo300FPS) {
+        for (SubIndx = 0; SubIndx < NumSubMods; SubIndx++) {
+            AnimFrame = (struct ANIMFRAME *)((char *)TweenHdr + TweenHdr->AnimFrameOffset);
+            PackedEulerToCamQuat(AnimFrame->Ang, &BaseFrame->Orient);
+            BaseFrame->Tran.vx = AnimFrame->Tran.x << 1;
+            BaseFrame->Tran.vy = AnimFrame->Tran.y << 2;
+            BaseFrame->Tran.vz = AnimFrame->Tran.z << 1;
+            BaseFrame++;
+            TweenHdr++;
+        }
+        return;
+    }
+    {
+        int ToDo;
+        int ThisToDo;
+        int Count;
+        int Remainder;
+        int Nibbles8;
+        unsigned long *CountPntr;
+        unsigned long CountData;
+
+        if (NextKeyFrameHdrHdr)
+            TweenHdr2 = (struct TWEENHDR *)(NextKeyFrameHdrHdr + 1);
+        ToDo = ToDo300FPS / 10;
+        Remainder = ToDo300FPS - ToDo * 10;
+        for (SubIndx = 0; SubIndx < NumSubMods; SubIndx++, TweenHdr++) {
+            PrintOutStuff = 0;
+            if (!SubIndx)
+                PrintOutStuff = 1;
+            Nibbles8 = 0;
+            ThisToDo = ToDo;
+            Temp = (unsigned char *)TweenHdr + TweenHdr->CountOffset;
+            CountData = *(unsigned long *)Temp;
+            CountPntr = (unsigned long *)Temp;
+            Count = CountData & 0xf;
+            CountData >>= 4;
+            while (ThisToDo * 10 + Remainder > Count * 10) {
+                Nibbles8++;
+                ThisToDo -= Count;
+                if (!(Nibbles8 & 7))
+                    CountData = *++CountPntr;
+                Count = CountData & 0xf;
+                CountData >>= 4;
+            }
+            AnimFrame = (struct ANIMFRAME *)((char *)TweenHdr + TweenHdr->AnimFrameOffset);
+            AnimFrame += Nibbles8;
+            AnimFrameB = AnimFrame + 1;
+            Count *= 10;
+            ThisToDo = ThisToDo * 10 + Remainder;
+            if (TweenHdr2) {
+                AnimFrame = AnimFrameB;
+                AnimFrameB = (struct ANIMFRAME *)((char *)TweenHdr2 + TweenHdr2->AnimFrameOffset);
+                ThisToDo = ToDo300FPSUnClipped - ToDo300FPS;
+                Count = 10;
+                TweenHdr2++;
+            }
+            if (ThisToDo == Count) {
+                if (!TweenHdr2) {
+                    PackedEulerToCamQuat(AnimFrame[1].Ang, &BaseFrame->Orient);
+                    BaseFrame->Tran.vx = AnimFrame[1].Tran.x << 1;
+                    BaseFrame->Tran.vy = AnimFrame[1].Tran.y << 2;
+                    BaseFrame->Tran.vz = AnimFrame[1].Tran.z << 1;
+                } else {
+                    PackedEulerToCamQuat(AnimFrameB->Ang, &BaseFrame->Orient);
+                    BaseFrame->Tran.vx = AnimFrameB->Tran.x << 1;
+                    BaseFrame->Tran.vy = AnimFrameB->Tran.y << 2;
+                    BaseFrame->Tran.vz = AnimFrameB->Tran.z << 1;
+                }
+                BaseFrame++;
+            } else {
+                if (ThisToDo > Count)
+                    for (;;)
+                        ;
+                TweenQuatFrameScaled(BaseFrame++, AnimFrame, AnimFrameB, ThisToDo, Count);
+            }
+        }
+    }
+}
+
+struct QUATANIMFRAME *GetTweenedSubModXYZ(short SubModId, struct ANIMFRAMEHDRHDR *FrameHdrHdr, struct ANIMFRAMEHDRHDR *FrameHdrHdrB, short ToDo300FPSUnClipped)
+{
+    int ToDo;
+    int ThisToDo;
+    int Count;
+    int Nibbles8;
+    int Remainder;
+    unsigned long *CountPntr;
+    unsigned long CountData;
+    struct TWEENHDR *TweenHdr;
+    struct TWEENHDR *TweenHdr2;
+    struct ANIMFRAME *AnimFrameA;
+    struct ANIMFRAME *AnimFrameB;
+    struct QUATANIMFRAME *QBaseFrame;
+    struct MATRIX QuatMatrix;
+    int ToDo300FPS;
+    unsigned char *Temp;
+
+    TweenHdr = (struct TWEENHDR *)(FrameHdrHdr + 1) + SubModId;
+    QBaseFrame = GlobalTweenedQuatFrames;
+    ToDo300FPS = ToDo300FPSUnClipped;
+    if (!ToDo300FPS) {
+        AnimFrameA = (struct ANIMFRAME *)(TweenHdr->AnimFrameOffset + (int)TweenHdr);
+        PackedEulerToCamQuat(AnimFrameA->Ang, &QBaseFrame->Orient);
+        QBaseFrame->Tran.vx = AnimFrameA->Tran.x << 1;
+        QBaseFrame->Tran.vy = AnimFrameA->Tran.y << 2;
+        QBaseFrame->Tran.vz = AnimFrameA->Tran.z << 1;
+        return QBaseFrame;
+    }
+    if (ToDo300FPS > FrameHdrHdr->NumFrames - 10)
+        ToDo300FPS = FrameHdrHdr->NumFrames - 10;
+    /* The original wraps this in a loop construct (its line table has notes for the lines around
+       it): gcc weights the two assignments by loop depth when it ranks pseudos for register
+       allocation, which is what gives TweenHdr2 $t4 and TweenHdr $t5. */
+    do {
+        if (FrameHdrHdrB) {
+            TweenHdr2 = (struct TWEENHDR *)(FrameHdrHdrB + 1) + SubModId;
+        } else {
+            TweenHdr2 = 0;
+        }
+    } while (0);
+    ToDo = ToDo300FPS / 10;
+    Remainder = ToDo300FPS - ToDo * 10;
+    ThisToDo = ToDo;
+    Temp = (unsigned char *)(TweenHdr->CountOffset + (int)TweenHdr);
+    CountData = *(unsigned long *)Temp;
+    CountPntr = (unsigned long *)Temp;
+    Nibbles8 = 0;
+    Count = CountData & 0xf;
+    CountData >>= 4;
+    while (ThisToDo * 10 + Remainder > Count * 10) {
+        Nibbles8++;
+        ThisToDo -= Count;
+        if (!(Nibbles8 & 7))
+            CountData = *++CountPntr;
+        Count = CountData & 0xf;
+        CountData >>= 4;
+    }
+    AnimFrameA = (struct ANIMFRAME *)(TweenHdr->AnimFrameOffset + (int)TweenHdr);
+    AnimFrameA += Nibbles8;
+    Count *= 10;
+    ThisToDo = ThisToDo * 10 + Remainder;
+    if (TweenHdr2) {
+        AnimFrameA++;
+        AnimFrameB = (struct ANIMFRAME *)(TweenHdr2->AnimFrameOffset + (int)TweenHdr2);
+        ThisToDo = ToDo300FPSUnClipped - ToDo300FPS;
+        Count = 10;
+    } else {
+        AnimFrameB = AnimFrameA + 1;
+    }
+    TweenQuatFrame(QBaseFrame, AnimFrameA, AnimFrameB, ThisToDo, Count);
+    return QBaseFrame;
+}
+
 void QuatToMat(struct QUAT *Quat, struct MATRIX *Mat);
 void MYRotMatrixANIM(struct SVECT *ang, struct MATRIX *m);
 
@@ -1149,4 +1482,107 @@ struct SVECT GetSubModXYZ(struct GLOBMODHDR *GlobHdr, struct MODSUBOFF SubOff, s
     RotReturn.vy += UnPacked.vy;
     RotReturn.vz += UnPacked.vz;
     return RotReturn;
+}
+
+struct VECTOR *ObjTranVect;
+extern struct DUMMYGPU *LastDummyGpu;
+extern struct DUMMYGPU *NextDummyGpu;
+extern long *primlistarray[];
+extern short rcossin_tbl[];
+void GetAnimFramesForAnim(struct ANIMFRAMEHDRHDR *FrameHdrHdr, struct ANIMFRAMEHDRHDR *NextKeyFrameHdrHdr, int ToDo300FPSUnClipped, int NumSubMods);
+void MulMatrix0(struct MATRIX *m0, struct MATRIX *m1, struct MATRIX *m2);
+void SetColorMatrix(struct MATRIX *m);
+void SetRotMatrix(struct MATRIX *m);
+
+int DrawAnimGlobalSetup(struct CREATURE *Cre, struct MODWIN *WinData, int *Params, int Win)
+{
+    struct GLOBMODHDR *GlobHdr;
+    struct ANIMFRAMEHDRHDR *FrameHdrHdrA;
+    struct ANIMFRAMEHDRHDR *FrameHdrHdrB;
+    struct ANIMFRAMEHDR *FrameHdr;
+    struct QUATANIMFRAME *BaseQFrame;
+    struct ANIMFRAME *BaseFrame;
+    struct MATRIX *MainMat;
+    struct MATRIX *CreMat;
+    char *Pntr;
+    int FrameNumA;
+    int FrameNumB;
+
+    FrameNumA = Cre->AnimFrame;
+    GlobHdr = Cre->ModelHdr;
+    FrameHdrHdrA = GlobHdr->AnimData;
+    while (FrameNumA >= FrameHdrHdrA->NumFrames) {
+        FrameNumA -= FrameHdrHdrA->NumFrames;
+        Relocate(&FrameHdrHdrA, (void *)FrameHdrHdrA->Offset);
+    }
+    if (!Cre->Draw.AnimJump) {
+        FrameHdrHdrB = 0;
+    } else {
+        FrameNumB = Cre->Draw.TargetAnimFrame;
+        FrameHdrHdrB = GlobHdr->AnimData;
+        while (FrameNumB >= FrameHdrHdrB->NumFrames) {
+            FrameNumB -= FrameHdrHdrB->NumFrames;
+            Relocate(&FrameHdrHdrB, (void *)FrameHdrHdrB->Offset);
+        }
+    }
+    if (FrameHdrHdrA->Flags & 1) {
+        if (!FrameHdrHdrB)
+            GetAnimFramesForAnim(FrameHdrHdrA, 0, FrameNumA, GlobHdr->NumSubModels);
+        else if (FrameHdrHdrB->Flags & 1)
+            GetAnimFramesForAnim(FrameHdrHdrA, FrameHdrHdrB, FrameNumA, GlobHdr->NumSubModels);
+    } else {
+        BaseQFrame = GlobalTweenedQuatFrames;
+        FrameHdr = (struct ANIMFRAMEHDR *)(FrameHdrHdrA + 1);
+        Pntr = (char *)(FrameHdr + FrameNumA / 10);
+        BaseFrame = (struct ANIMFRAME *)(Pntr + ((struct ANIMFRAMEHDR *)Pntr)->Offset);
+        for (Pntr = (char *)BaseFrame; BaseFrame < (struct ANIMFRAME *)Pntr + GlobHdr->NumSubModels; BaseFrame++) {
+            PackedEulerToCamQuat(BaseFrame->Ang, &BaseQFrame->Orient);
+            BaseQFrame->Tran.vx = BaseFrame->Tran.x << 1;
+            BaseQFrame->Tran.vy = BaseFrame->Tran.y << 2;
+            BaseQFrame->Tran.vz = BaseFrame->Tran.z << 1;
+            BaseQFrame++;
+        }
+    }
+    MainMat = (struct MATRIX *)&Params[35];
+    CreMat = (struct MATRIX *)&Params[24];
+    CreMat->m[0][0] = Cre->Matrix.m[0][0];
+    CreMat->m[0][1] = Cre->Matrix.m[0][1];
+    CreMat->m[0][2] = Cre->Matrix.m[0][2];
+    CreMat->m[1][0] = Cre->Matrix.m[1][0];
+    CreMat->m[1][1] = Cre->Matrix.m[1][1];
+    CreMat->m[1][2] = Cre->Matrix.m[1][2];
+    CreMat->m[2][0] = Cre->Matrix.m[2][0];
+    CreMat->m[2][1] = Cre->Matrix.m[2][1];
+    CreMat->m[2][2] = Cre->Matrix.m[2][2];
+    MulMatrix0(CurrCamMat, &Cre->Matrix, MainMat);
+    rgbmatrix.m[0][0] = 0; rgbmatrix.m[1][0] = 0; rgbmatrix.m[2][0] = 0;
+    rgbmatrix.m[0][1] = 0; rgbmatrix.m[1][1] = 0; rgbmatrix.m[2][1] = 0;
+    rgbmatrix.m[0][2] = 0; rgbmatrix.m[1][2] = 0; rgbmatrix.m[2][2] = 0;
+    CreLights(Cre, (struct SVECTOR *)&Params[29]);
+    SetColorMatrix(&rgbmatrix);
+    SetRotMatrix(MainMat);
+    Params[4] = (int)GlobHdr->GlobPoints;
+    Params[0] = (int)GlobHdr;
+    Params[3] = (int)GlobHdr->GlobPolys;
+    Params[5] = (int)GlobHdr->SubModels;
+    Params[1] = (int)&WinData->Pols[1];
+    Params[2] = (int)currdb->modpolsg4;
+    Params[13] = (int)((struct POLY_GT4 *)Params[2] + WinData->Pols[1]);
+    Params[9] = (int)primlistarray;
+    Params[12] = (int)((struct POLY_GT4 *)Params[13] + 32);
+    Params[10] = (int)ObjTranVect;
+    Params[15] = (int)rcossin_tbl;
+    Params[7] = (int)GlobalTweenedQuatFrames;
+    Params[8] = (int)(GlobalTweenedQuatFrames + GlobHdr->NumSubModels);
+    Params[16] = (WinData->Seed << 16) | WinData->Offset;
+    if (NextDummyGpu != LastDummyGpu) {
+        Params[17] = (int)&WinData->Sort.FirstLast[0];
+        NextDummyGpu->Tag = 0;
+        WinData->Sort.VectBox = &Cre->Box.VectBox;
+        WinData->Sort.FirstLast[0] = (struct POLY_GT4 *)NextDummyGpu;
+        WinData->Sort.FirstLast[1] = (struct POLY_GT4 *)NextDummyGpu;
+        NextDummyGpu++;
+        return 1;
+    }
+    return 0;
 }

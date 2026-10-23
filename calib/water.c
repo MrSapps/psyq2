@@ -69,3 +69,31 @@ void PortalTestWibble(struct SCREENCHANGE *SChange, struct SCENE2 *Scene2)
             ProcessPortalWibble(&PortalData, SChange);
     }
 }
+
+void SetDrawMove(struct DR_MOVE *p, struct RECT *rect, int x, int y);
+void AddPrim(void *ot, void *p);
+extern unsigned long *CurrOt;
+
+/* The effect was switched off with an early return (line 368): the original
+   keeps ~165 lines of dead code after it, and is not inlined into
+   PortalTestWibble because of them (here it simply comes after its caller).
+   Frame 0x18 = Size + outgoing args of the dead calls. A loop in the dead code
+   is what makes gcc put the epilogue's stack restore in the delay slot of the
+   `j $31` (with no loop it stays in front of the jump). */
+void ProcessPortalWibble(struct PORTALDATA *PortalData, struct SCREENCHANGE *SChange)
+{
+    struct SCRPNT Size;
+    static int LastFrame;
+    int y;
+
+    return;
+    Size.sx = SChange->MinMax.Max.sx - SChange->MinMax.Min.sx;
+    Size.sy = SChange->MinMax.Max.sy - SChange->MinMax.Min.sy;
+    for (y = 0; y < Size.sy; y++) {
+        SetDrawMove(WaterMove, (struct RECT *)&Size,
+                    SChange->MinMax.Min.sx + ((PortalData->WibbleScale * y) >> 12),
+                    SChange->MinMax.Min.sy + y);
+        AddPrim(CurrOt, WaterMove++);
+    }
+    LastFrame = y;
+}
