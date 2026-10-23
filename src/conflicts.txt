@@ -1,0 +1,6 @@
+struct SUBAREA: differs in Event.Obj (kept first, from QLevIfce.obj)
+struct SUBAREA: differs in Camera.obj (kept first, from QLevIfce.obj)
+struct SUBAREA: differs in QCamera.obj (kept first, from QLevIfce.obj)
+struct SUBAREA: differs in subdiv.obj (kept first, from QLevIfce.obj)
+struct SUBAREA: differs in subdiv2.obj (kept first, from QLevIfce.obj)
+struct SUBAREA: differs in mymalloc.obj (kept first, from QLevIfce.obj)
