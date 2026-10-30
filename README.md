@@ -94,14 +94,10 @@ Each is commented where it is:
   `BssAlign`.
 - **bss order.** Uninitialised statics use the `BSS` section attribute (`bss.h`): ASPSX's `.lcomm`
   aligns 8-byte statics to 8 and bigger ones to 16, which the originals don't.
-- **Functions still in assembly** (cre_boss1's, level_lab's and level_boss1's C is under
-  `#ifdef NONMATCHING`, with what was tried):
+- **Functions still in assembly** (the C is under `#ifdef NONMATCHING`, with what was tried):
   - cre_boss1's `PreInit_Supertank`: sched1 puts a load of an uninitialised variable, passed as a
     stray extra argument, into `$a3` last, because `$a3` is also set by three 4-argument calls, so the
     load isn't boosted.
-  - level_lab's and level_boss1's `FindCreature`, with the functions that inline it (`CheckGotHead`,
-    `CheckNearMakron`): the original never gives `$v1` to the loop temporaries, which frees it for the
-    address of `FoundCre`. What source shape makes `$v1` unavailable to local-alloc is not known.
 
 ## A native CC1PSX
 

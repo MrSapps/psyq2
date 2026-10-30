@@ -120,29 +120,32 @@ static void Zone4Load(void)
 
 void *ZoneLoadTable[] = { Zone0Load, Zone1Load, Zone2Load, Zone3Load, Zone4Load };
 
-/* NONMATCHING: FindCreature and CheckGotHead (which inlines it) are the original's code (the
- * same problem as level_boss1's FindCreature/CheckNearMakron). In the C below gcc's loop pass
- * hoists %hi(FoundCre) into a copy of the register that set it, which shifts every register in
- * the loop, and reorg fills the loop branch's delay slot with "return 0" instead of filling the
- * found branch with "return FoundCre". Tried (scripted, ~2000 variants): for / for with
- * separate init / while / do loops, goto Found vs return inside the loop, a Cre local, both
- * operand orders, &x->ModelName vs ModelName.Name casts, every declaration order, a goto loop,
- * an unreferenced label before "return 0". */
-#ifdef NONMATCHING
 struct CREATURE *FindCreature(struct IDENTITYNAME Name)
 {
     int i;
     int *a, *b;
+    int x, y;
 
     a = (int *)&Name;
     for (i = 0, FoundCre = Engine->Creatures; i < 48; i++, FoundCre++) {
         b = (int *)&FoundCre->ModelHdr->ModelName;
-        if (a[0] == b[0] && a[1] == b[1] && a[2] == b[2])
-            goto Found;
+        /* the words go through x and y (not a[0] == b[0] && ...): as variables used in
+         * several blocks they are left to global-alloc, which keeps $3 free for
+         * %hi(FoundCre); the return inside the loop fills the found branch's delay slot */
+        x = a[0];
+        y = b[0];
+        if (x == y) {
+            x = a[1];
+            y = b[1];
+            if (x == y) {
+                x = a[2];
+                y = b[2];
+                if (x == y)
+                    return FoundCre;
+            }
+        }
     }
     return 0;
-Found:
-    return FoundCre;
 }
 
 /* once the head has been picked up, wake the dead commander */
@@ -157,146 +160,6 @@ void CheckGotHead(void)
             Cre->EdictT->use(Cre->EdictT, 0, 0);
     }
 }
-
-#else
-struct CREATURE *FindCreature(struct IDENTITYNAME Name);
-void CheckGotHead(void);
-__asm__(
-    "\t.rdata\n"
-    "\t.align\t2\n"
-    "GotHeadName:\n"
-    "\t.ascii\t\"E_GotHead\\000\"\n"
-    "\t.space\t2\n"
-    "\t.align\t2\n"
-    "DeadCommName:\n"
-    "\t.ascii\t\"DeadComm\\000\"\n"
-    "\t.space\t3\n"
-    "\t.text\n"
-    "\t.align\t2\n"
-    "\t.globl\tCheckGotHead\n"
-    "CheckGotHead:\n"
-    "\t.set\tnoreorder\n"
-    "\t.set\tnomacro\n"
-    "\taddu\t$29,$29,-48\n"
-    "\tsw\t$17,36($29)\n"
-    "\tlui\t$17,%hi(DeadCommDone)\n"
-    "\tlw\t$2,%lo(DeadCommDone)($17)\n"
-    "\tsw\t$31,40($29)\n"
-    "\tbne\t$2,$0,GH_b38\n"
-    "\tsw\t$16,32($29)\n"
-    "\tlui\t$5,0xff\n"
-    "\tlui\t$2,%hi(GotHeadName)\n"
-    "\taddu\t$8,$2,%lo(GotHeadName)\n"
-    "\tori\t$5,$5,0xffff\n"
-    "\tlbu\t$3,1($8)\n"
-    "\tlbu\t$7,%lo(GotHeadName)($2)\n"
-    "\tlbu\t$2,2($8)\n"
-    "\tlbu\t$4,4($8)\n"
-    "\tlbu\t$6,8($8)\n"
-    "\tsll\t$3,$3,0x8\n"
-    "\tor\t$7,$7,$3\n"
-    "\tsll\t$2,$2,0x10\n"
-    "\tor\t$7,$7,$2\n"
-    "\tlbu\t$3,5($8)\n"
-    "\tlbu\t$2,6($8)\n"
-    "\tsll\t$3,$3,0x8\n"
-    "\tor\t$9,$4,$3\n"
-    "\tsll\t$2,$2,0x10\n"
-    "\tor\t$9,$9,$2\n"
-    "\tand\t$9,$9,$5\n"
-    "\tlbu\t$3,9($8)\n"
-    "\tlbu\t$2,10($8)\n"
-    "\tlbu\t$4,3($8)\n"
-    "\tsll\t$3,$3,0x8\n"
-    "\tor\t$6,$6,$3\n"
-    "\tsll\t$2,$2,0x10\n"
-    "\tor\t$6,$6,$2\n"
-    "\tand\t$6,$6,$5\n"
-    "\tsll\t$4,$4,0x18\n"
-    "\tor\t$4,$7,$4\n"
-    "\tlui\t$2,%hi(LevelInterface)\n"
-    "\taddu\t$16,$2,%lo(LevelInterface)\n"
-    "\tlbu\t$5,7($8)\n"
-    "\tlbu\t$3,11($8)\n"
-    "\tlw\t$2,8($16)\n"
-    "\tsll\t$5,$5,0x18\n"
-    "\tor\t$5,$9,$5\n"
-    "\tsll\t$3,$3,0x18\n"
-    "\tlw\t$2,164($2)\n"
-    "\tnop\n"
-    "\tjal\t$31,$2\n"
-    "\tor\t$6,$6,$3\n"
-    "\tbeq\t$2,$0,GH_b38\n"
-    "\taddu\t$7,$29,16\n"
-    "\tmove\t$6,$0\n"
-    "\tlui\t$2,%hi(FoundCre)\n"
-    "\tmove\t$8,$2\n"
-    "\tlw\t$3,8($16)\n"
-    "\tlui\t$2,%hi(DeadCommName)\n"
-    "\taddu\t$13,$2,%lo(DeadCommName)\n"
-    "\tlwl\t$10,3($13)\n"
-    "\tlwr\t$10,0($13)\n"
-    "\tlwl\t$11,7($13)\n"
-    "\tlwr\t$11,4($13)\n"
-    "\tlwl\t$12,11($13)\n"
-    "\tlwr\t$12,8($13)\n"
-    "\tswl\t$10,19($29)\n"
-    "\tswr\t$10,16($29)\n"
-    "\tswl\t$11,23($29)\n"
-    "\tswr\t$11,20($29)\n"
-    "\tswl\t$12,27($29)\n"
-    "\tswr\t$12,24($29)\n"
-    "\tlw\t$3,224($3)\n"
-    "\tli\t$2,1\n"
-    "\tsw\t$2,%lo(DeadCommDone)($17)\n"
-    "\tsw\t$3,%lo(FoundCre)($8)\n"
-    "GH_aac:\n"
-    "\tlw\t$5,%lo(FoundCre)($8)\n"
-    "\tnop\n"
-    "\tlw\t$2,16($5)\n"
-    "\tlw\t$4,0($7)\n"
-    "\tlw\t$3,8($2)\n"
-    "\tnop\n"
-    "\tbne\t$4,$3,GH_af4\n"
-    "\taddu\t$2,$2,8\n"
-    "\tlw\t$4,4($7)\n"
-    "\tlw\t$3,4($2)\n"
-    "\tnop\n"
-    "\tbne\t$4,$3,GH_af4\n"
-    "\tnop\n"
-    "\tlw\t$4,8($7)\n"
-    "\tlw\t$3,8($2)\n"
-    "\tnop\n"
-    "\tbeq\t$4,$3,GH_b10\n"
-    "\tmove\t$4,$5\n"
-    "GH_af4:\n"
-    "\tlw\t$2,%lo(FoundCre)($8)\n"
-    "\taddu\t$6,$6,1\n"
-    "\taddu\t$2,$2,768\n"
-    "\tsw\t$2,%lo(FoundCre)($8)\n"
-    "\tslt\t$2,$6,48\n"
-    "\tbne\t$2,$0,GH_aac\n"
-    "\tmove\t$4,$0\n"
-    "GH_b10:\n"
-    "\tbeq\t$4,$0,GH_b38\n"
-    "\tnop\n"
-    "\tlw\t$4,748($4)\n"
-    "\tnop\n"
-    "\tbeq\t$4,$0,GH_b38\n"
-    "\tmove\t$5,$0\n"
-    "\tlw\t$2,156($4)\n"
-    "\tnop\n"
-    "\tjal\t$31,$2\n"
-    "\tmove\t$6,$5\n"
-    "GH_b38:\n"
-    "\tlw\t$31,40($29)\n"
-    "\tlw\t$17,36($29)\n"
-    "\tlw\t$16,32($29)\n"
-    "\tj\t$31\n"
-    "\taddu\t$29,$29,48\n"
-    "\t.set\tmacro\n"
-    "\t.set\treorder\n");
-#endif
 
 static void LevelSpecific(void)
 {
@@ -390,58 +253,3 @@ static void Laser1Off(void)
     if (Laser1Timer <= 0)
         Laser1Timer = 8192;
 }
-
-#ifndef NONMATCHING
-/* NONMATCHING: see CheckGotHead */
-__asm__(
-    "\t.text\n"
-    "\t.align\t2\n"
-    "\t.globl\tFindCreature\n"
-    "FindCreature:\n"
-    "\t.set\tnoreorder\n"
-    "\t.set\tnomacro\n"
-    "\tmove\t$8,$29\n"
-    "\tlui\t$2,%hi(LevelInterface+8)\n"
-    "\tlw\t$2,%lo(LevelInterface+8)($2)\n"
-    "\tmove\t$7,$0\n"
-    "\tsw\t$4,0($29)\n"
-    "\tsw\t$5,4($29)\n"
-    "\tsw\t$6,8($29)\n"
-    "\tlw\t$2,224($2)\n"
-    "\tlui\t$3,%hi(FoundCre)\n"
-    "\tsw\t$2,%lo(FoundCre)($3)\n"
-    "FC_15b4:\n"
-    "\tlw\t$6,%lo(FoundCre)($3)\n"
-    "\tnop\n"
-    "\tlw\t$2,16($6)\n"
-    "\tlw\t$5,0($8)\n"
-    "\tlw\t$4,8($2)\n"
-    "\tnop\n"
-    "\tbne\t$5,$4,FC_15fc\n"
-    "\taddu\t$2,$2,8\n"
-    "\tlw\t$5,4($8)\n"
-    "\tlw\t$4,4($2)\n"
-    "\tnop\n"
-    "\tbne\t$5,$4,FC_15fc\n"
-    "\tnop\n"
-    "\tlw\t$5,8($8)\n"
-    "\tlw\t$4,8($2)\n"
-    "\tnop\n"
-    "\tbeq\t$5,$4,FC_1620\n"
-    "\tmove\t$2,$6\n"
-    "FC_15fc:\n"
-    "\tlw\t$2,%lo(FoundCre)($3)\n"
-    "\taddu\t$7,$7,1\n"
-    "\taddu\t$2,$2,768\n"
-    "\tsw\t$2,%lo(FoundCre)($3)\n"
-    "\tslt\t$2,$7,48\n"
-    "\tbne\t$2,$0,FC_15b4\n"
-    "\tnop\n"
-    "\tj\t$31\n"
-    "\tmove\t$2,$0\n"
-    "FC_1620:\n"
-    "\tj\t$31\n"
-    "\tnop\n"
-    "\t.set\tmacro\n"
-    "\t.set\treorder\n");
-#endif

@@ -157,28 +157,32 @@ static void Zone4Load(void)
 
 void *ZoneLoadTable[] = { Zone0Load, Zone1Load, Zone2Load, Zone3Load, Zone4Load };
 
-/* NONMATCHING: FindCreature and CheckNearMakron (which inlines it) are kept as the
- * original's code below. The C here is equivalent but gcc keeps the creature scan loop
- * rotated with its exit test duplicated, so loop.c hoists the first word of the name out
- * of the inlined loop, adds a copy of %hi(FoundCre) and does not tie the name pointer to
- * ModelHdr; the original behaves as if the loop were entered at its test. Tried: for /
- * while / do / for(;;)+break loops, goto and break exits, pointer and index compares,
- * an inline compare helper, operand order, statement order, volatile. */
-#ifdef NONMATCHING
 struct CREATURE *FindCreature(struct IDENTITYNAME Name)
 {
     int i;
     int *a, *b;
+    int x, y;
 
     a = (int *)&Name;
     for (i = 0, FoundCre = Engine->Creatures; i < 48; i++, FoundCre++) {
         b = (int *)&FoundCre->ModelHdr->ModelName;
-        if (a[0] == b[0] && a[1] == b[1] && a[2] == b[2])
-            goto Found;
+        /* the words go through x and y (not a[0] == b[0] && ...): as variables used in
+         * several blocks they are left to global-alloc, which keeps $3 free for
+         * %hi(FoundCre); the return inside the loop fills the found branch's delay slot */
+        x = a[0];
+        y = b[0];
+        if (x == y) {
+            x = a[1];
+            y = b[1];
+            if (x == y) {
+                x = a[2];
+                y = b[2];
+                if (x == y)
+                    return FoundCre;
+            }
+        }
     }
     return 0;
-Found:
-    return FoundCre;
 }
 
 /* when the player gets near Makron, start the rider stand */
@@ -194,148 +198,6 @@ static int CheckNearMakron(void)
     }
     return RiderStandDone;
 }
-
-#else
-struct CREATURE *FindCreature(struct IDENTITYNAME Name);
-int CheckNearMakron(void);
-__asm__(
-    "\t.rdata\n"
-    "\t.align\t2\n"
-    "NearMakronName:\n"
-    "\t.ascii\t\"E_NearMakron\"\n"
-    "\t.align\t2\n"
-    "RiderStandName:\n"
-    "\t.ascii\t\"RiderStand\\000\"\n"
-    "\t.space\t1\n"
-    "\t.text\n"
-    "\t.align\t2\n"
-    "\t.globl\tCheckNearMakron\n"
-    "CheckNearMakron:\n"
-    "\t.set\tnoreorder\n"
-    "\t.set\tnomacro\n"
-    "\taddu\t$29,$29,-48\n"
-    "\tsw\t$17,36($29)\n"
-    "\tlui\t$17,%hi(RiderStandDone)\n"
-    "\tlw\t$2,%lo(RiderStandDone)($17)\n"
-    "\tsw\t$31,40($29)\n"
-    "\tbne\t$2,$0,NM_cdc\n"
-    "\tsw\t$16,32($29)\n"
-    "\tlui\t$5,0xff\n"
-    "\tlui\t$2,%hi(NearMakronName)\n"
-    "\taddu\t$8,$2,%lo(NearMakronName)\n"
-    "\tori\t$5,$5,0xffff\n"
-    "\tlbu\t$3,1($8)\n"
-    "\tlbu\t$7,%lo(NearMakronName)($2)\n"
-    "\tlbu\t$2,2($8)\n"
-    "\tlbu\t$4,4($8)\n"
-    "\tlbu\t$6,8($8)\n"
-    "\tsll\t$3,$3,0x8\n"
-    "\tor\t$7,$7,$3\n"
-    "\tsll\t$2,$2,0x10\n"
-    "\tor\t$7,$7,$2\n"
-    "\tlbu\t$3,5($8)\n"
-    "\tlbu\t$2,6($8)\n"
-    "\tsll\t$3,$3,0x8\n"
-    "\tor\t$9,$4,$3\n"
-    "\tsll\t$2,$2,0x10\n"
-    "\tor\t$9,$9,$2\n"
-    "\tand\t$9,$9,$5\n"
-    "\tlbu\t$3,9($8)\n"
-    "\tlbu\t$2,10($8)\n"
-    "\tlbu\t$4,3($8)\n"
-    "\tsll\t$3,$3,0x8\n"
-    "\tor\t$6,$6,$3\n"
-    "\tsll\t$2,$2,0x10\n"
-    "\tor\t$6,$6,$2\n"
-    "\tand\t$6,$6,$5\n"
-    "\tsll\t$4,$4,0x18\n"
-    "\tor\t$4,$7,$4\n"
-    "\tlui\t$2,%hi(LevelInterface)\n"
-    "\taddu\t$16,$2,%lo(LevelInterface)\n"
-    "\tlbu\t$5,7($8)\n"
-    "\tlbu\t$3,11($8)\n"
-    "\tlw\t$2,8($16)\n"
-    "\tsll\t$5,$5,0x18\n"
-    "\tor\t$5,$9,$5\n"
-    "\tsll\t$3,$3,0x18\n"
-    "\tlw\t$2,164($2)\n"
-    "\tnop\n"
-    "\tjal\t$31,$2\n"
-    "\tor\t$6,$6,$3\n"
-    "\tbeq\t$2,$0,NM_cdc\n"
-    "\taddu\t$7,$29,16\n"
-    "\tmove\t$6,$0\n"
-    "\tlui\t$2,%hi(FoundCre)\n"
-    "\tmove\t$8,$2\n"
-    "\tlw\t$3,8($16)\n"
-    "\tlui\t$2,%hi(RiderStandName)\n"
-    "\taddu\t$13,$2,%lo(RiderStandName)\n"
-    "\tlwl\t$10,3($13)\n"
-    "\tlwr\t$10,0($13)\n"
-    "\tlwl\t$11,7($13)\n"
-    "\tlwr\t$11,4($13)\n"
-    "\tlwl\t$12,11($13)\n"
-    "\tlwr\t$12,8($13)\n"
-    "\tswl\t$10,19($29)\n"
-    "\tswr\t$10,16($29)\n"
-    "\tswl\t$11,23($29)\n"
-    "\tswr\t$11,20($29)\n"
-    "\tswl\t$12,27($29)\n"
-    "\tswr\t$12,24($29)\n"
-    "\tlw\t$3,224($3)\n"
-    "\tli\t$2,1\n"
-    "\tsw\t$2,%lo(RiderStandDone)($17)\n"
-    "\tsw\t$3,%lo(FoundCre)($8)\n"
-    "NM_c50:\n"
-    "\tlw\t$5,%lo(FoundCre)($8)\n"
-    "\tnop\n"
-    "\tlw\t$2,16($5)\n"
-    "\tlw\t$4,0($7)\n"
-    "\tlw\t$3,8($2)\n"
-    "\tnop\n"
-    "\tbne\t$4,$3,NM_c98\n"
-    "\taddu\t$2,$2,8\n"
-    "\tlw\t$4,4($7)\n"
-    "\tlw\t$3,4($2)\n"
-    "\tnop\n"
-    "\tbne\t$4,$3,NM_c98\n"
-    "\tnop\n"
-    "\tlw\t$4,8($7)\n"
-    "\tlw\t$3,8($2)\n"
-    "\tnop\n"
-    "\tbeq\t$4,$3,NM_cb4\n"
-    "\tmove\t$4,$5\n"
-    "NM_c98:\n"
-    "\tlw\t$2,%lo(FoundCre)($8)\n"
-    "\taddu\t$6,$6,1\n"
-    "\taddu\t$2,$2,768\n"
-    "\tsw\t$2,%lo(FoundCre)($8)\n"
-    "\tslt\t$2,$6,48\n"
-    "\tbne\t$2,$0,NM_c50\n"
-    "\tmove\t$4,$0\n"
-    "NM_cb4:\n"
-    "\tbeq\t$4,$0,NM_ce0\n"
-    "\tlui\t$2,%hi(RiderStandDone)\n"
-    "\tlw\t$4,748($4)\n"
-    "\tnop\n"
-    "\tbeq\t$4,$0,NM_ce0\n"
-    "\tmove\t$5,$0\n"
-    "\tlw\t$2,156($4)\n"
-    "\tnop\n"
-    "\tjal\t$31,$2\n"
-    "\tmove\t$6,$5\n"
-    "NM_cdc:\n"
-    "\tlui\t$2,%hi(RiderStandDone)\n"
-    "NM_ce0:\n"
-    "\tlw\t$2,%lo(RiderStandDone)($2)\n"
-    "\tlw\t$31,40($29)\n"
-    "\tlw\t$17,36($29)\n"
-    "\tlw\t$16,32($29)\n"
-    "\tj\t$31\n"
-    "\taddu\t$29,$29,48\n"
-    "\t.set\tmacro\n"
-    "\t.set\treorder\n");
-#endif
 
 static void Zone0Lasers(void);
 
@@ -447,61 +309,6 @@ void InitLevel(void)
     Engine->HelpComputer_NewMessage(IDNAME("Unit5Curr1"), IDNAME("Unit5Miss1"), 40);
     Engine->PlayThisXA(0);
 }
-
-#ifndef NONMATCHING
-/* NONMATCHING: see CheckNearMakron */
-__asm__(
-    "\t.text\n"
-    "\t.align\t2\n"
-    "\t.globl\tFindCreature\n"
-    "FindCreature:\n"
-    "\t.set\tnoreorder\n"
-    "\t.set\tnomacro\n"
-    "\tmove\t$8,$29\n"
-    "\tlui\t$2,%hi(LevelInterface+8)\n"
-    "\tlw\t$2,%lo(LevelInterface+8)($2)\n"
-    "\tmove\t$7,$0\n"
-    "\tsw\t$4,0($29)\n"
-    "\tsw\t$5,4($29)\n"
-    "\tsw\t$6,8($29)\n"
-    "\tlw\t$2,224($2)\n"
-    "\tlui\t$3,%hi(FoundCre)\n"
-    "\tsw\t$2,%lo(FoundCre)($3)\n"
-    "FC_1cf0:\n"
-    "\tlw\t$6,%lo(FoundCre)($3)\n"
-    "\tnop\n"
-    "\tlw\t$2,16($6)\n"
-    "\tlw\t$5,0($8)\n"
-    "\tlw\t$4,8($2)\n"
-    "\tnop\n"
-    "\tbne\t$5,$4,FC_1d38\n"
-    "\taddu\t$2,$2,8\n"
-    "\tlw\t$5,4($8)\n"
-    "\tlw\t$4,4($2)\n"
-    "\tnop\n"
-    "\tbne\t$5,$4,FC_1d38\n"
-    "\tnop\n"
-    "\tlw\t$5,8($8)\n"
-    "\tlw\t$4,8($2)\n"
-    "\tnop\n"
-    "\tbeq\t$5,$4,FC_1d5c\n"
-    "\tmove\t$2,$6\n"
-    "FC_1d38:\n"
-    "\tlw\t$2,%lo(FoundCre)($3)\n"
-    "\taddu\t$7,$7,1\n"
-    "\taddu\t$2,$2,768\n"
-    "\tsw\t$2,%lo(FoundCre)($3)\n"
-    "\tslt\t$2,$7,48\n"
-    "\tbne\t$2,$0,FC_1cf0\n"
-    "\tnop\n"
-    "\tj\t$31\n"
-    "\tmove\t$2,$0\n"
-    "FC_1d5c:\n"
-    "\tj\t$31\n"
-    "\tnop\n"
-    "\t.set\tmacro\n"
-    "\t.set\treorder\n");
-#endif
 
 static void LaserButton0(void)
 {
