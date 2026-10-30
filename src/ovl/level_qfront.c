@@ -28,6 +28,42 @@ struct MODWINFLAGS {
 };
 #define WINFLAGS(cre, w) ((struct MODWINFLAGS *)&(cre)->WinData[w])
 
+/* the word at gFrontEndPadShot, with gFrontEndLoadSubType and gFrontEndLoadIsSpecial as the int
+ * bitfields this module was built with (word accesses) */
+struct LOADFLAGS {
+    unsigned int PadShot : 16;
+    unsigned int LoadType : 8;
+    unsigned int LoadSubType : 7;
+    unsigned int LoadIsSpecial : 1;
+};
+#define LOADFLAGS(e) ((struct LOADFLAGS *)&(e)->gFrontEndPadShot)
+
+/* libgpu.h */
+#define setRECT(r, _x, _y, _w, _h) ((r)->x = (_x), (r)->y = (_y), (r)->w = (_w), (r)->h = (_h))
+
+/* libpress (linked after this file) */
+void DecDCTReset(int mode);
+int DecDCToutCallback(void (*func)());
+int DecDCTvlc2(unsigned long *bs, unsigned long *buf, unsigned short *table);
+int DecDCTBufSize(unsigned long *bs);
+
+/* the strplay sample's decode environment (as in level_qendmis1) */
+struct DECENV {
+    unsigned long *vlcbuf[2];   /* 0x0 */
+    unsigned short *imgbuf;     /* 0x8 */
+    int vlcid;                  /* 0xc */
+    struct RECT rect[2];        /* 0x10 */
+    int rectid;                 /* 0x20 */
+    struct RECT slice;          /* 0x24 */
+    int isdone;                 /* 0x2c */
+};
+/* the strplay variables, over the .bss words they occupy */
+#define StrLoc ((struct CdlLOC *)D_12a68)
+#define StrEndFlag D_12a98[0]
+#define StrDec (*(struct DECENV *)D_12aa8)
+#define StrRingBuf ((unsigned long *)D_12ad8[0])
+#define StrVlcTable ((unsigned short *)D_12adc[0])
+
 /* STRING_TABLE's flags, accessed as a word */
 struct STRFLAGS {
     unsigned int UnUsed : 6;
@@ -75,95 +111,50 @@ void FrontEndNothing();
 void FrontEndResetWindows();
 void FrontEndDrawSortedObjs();
 void FrontEndSpinPickup();
-ASM_DEFERRED_END(FrontEndSpinPickup)
 void FrontEndSpawnPickups();
-ASM_DEFERRED_END(FrontEndSpawnPickups)
 void func_c6c0();
-ASM_DEFERRED_END(func_c6c0)
 void CHECK_FOR_START();
-ASM_DEFERRED_END(CHECK_FOR_START)
 void func_c7bc();
-ASM_DEFERRED_END(func_c7bc)
 void GOTO_MISSIONCD_SPINDOWN();
-ASM_DEFERRED_END(GOTO_MISSIONCD_SPINDOWN)
 void GOTO_MISSIONCD_CHECKING();
-ASM_DEFERRED_END(GOTO_MISSIONCD_CHECKING)
 void GOTO_MISSIONCD_SWAP();
-ASM_DEFERRED_END(GOTO_MISSIONCD_SWAP)
 void GOTO_MISSIONCD_LOADING();
-ASM_DEFERRED_END(GOTO_MISSIONCD_LOADING)
 void GOTO_MISSIONCD_INVALID();
-ASM_DEFERRED_END(GOTO_MISSIONCD_INVALID)
 void GOTO_PLAYER();
-ASM_DEFERRED_END(GOTO_PLAYER)
 void func_cb88();
-ASM_DEFERRED_END(func_cb88)
 void func_cc20();
-ASM_DEFERRED_END(func_cc20)
 void GOTO_OPTIONS();
-ASM_DEFERRED_END(GOTO_OPTIONS)
 void func_cd54();
-ASM_DEFERRED_END(func_cd54)
 void func_cdd8();
-ASM_DEFERRED_END(func_cdd8)
 void GOTO_TITLE();
-ASM_DEFERRED_END(GOTO_TITLE)
 void GOTO_MULTIPLAYER();
-ASM_DEFERRED_END(GOTO_MULTIPLAYER)
 void func_d010();
-ASM_DEFERRED_END(func_d010)
 void func_d0c0();
-ASM_DEFERRED_END(func_d0c0)
 void func_d15c();
-ASM_DEFERRED_END(func_d15c)
 void func_d210();
-ASM_DEFERRED_END(func_d210)
 void func_d2d8();
-ASM_DEFERRED_END(func_d2d8)
 void func_d394();
-ASM_DEFERRED_END(func_d394)
 void func_d3bc();
-ASM_DEFERRED_END(func_d3bc)
 void func_d3e8();
-ASM_DEFERRED_END(func_d3e8)
 void func_d414();
-ASM_DEFERRED_END(func_d414)
 void func_d4d0();
-ASM_DEFERRED_END(func_d4d0)
 void func_d58c();
-ASM_DEFERRED_END(func_d58c)
 void func_d60c();
-ASM_DEFERRED_END(func_d60c)
-void func_d644();
-ASM_DEFERRED_END(func_d644)
+void func_d644(unsigned short *clut, short slot, int is256);
 void func_d6fc();
-ASM_DEFERRED_END(func_d6fc)
 void func_d734();
-ASM_DEFERRED_END(func_d734)
 void GOTO_REINSERT_WAIT();
-ASM_DEFERRED_END(GOTO_REINSERT_WAIT)
 void func_d8c0();
-ASM_DEFERRED_END(func_d8c0)
 void func_d9b8();
-ASM_DEFERRED_END(func_d9b8)
-void func_dab0();
-ASM_DEFERRED_END(func_dab0)
+short func_dab0(short pad, char **type, char **port);
 void func_db64();
-ASM_DEFERRED_END(func_db64)
 void func_dbe0();
-ASM_DEFERRED_END(func_dbe0)
-void DMACallback();
-ASM_DEFERRED_END(DMACallback)
+int DMACallback(int dma, void (*func)());
 void func_dc4c();
-ASM_DEFERRED_END(func_dc4c)
 void func_dcc8();
-ASM_DEFERRED_END(func_dcc8)
 void func_ddbc();
-ASM_DEFERRED_END(func_ddbc)
-void func_dec4();
-ASM_DEFERRED_END(func_dec4)
+int func_dec4(void);
 void func_df90();
-ASM_DEFERRED_END(func_df90)
 /* the others */
 void FrontEndFindLimitIndices();
 void CHECK_FOR_SCREENPOSITION();
@@ -198,13 +189,13 @@ void func_59e0();
 void func_5da8();
 void func_7184();
 void func_75dc();
-void func_9c38();
+void func_9c38(short w);
 void PickupSpinTitle();
 void PickupSpinMenu();
 void func_9f08();
-void printf();
+int printf(char *fmt, ...);
 void func_ae00();
-void func_b00c();
+unsigned long *func_b00c();
 void func_b1c4();
 void PlayMovie();
 void func_bdf4();
@@ -227,23 +218,23 @@ int D_12acc[2] BSS;
 int D_12ad4[1] BSS;
 int D_12ad8[1] BSS;
 int D_12adc[2] BSS;
-int D_12ae4[1] BSS;
-int D_12ae8[20] BSS;
+short D_12ae4 BSS;
+struct POLY_FT4 D_12ae8[2] BSS;
 struct CREATURE *Pickups[5] BSS;
-int D_12b4c[3] BSS;
-int D_12b58[50] BSS;
-int D_12c20[1] BSS;
-int D_12c24[48] BSS;
+struct POLY_FT4 *D_12b4c[3] BSS;
+char D_12b58[2][100] BSS;
+unsigned char D_12c20[4] BSS;
+struct POLY_FT4 *D_12c24[48] BSS;
 unsigned long SavedSp BSS;
-int D_12ce8[2] BSS;
+unsigned char D_12ce8[8] BSS;
 DRAWENV CreditsEnv[2] BSS;
 short IntroDelay BSS;
-int D_12dac[1] BSS;
+char *D_12dac BSS;
 unsigned long MainLoopSp BSS;
 int Unused_12db4 BSS;
 int D_12db8[8] BSS;
 int D_12dd8[1] BSS;
-int D_12ddc[1] BSS;
+char *D_12ddc[1] BSS;
 struct POLY_FT4 PolyStack0[512] BSS;
 struct POLY_FT4 PolyStack1[512] BSS;
 
@@ -823,7 +814,14 @@ void CHECK_FOR_MISSIONCD(void)
     }
 }
 
-ASM_RDATA(GOTO_MISSIONCD_SPINDOWN)
+void GOTO_MISSIONCD_SPINDOWN(void)
+{
+    FrontEndInitScreen("MISSION CD", 21);
+    LevelInterface.Engine->FrontEndCreateMenu(FET_PLEASE_WAIT_WHILE, 16);
+    LevelInterface.Engine->FrontEndCreateMenu(FET_NULL, 16);
+    LevelInterface.Engine->Specialfunc = CHECK_FOR_MISSIONCD;
+    LevelInterface.Engine->Backfunc = func_cdd8;
+}
 
 /* point the menus at the engine's settings */
 void FrontEndPatchEngineVariables(void)
@@ -1348,15 +1346,66 @@ void FrontEndCheckController(void)
     }
 }
 
-ASM_RDATA(FrontEndSpawnPickups)
+void FrontEndSpawnPickups(int *Types, struct CREATURE **Out)
+{
+    short n = 0;
+    struct PICKUPENTRY Entry = { { { 0, 0, 0 }, 0, 1 } };
+    struct CREATURE *Pickup;
 
-ASM_RDATA(CHECK_FOR_START)
+    for (;;) {
+        short *unused;
+        if ((short)*Types < 0)
+            break;
+        Entry.SimStart.Ident = *Types;
+        Pickup = LevelInterface.Engine->InitialiseQuakePickup(&Entry);
+        Out[n++] = Pickup;
+        Pickup->Ang.vy = 2048;
+        Pickup->Control = 0;
+        Pickup->Draw.Location.vx = 0;
+        Pickup->Draw.Location.vy = 0;
+        Pickup->Draw.Location.vz = 1700;
+        LevelInterface.Engine->RotMatrixYXZ(&Pickup->Ang, &Pickup->Matrix);
+        Types++;
+    }
+}
 
-ASM_RDATA(GOTO_PLAYER)
+void CHECK_FOR_START(void)
+{
+    char buf[32];
 
-ASM_RDATA(func_cb88)
+    if (*LevelInterface.Engine->NumPadds < 2) {
+        LevelInterface.Engine->sprintf(buf, "%c%s", 'g', LevelInterface.Engine->MyStringTable[2].message);
+        LevelInterface.Engine->FrontEndModifyText(LevelInterface.Engine->MyStringTable[2].message, buf);
+        LevelInterface.Engine->cursorpos = LevelInterface.Engine->cursorlower;
+    }
+}
 
-ASM_RDATA(func_cc20)
+void GOTO_PLAYER(void)
+{
+    FrontEndInitScreen("PLAYER", 3);
+    LevelInterface.Engine->FrontEndCreateMenu(FET_PLAYER, 16);
+    LevelInterface.Engine->Backfunc = GOTO_OPTIONS;
+    LevelInterface.Engine->Specialfunc = LevelInterface.Engine->CHECK_FOR_SLIDER;
+    LevelInterface.Engine->cursorpos = LevelInterface.Engine->FrontEndRestoreCursor();
+}
+
+void func_cb88(void)
+{
+    FrontEndInitScreen("SOUND", 4);
+    LevelInterface.Engine->FrontEndCreateMenu(FET_SOUND, 16);
+    LevelInterface.Engine->Backfunc = GOTO_OPTIONS;
+    LevelInterface.Engine->Specialfunc = LevelInterface.Engine->CHECK_FOR_SLIDER;
+    LevelInterface.Engine->cursorpos = LevelInterface.Engine->FrontEndRestoreCursor();
+}
+
+void func_cc20(void)
+{
+    FrontEndInitScreen("VIDEO", 5);
+    LevelInterface.Engine->FrontEndCreateMenu(FET_VIDEO, 16);
+    LevelInterface.Engine->Backfunc = GOTO_OPTIONS;
+    LevelInterface.Engine->Specialfunc = LevelInterface.Engine->CHECK_FOR_SLIDER;
+    LevelInterface.Engine->cursorpos = LevelInterface.Engine->FrontEndRestoreCursor();
+}
 
 void FrontEndInitScreen(char *Title, short screen)
 {
@@ -1399,8 +1448,50 @@ void GOTO_CREDITS(void)
     LevelInterface.Engine->Specialfunc = CreditsScroll;
 }
 
-/* TODO: not matched yet (the original reloads Engine after the CreditsTimer store) */
-ASM_FUNC(CreditsScroll)
+void CreditsScroll(void)
+{
+    struct SCRPNT pos;
+    DRAWENV *env;
+    unsigned long *ot;
+    short i;
+    short count;
+
+    CreditsTimer = (CreditsTimer + 1) & 0xff;
+    ot = &(*LevelInterface.Engine->currdb)->BigOt[6];
+    if (*LevelInterface.Engine->DbFrame) {
+        pos = (struct SCRPNT){LevelInterface.Engine->GameWindows->Size.sx + LevelInterface.Engine->GameWindows->Pos.sx,
+                              LevelInterface.Engine->GameWindows->Pos.sy + 60};
+        env = &CreditsEnv[0];
+    } else {
+        pos = (struct SCRPNT){LevelInterface.Engine->GameWindows->Pos.sx, LevelInterface.Engine->GameWindows->Pos.sy + 60};
+        env = &CreditsEnv[1];
+    }
+    LevelInterface.Engine->SetDefDrawEnv(env, pos.sx, pos.sy, 512, 144);
+    env->isbg = 0;
+    env->ofs[1] -= 60;
+    LevelInterface.Engine->SetDrawEnv(&env->dr_env, env);
+    LevelInterface.Engine->AddPrim_(ot, &env->dr_env);
+    if (!(CreditsTimer & 15)) {
+        CreditsLine++;
+        if (CreditsLine->menuName)
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[(short)(((CreditsTimer >> 4) & 15) + 1)],
+                                                   CreditsLine->menuName, CreditsLine->x, 210, 16, 0);
+        else
+            CreditsLine--;
+    }
+    count = 0;
+    for (i = 1; i < LevelInterface.Engine->cursorlower; i++) {
+        LevelInterface.Engine->MyStringTable[i].y--;
+        if (LevelInterface.Engine->MyStringTable[i].message[0])
+            count++;
+        if (LevelInterface.Engine->MyStringTable[i].y < 45) {
+            LevelInterface.Engine->sprintf(LevelInterface.Engine->MyStringTable[i].message, "%s", "");
+            LevelInterface.Engine->sprintf(LevelInterface.Engine->MyStringTable[i].originalMessage, "%s", "");
+        }
+    }
+    if (!count && LevelInterface.Engine->Backfunc)
+        ((void (*)(void))LevelInterface.Engine->Backfunc)();
+}
 
 void GOTO_CONTROLS(void)
 {
@@ -1486,14 +1577,168 @@ short ControlsTextY[18] = {
     96, 134,
 };
 
-/* TODO: one instruction off in C (todo_ShowControls.c): the original adds text + i*4, gcc gives i*4 + text */
-ASM_FUNC(FrontEndShowControls)
+void FrontEndShowControls(void)
+{
+    char buf[16];
+    char **text;
+    char **p;
+    short i;
 
-ASM_FUNC(CHECK_FOR_CONTROLS)
+    switch (LevelInterface.Engine->GameWindows->Input.Method) {
+    case 9:
+    case 10:
+        text = ControllerConfigs[SCHAR(LevelInterface.Engine->GameConfig.MultiPlayerParams[0].mouseConfigSelected)];
+        break;
+    case 5:
+    case 7:
+        text = ControllerConfigs[SCHAR(LevelInterface.Engine->GameConfig.MultiPlayerParams[0].analogConfigSelected)];
+        break;
+    case 4:
+    case 6:
+    case 8:
+    default:
+        text = ControllerConfigs[SCHAR(LevelInterface.Engine->GameConfig.MultiPlayerParams[0].standardConfigSelected)];
+        break;
+    }
+    for (i = 1; i < 18; i++) {
+        p = text + i;
+        if (*p)
+            LevelInterface.Engine->sprintf(buf, *p);
+        else
+            LevelInterface.Engine->sprintf(buf, "");
+        LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[i], buf, ControlsTextX[i], ControlsTextY[i], 8, 0);
+    }
+    LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[LevelInterface.Engine->cursorlower], text[0], 256, 178, 16, 0);
+}
 
-ASM_RDATA(func_d0c0)
 
-ASM_RDATA(func_d15c)
+void CHECK_FOR_CONTROLS(void)
+{
+    char buf[32];
+    unsigned short pad;
+    char *config;
+    int lo, hi;
+    int mouse;
+    int analog;
+
+    mouse = 0;
+    pad = LevelInterface.Engine->gFrontEndPadShot;
+    analog = 1;
+    switch (LevelInterface.Engine->GameWindows->Input.Method) {
+    case 9:
+    case 10:
+        lo = 0;
+        hi = 3;
+        mouse = 1;
+        config = &LevelInterface.Engine->GameConfig.MultiPlayerParams[0].mouseConfigSelected;
+        break;
+    case 5:
+    case 7:
+        lo = 3;
+        hi = 6;
+        config = &LevelInterface.Engine->GameConfig.MultiPlayerParams[0].analogConfigSelected;
+        break;
+    case 4:
+    case 6:
+    case 8:
+    default:
+        lo = 6;
+        hi = 9;
+        analog = 0;
+        config = &LevelInterface.Engine->GameConfig.MultiPlayerParams[0].standardConfigSelected;
+        break;
+    }
+    if (LevelInterface.Engine->cursorpos == LevelInterface.Engine->cursorlower) {
+        if (pad & 0x80) {
+            LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"itm_pkup"}),
+                                                   &LevelInterface.Engine->Creatures->Draw.Location);
+            (*config)--;
+        }
+        if (pad & 0x20) {
+            LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"itm_pkup"}),
+                                                   &LevelInterface.Engine->Creatures->Draw.Location);
+            (*config)++;
+        }
+    }
+    if (SCHAR(*config) < lo)
+        *config = hi - 1;
+    if (SCHAR(*config) >= hi)
+        *config = lo;
+    LevelInterface.Engine->GameConfig.MultiPlayerParams[0].controllerSelected = SCHAR(*config);
+    if (!LevelInterface.Engine->IsPlayerPadShockable(0)) {
+        if (LevelInterface.Engine->MyStringTable[20].originalMessage[0] != 'g') {
+            LevelInterface.Engine->sprintf(buf, "g%s", LevelInterface.Engine->MyStringTable[20].originalMessage);
+            LevelInterface.Engine->sprintf(LevelInterface.Engine->MyStringTable[20].originalMessage, "%s", buf);
+            LevelInterface.Engine->MyStringTable[20].cursorDisabled = 1;
+            if (LevelInterface.Engine->cursorpos == 20)
+                LevelInterface.Engine->cursorpos--;
+        }
+    } else if (LevelInterface.Engine->MyStringTable[20].originalMessage[0] == 'g') {
+        LevelInterface.Engine->sprintf(buf, "%s", &LevelInterface.Engine->MyStringTable[20].originalMessage[1]);
+        LevelInterface.Engine->sprintf(LevelInterface.Engine->MyStringTable[20].originalMessage, "%s", buf);
+        LevelInterface.Engine->MyStringTable[20].cursorDisabled = 0;
+    }
+    if (!analog) {
+        if (LevelInterface.Engine->MyStringTable[21].originalMessage[0] != 'g') {
+            LevelInterface.Engine->sprintf(buf, "g%s", LevelInterface.Engine->MyStringTable[21].originalMessage);
+            LevelInterface.Engine->sprintf(LevelInterface.Engine->MyStringTable[21].originalMessage, "%s", buf);
+            LevelInterface.Engine->MyStringTable[21].cursorDisabled = 1;
+            if (LevelInterface.Engine->cursorpos == 21)
+                LevelInterface.Engine->cursorpos--;
+        }
+    } else if (LevelInterface.Engine->MyStringTable[21].originalMessage[0] == 'g') {
+        LevelInterface.Engine->sprintf(buf, "%s", &LevelInterface.Engine->MyStringTable[21].originalMessage[1]);
+        LevelInterface.Engine->sprintf(LevelInterface.Engine->MyStringTable[21].originalMessage, "%s", buf);
+        LevelInterface.Engine->MyStringTable[21].cursorDisabled = 0;
+    }
+    if (!mouse && !LevelInterface.Engine->gFreeMice) {
+        if (LevelInterface.Engine->MyStringTable[22].originalMessage[0] != 'g') {
+            LevelInterface.Engine->sprintf(buf, "g%s", LevelInterface.Engine->MyStringTable[22].originalMessage);
+            LevelInterface.Engine->sprintf(LevelInterface.Engine->MyStringTable[22].originalMessage, "%s", buf);
+            LevelInterface.Engine->MyStringTable[22].cursorDisabled = 1;
+            if (LevelInterface.Engine->cursorpos == 22)
+                LevelInterface.Engine->cursorpos--;
+        }
+    } else if (LevelInterface.Engine->MyStringTable[22].originalMessage[0] == 'g') {
+        LevelInterface.Engine->sprintf(buf, "%s", &LevelInterface.Engine->MyStringTable[22].originalMessage[1]);
+        LevelInterface.Engine->sprintf(LevelInterface.Engine->MyStringTable[22].originalMessage, "%s", buf);
+        LevelInterface.Engine->MyStringTable[22].cursorDisabled = 0;
+    }
+    if (!mouse) {
+        LevelInterface.Engine->sprintf(buf, "%c%s", 'g', LevelInterface.Engine->MyStringTable[23].message);
+        LevelInterface.Engine->FrontEndModifyText(&LevelInterface.Engine->MyStringTable[23], buf);
+        LevelInterface.Engine->MyStringTable[23].cursorDisabled = 1;
+        if (LevelInterface.Engine->cursorpos == 23) {
+            LevelInterface.Engine->cursorpos--;
+            if (!LevelInterface.Engine->gFreeMice)
+                LevelInterface.Engine->cursorpos--;
+        }
+    } else
+        LevelInterface.Engine->MyStringTable[23].cursorDisabled = 0;
+    FrontEndShowControls();
+    LevelInterface.Engine->CHECK_FOR_SLIDER();
+    LevelInterface.Engine->CHECK_FOR_MCFILEWINDOW();
+}
+
+void func_d0c0(void)
+{
+    FrontEndInitScreen("DIFFICULTY", 9);
+    LevelInterface.Engine->FrontEndCreateMenu(FET_EASY, 16);
+    LevelInterface.Engine->Backfunc = func_cd54;
+    LevelInterface.Engine->cursorpos = LevelInterface.Engine->cursorlower + 1;
+    LevelInterface.Engine->cursorpos = LevelInterface.Engine->FrontEndRestoreCursor();
+}
+
+void func_d15c(void)
+{
+    FrontEndInitScreen("LOAD", 16);
+    LevelInterface.Engine->Specialfunc = func_9f08;
+    LevelInterface.Engine->gFrontEndLoadType = 0;
+    LOADFLAGS(LevelInterface.Engine)->LoadSubType = 0;
+    LevelInterface.Engine->Backfunc = GOTO_MULTIPLAYER;
+    LevelInterface.Engine->MemoryCardSetStatus(1);
+    LevelInterface.Engine->cursorpos = LevelInterface.Engine->FrontEndRestoreCursor();
+}
 
 /* after the credits: offer to save a file unlocking the cheats this difficulty earned */
 void GOTO_UNLOCK_SAVE(void)
@@ -1522,7 +1767,26 @@ void GOTO_UNLOCK_SAVE(void)
     LevelInterface.Engine->sprintf(LevelInterface.Engine->MyStringTable[3].message, buf);
 }
 
-ASM_RDATA(GOTO_MULTIPLAYER)
+void func_d4d0(void)
+{
+    if ((*(unsigned int *)LOADFLAGS(LevelInterface.Engine) & 0x7f000000) == 0x01000000) {
+        FrontEndInitScreen(0, 18);
+        LevelInterface.Engine->FrontEndCreateMenu(FET_DO_YOU_WANT_TO_LOAD, 16);
+        LevelInterface.Engine->FrontEndCreateMenu(FET_YES, 16);
+        LevelInterface.Engine->Backfunc = 0;
+        LevelInterface.Engine->cursorpos = LevelInterface.Engine->FrontEndRestoreCursor();
+    } else
+        GOTO_MULTIPLAYER();
+}
+
+void GOTO_MULTIPLAYER(void)
+{
+    FrontEndInitScreen("MULTIPLAYER", 10);
+    LevelInterface.Engine->FrontEndCreateMenu(FET_DEATHMATCH, 16);
+    LevelInterface.Engine->Backfunc = func_cdd8;
+    LevelInterface.Engine->Specialfunc = CHECK_FOR_MULTI_MODE;
+    LevelInterface.Engine->cursorpos = LevelInterface.Engine->FrontEndRestoreCursor();
+}
 
 void CHECK_FOR_MULTI_MODE(void)
 {
@@ -1562,7 +1826,38 @@ void CHECK_FOR_MULTI_MODE(void)
     }
 }
 
-ASM_FUNC(GOTO_RULES)
+void GOTO_RULES(void)
+{
+    switch (LevelInterface.Engine->GameConfig.sMultiMode) {
+    case 0:
+        FrontEndInitScreen("DEATHMATCH", 14);
+        LevelInterface.Engine->FrontEndCreateMenu(FET_RULES, 16);
+        break;
+    case 1:
+        FrontEndInitScreen("TEAM DEATHMATCH", 14);
+        LevelInterface.Engine->FrontEndCreateMenu(FET_RULES_2, 16);
+        break;
+    case 2:
+        FrontEndInitScreen("CAPTURE THE FLAG", 14);
+        LevelInterface.Engine->FrontEndCreateMenu(FET_RULES_3, 16);
+        break;
+    case 3:
+        FrontEndInitScreen("TAG", 14);
+        LevelInterface.Engine->FrontEndCreateMenu(FET_RULES_4, 16);
+        break;
+    case 4:
+        FrontEndInitScreen("TEAM TAG", 14);
+        LevelInterface.Engine->FrontEndCreateMenu(FET_RULES_5, 16);
+        break;
+    case 5:
+        FrontEndInitScreen("VERSUS", 14);
+        LevelInterface.Engine->FrontEndCreateMenu(FET_RULES_6, 16);
+        break;
+    }
+    LevelInterface.Engine->FrontEndCreateMenu(FET_NULL, 16);
+    LevelInterface.Engine->Backfunc = GOTO_MULTIPLAYER;
+    LevelInterface.Engine->cursorpos = LevelInterface.Engine->FrontEndRestoreCursor();
+}
 
 void GOTO_GAME_VARIABLES(void)
 {
@@ -1584,13 +1879,128 @@ ASM_FUNC(GOTO_MULTIPLAYER_SETUP)
 
 ASM_FUNC(func_4d78)
 
-ASM_FUNC(func_50e4)
+void func_50e4(void)
+{
+    char unused[64];
+    unsigned short pressed;
+    short max;
+    short row;
+    short old;
+    unsigned char *src;
+    unsigned char c;
+    short j;
+    char *name;
+    int i;
+
+    pressed = LevelInterface.Engine->gFrontEndPadShot;
+    max = *LevelInterface.Engine->NumPadds > 4 ? 4 : *LevelInterface.Engine->NumPadds;
+    if (*LevelInterface.Engine->NumPadds < 2) {
+        FrontEndInitScreen("START", 1);
+        LevelInterface.Engine->FrontEndCreateMenu(FET_SINGLE_MULTI, 16);
+        LevelInterface.Engine->SetupScreen1by1(0);
+        for (i = 0; i < *LevelInterface.Engine->MaxWindows; i++)
+            LevelInterface.Engine->AlterFocalSubDiv(i, 160, 4000);
+        LevelInterface.Engine->Specialfunc = CHECK_FOR_START;
+        LevelInterface.Engine->Backfunc = GOTO_TITLE;
+        LevelInterface.Engine->cursorpos = LevelInterface.Engine->FrontEndRestoreCursor();
+        return;
+    }
+    row = LevelInterface.Engine->cursorlower;
+    if (row == LevelInterface.Engine->cursorpos) {
+        if (max < LevelInterface.Engine->GameConfig.sNumPlayers)
+            LevelInterface.Engine->GameConfig.sNumPlayers--;
+        old = LevelInterface.Engine->GameConfig.sNumPlayers;
+        if (pressed & 0x80)
+            LevelInterface.Engine->GameConfig.sNumPlayers--;
+        if (pressed & 0x20)
+            LevelInterface.Engine->GameConfig.sNumPlayers++;
+        if (LevelInterface.Engine->GameConfig.sNumPlayers < 2)
+            LevelInterface.Engine->GameConfig.sNumPlayers = max;
+        else if (LevelInterface.Engine->GameConfig.sNumPlayers > max)
+            LevelInterface.Engine->GameConfig.sNumPlayers = 2;
+        if (old != LevelInterface.Engine->GameConfig.sNumPlayers)
+            LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"itm_pkup"}),
+                                                   &LevelInterface.Engine->Creatures->Draw.Location);
+    }
+    if (++row == LevelInterface.Engine->cursorpos) {
+        if (pressed & 0x80) {
+            LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"itm_pkup"}),
+                                                   &LevelInterface.Engine->Creatures->Draw.Location);
+            LevelInterface.Engine->GameConfig.bArena--;
+        }
+        if (pressed & 0x20) {
+            LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"itm_pkup"}),
+                                                   &LevelInterface.Engine->Creatures->Draw.Location);
+            LevelInterface.Engine->GameConfig.bArena++;
+        }
+        if (pressed & 0xa0) {
+            if (LevelInterface.Engine->GameConfig.bArena < 0)
+                LevelInterface.Engine->GameConfig.bArena = 11;
+            else if (LevelInterface.Engine->GameConfig.bArena > 11)
+                LevelInterface.Engine->GameConfig.bArena = 0;
+            name = (char *)D_12db8;
+            src = (unsigned char *)&((struct LEVELDATA *)LevelInterface.Engine->GetLevelDataFromIdentityName("COLD STORAGE"))[LevelInterface.Engine->GameConfig.bArena].Name;
+            j = 0;
+            for (c = *src; c && j < 12; c = *++src) {
+                if (c == ' ' || (c >= '0' && c <= '9'))
+                    name[j++] = c;
+                else
+                    name[j++] = c & 0xdf;
+            }
+            name[j] = 0;
+        }
+    }
+    if (++row == LevelInterface.Engine->cursorpos) {
+        if (LevelInterface.Engine->GameConfig.sMultiMode == 5) {
+            old = ScoreLimitIndex;
+            if (pressed & 0x80)
+                ScoreLimitIndex--;
+            if (pressed & 0x20)
+                ScoreLimitIndex++;
+            if (ScoreLimitIndex < 0)
+                ScoreLimitIndex = 4;
+            else if (ScoreLimitIndex > 4)
+                ScoreLimitIndex = 0;
+            if (old != ScoreLimitIndex)
+                LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"itm_pkup"}),
+                                                   &LevelInterface.Engine->Creatures->Draw.Location);
+        } else {
+            old = FragLimitIndex;
+            if (pressed & 0x80)
+                FragLimitIndex--;
+            if (pressed & 0x20)
+                FragLimitIndex++;
+            if (FragLimitIndex < 0)
+                FragLimitIndex = 8;
+            else if (FragLimitIndex > 8)
+                FragLimitIndex = 0;
+            if (old != FragLimitIndex)
+                LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"itm_pkup"}),
+                                                   &LevelInterface.Engine->Creatures->Draw.Location);
+        }
+    }
+    if (++row == LevelInterface.Engine->cursorpos && LevelInterface.Engine->GameConfig.sMultiMode != 5) {
+        old = TimeLimitIndex;
+        if (pressed & 0x80)
+            TimeLimitIndex--;
+        if (pressed & 0x20)
+            TimeLimitIndex++;
+        if (TimeLimitIndex < 0)
+            TimeLimitIndex = 11;
+        else if (TimeLimitIndex > 11)
+            TimeLimitIndex = 0;
+        if (old != TimeLimitIndex)
+            LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"itm_pkup"}),
+                                                   &LevelInterface.Engine->Creatures->Draw.Location);
+    }
+    func_4d78();
+}
 
 void * D_11a9c[3] = {
     "CONTROLLER", "MOUSE", "MULTI TAP",
 };
 
-int D_11aa8 = 0;
+short D_11aa8 = 0;
 
 int D_11aac = 0;
 
@@ -1606,29 +2016,913 @@ int D_11ac0 = 0;
 
 ASM_FUNC(func_59e0)
 
-ASM_FUNC(func_5da8)
+#define ITM_PKUP (struct IDENTITYNAME){"itm_pkup"}
 
-ASM_RDATA(func_db64)
+void func_5da8(void)
+{
+    short Unused;
+    short *Sel;
+    short Limit;
+    short i;
+    struct MULTIPLAYER *Mp;
+    char *Letter;
+    short Len;
+    short Shot;
+    short Old;
+
+    D_12ae4 = 0;
+    D_12ddc[0] = D_12b58[*LevelInterface.Engine->DbFrame];
+    D_12dac = D_12ddc[0] + 100;
+    D_12c24[0] = &D_12ae8[*LevelInterface.Engine->DbFrame];
+    D_12b4c[0] = D_12c24[0] + 1;
+    func_24fc(0, 2, 2, 1, (struct COLOUR){64, 64, 64}, 1);
+    for (i = 0; i < LevelInterface.Engine->GameConfig.sNumPlayers; i++) {
+        Old = LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos;
+        Shot = LevelInterface.Engine->gFrontEndPad[i] & (LevelInterface.Engine->gFrontEndPad[i] ^ LevelInterface.Engine->gFrontEndOPad[i]);
+        if (Shot & 0x10) {
+            do {
+                LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos--;
+                if (LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos < 0)
+                    LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos = 6;
+            } while (LevelInterface.Engine->MyStringTable[i * 7 + LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos].cursorDisabled);
+        } else if (Shot & 0x40) {
+            do {
+                LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos++;
+                if (LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos >= 7)
+                    LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos = 0;
+            } while (LevelInterface.Engine->MyStringTable[i * 7 + LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos].cursorDisabled);
+        }
+        if (Old != LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos)
+            LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"msc_menu2"}),
+                                                   &Pickups[0]->Draw.Location);
+        if (LevelInterface.Engine->GameConfig.MultiPlayerParams[i].waitingMode != 6 &&
+            LevelInterface.Engine->SnapShotPadViolation(i, &Unused)) {
+            D_12ce8[i] = LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos;
+            D_12c20[i] = LevelInterface.Engine->GameConfig.MultiPlayerParams[i].waitingMode;
+            LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos = 0;
+            LevelInterface.Engine->GameConfig.MultiPlayerParams[i].waitingMode = 6;
+        }
+        switch (LevelInterface.Engine->GameConfig.MultiPlayerParams[i].waitingMode) {
+        case 0:
+            if (Shot & 0x1000) {
+                LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"msc_menu3"}),
+                                                       &Pickups[0]->Draw.Location);
+                GOTO_MULTIPLAYER_SETUP();
+                return;
+            }
+            if (Shot & 0x4000) {
+                LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"msc_menu1"}),
+                                                       &Pickups[0]->Draw.Location);
+                switch (LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos) {
+                case 0:
+                    LevelInterface.Engine->GameConfig.MultiPlayerParams[i].waitingMode = 1;
+                    break;
+                case 1:
+                    LevelInterface.Engine->GameConfig.MultiPlayerParams[i].waitingMode = 5;
+                    break;
+                }
+                LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos = 0;
+            }
+            break;
+        case 1:
+            if (Shot & 0x1000) {
+                LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"msc_menu3"}),
+                                                       &Pickups[0]->Draw.Location);
+                LevelInterface.Engine->GameConfig.MultiPlayerParams[i].waitingMode = 0;
+                LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos = 0;
+            } else if (Shot & 0x4000) {
+                LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"msc_menu1"}),
+                                                       &Pickups[0]->Draw.Location);
+                switch (LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos) {
+                case 0:
+                    LevelInterface.Engine->GameConfig.MultiPlayerParams[i].waitingMode = 2;
+                    break;
+                case 1:
+                    LevelInterface.Engine->GameConfig.MultiPlayerParams[i].waitingMode = 3;
+                    break;
+                case 2:
+                    LevelInterface.Engine->GameConfig.MultiPlayerParams[i].waitingMode = 4;
+                    break;
+                }
+                LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos = 0;
+            }
+            break;
+        case 2:
+            Mp = &LevelInterface.Engine->GameConfig.MultiPlayerParams[i];
+            Letter = &Mp->playerName[Mp->currentLetter];
+            for (Len = 0; Letter[-Mp->currentLetter + Len]; Len++)
+                ;
+            if (Shot & 0x1000) {
+                LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"msc_menu3"}),
+                                                       &Pickups[0]->Draw.Location);
+                LevelInterface.Engine->GameConfig.MultiPlayerParams[i].waitingMode = 1;
+                LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos = 0;
+                break;
+            }
+            if (Shot & 0x10) {
+                LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"msc_menu1"}),
+                                                       &Pickups[0]->Draw.Location);
+                *Letter = *Letter + 1;
+            } else if (Shot & 0x40) {
+                LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"msc_menu1"}),
+                                                       &Pickups[0]->Draw.Location);
+                *Letter = *Letter - 1;
+            }
+            if (*Letter == '[')
+                *Letter = '0';
+            if (*Letter == ':')
+                *Letter = ' ';
+            if (*Letter == '!')
+                *Letter = 'A';
+            if (*Letter == '@')
+                *Letter = ' ';
+            if (*Letter == 0x1f)
+                *Letter = '9';
+            if (*Letter == '/')
+                *Letter = 'Z';
+            Old = Mp->currentLetter;
+            if (Shot & 0x80) {
+                Mp->currentLetter = Old - 1;
+                if (Mp->currentLetter + 2 == Len && Mp->currentLetter + 2 >= 2 && *Letter == ' ')
+                    *Letter = 0;
+                if (Mp->currentLetter < 0)
+                    Mp->currentLetter = Len - 1;
+            } else if (Shot & 0x20) {
+                Mp->currentLetter = Old + 1;
+                if (Mp->currentLetter == Len && Mp->currentLetter != 8)
+                    Letter[1] = ' ';
+                if (Mp->currentLetter >= 8)
+                    Mp->currentLetter = 0;
+            }
+            if (Old != Mp->currentLetter)
+                LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum(ITM_PKUP),
+                                                       &LevelInterface.Engine->Creatures->Draw.Location);
+            break;
+        case 3:
+            switch (LevelInterface.Engine->GameConfig.sMultiMode) {
+            case 0:
+            case 3:
+            case 5:
+                Limit = 4;
+                Sel = &LevelInterface.Engine->GameConfig.MultiPlayerParams[i].playerSelected;
+                break;
+            case 1:
+            case 2:
+            case 4:
+                Limit = 2;
+                Sel = &LevelInterface.Engine->GameConfig.MultiPlayerParams[i].teamSelected;
+                break;
+            }
+            if (Shot & 0x1000) {
+                LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"msc_menu3"}),
+                                                       &Pickups[0]->Draw.Location);
+                LevelInterface.Engine->GameConfig.MultiPlayerParams[i].waitingMode = 1;
+                LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos = 1;
+            } else if (Shot & 0x80) {
+                LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum(ITM_PKUP),
+                                                       &LevelInterface.Engine->Creatures->Draw.Location);
+                if (--*Sel < 0)
+                    *Sel = Limit - 1;
+            } else if (Shot & 0x20) {
+                LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum(ITM_PKUP),
+                                                       &LevelInterface.Engine->Creatures->Draw.Location);
+                if (++*Sel >= Limit)
+                    *Sel = 0;
+            }
+            break;
+        case 5:
+            if (Shot & 0x1000) {
+                LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"msc_menu3"}),
+                                                       &Pickups[0]->Draw.Location);
+                LevelInterface.Engine->GameConfig.MultiPlayerParams[i].waitingMode = 0;
+                LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos = 1;
+            }
+            break;
+        case 6:
+            if (!LevelInterface.Engine->SnapShotPadViolation(i, &Unused)) {
+                LevelInterface.Engine->GameConfig.MultiPlayerParams[i].waitingMode = D_12c20[i];
+                LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos = D_12ce8[i];
+            }
+            break;
+        }
+        D_12ae4 += LevelInterface.Engine->GameConfig.MultiPlayerParams[i].waitingMode == 5;
+    }
+    func_75dc();
+    if (D_12ae4 == LevelInterface.Engine->GameConfig.sNumPlayers)
+        GOTO_START_MULTIPLAYER();
+}
+
+void func_db64(struct STRING_TABLE *st)
+{
+    LevelInterface.Engine->sprintf(st->message, " ");
+    LevelInterface.Engine->FrontEndAddText(st, st->message, 0, 0, 16, 0);
+    st->cursorDisabled = 1;
+}
 
 ASM_FUNC(func_7184)
 
-ASM_FUNC(func_75dc)
+/* "b" belongs to func_7184, still asm: its label (TODO: the literal once that is C) */
+extern char S_12d8[];
 
-ASM_FUNC(func_9c38)
+/* the configuration list a player's controller type picks from: Configs[min..max-1] */
+static void GetConfigRange(int player, signed char **cfg, short *min, short *max)
+{
+    switch (LevelInterface.Engine->GameWindows[player].Input.Method) {
+    case 9:
+    case 10:
+        *cfg = (signed char *)&LevelInterface.Engine->GameConfig.MultiPlayerParams[player].mouseConfigSelected;
+        *min = 0;
+        *max = 3;
+        break;
+    case 5:
+    case 7:
+        *cfg = (signed char *)&LevelInterface.Engine->GameConfig.MultiPlayerParams[player].analogConfigSelected;
+        *min = 3;
+        *max = 6;
+        break;
+    case 4:
+    default:
+        *cfg = (signed char *)&LevelInterface.Engine->GameConfig.MultiPlayerParams[player].standardConfigSelected;
+        *min = 6;
+        *max = 9;
+        break;
+    }
+}
 
-ASM_FUNC(PickupSpinTitle)
+/* drop the trailing spaces of a player name */
+static void TrimName(char *name)
+{
+    short i;
 
-ASM_FUNC(PickupSpinMenu)
+    for (i = 7; i > 0 && name[i] == ' '; i--)
+        name[i] = 0;
+}
 
-ASM_FUNC(func_9f08)
+/* why a player's pad was refused, and the port it is in */
+static short GetPadViolation(short player, char **violation, char **portname)
+{
+    unsigned char port;
+    short v;
 
-ASM_FUNC(printf)
+    v = LevelInterface.Engine->SnapShotPadViolation(player, &port);
+    if (v == 0)
+        return 0;
+    *violation = D_11a9c[v - 1];
+    *portname = LevelInterface.Engine->ControlGetPortName(port);
+    return v;
+}
 
-ASM_FUNC(func_ae00)
+void func_75dc(void)
+{
+    char what[16];
+    char buf[16];
+    signed char *cfg;
+    short min, max;
+    char *violation;
+    char *portname;
+    short *sel;
+    struct STRING_TABLE *st;
+    short teamMode;
+    short oneTeam;
+    short str, first;
+    short player, team, i, count;
+    short colour;
+    unsigned short pressed;
+    char *name;
+    short letter;
 
-ASM_FUNC(func_b00c)
+    teamMode = 0;
+    str = 0;
+    oneTeam = 0;
+    switch (LevelInterface.Engine->GameConfig.sMultiMode) {
+    case 0:
+    case 3:
+    case 5:
+        LevelInterface.Engine->sprintf(what, "COLOR");
+        teamMode = 0;
+        break;
+    case 1:
+    case 2:
+    case 4:
+        LevelInterface.Engine->sprintf(what, "TEAM");
+        teamMode = 1;
+        break;
+    }
+    D_11aa8 = (D_11aa8 + *LevelInterface.Engine->NewVcounts / 10) & 15;
+    if (teamMode) {
+        count = 0;
+        for (team = 0; team < 4; team++) {
+            for (i = 0; i < LevelInterface.Engine->GameConfig.sNumPlayers; i++) {
+                if (teamMode)
+                    sel = &LevelInterface.Engine->GameConfig.MultiPlayerParams[i].teamSelected;
+                else
+                    sel = &LevelInterface.Engine->GameConfig.MultiPlayerParams[i].playerSelected;
+                if (*sel == team) {
+                    count++;
+                    break;
+                }
+            }
+        }
+        oneTeam = count == 1;
+    }
+    for (player = 0; player < LevelInterface.Engine->GameConfig.sNumPlayers; player++) {
+        first = str;
+        pressed = LevelInterface.Engine->gFrontEndPad[player] & (LevelInterface.Engine->gFrontEndPad[player] ^ LevelInterface.Engine->gFrontEndOPad[player]);
+        if (teamMode)
+            sel = &LevelInterface.Engine->GameConfig.MultiPlayerParams[player].teamSelected;
+        else
+            sel = &LevelInterface.Engine->GameConfig.MultiPlayerParams[player].playerSelected;
+        colour = *sel;
+        switch (LevelInterface.Engine->GameConfig.MultiPlayerParams[player].waitingMode) {
+        case 0:
+            LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "OPTIONS");
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 60, 16, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 0;
+            LevelInterface.Engine->sprintf(buf, "%c%s", oneTeam ? 'g' : 'b', "START");
+            LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], buf);
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 86, 16, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            LevelInterface.Engine->MyStringTable[str++].cursorDisabled = oneTeam;
+            if (oneTeam) {
+                LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "THIS MODE REQUIRES 2 TEAMS");
+                LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 100, 8, player);
+                STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+                LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 1;
+                LevelInterface.Engine->GameConfig.MultiPlayerParams[player].cursorpos = 0;
+            }
+            LevelInterface.Engine->sprintf(buf, "%s", LevelInterface.Engine->GameConfig.MultiPlayerParams[player].playerName);
+            TrimName(buf);
+            LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "%s", buf);
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 34, 16, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 1;
+            break;
+        case 1:
+            LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "NAME");
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 34, 16, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 0;
+            LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], what);
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 60, 16, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 0;
+            LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "CONTROLLER");
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 86, 16, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 0;
+            break;
+        case 2:
+            letter = LevelInterface.Engine->GameConfig.MultiPlayerParams[player].currentLetter;
+            name = LevelInterface.Engine->GameConfig.MultiPlayerParams[player].playerName;
+#define LETTER(n) (letter == (n) ? (D_11aa8 & 8 ? "u" : S_12d8) : S_12d8)
+            LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "%s%c%s%c%s%c%s%c%s%c%s%c%s%c%s%c",
+                                           LETTER(0), name[0], LETTER(1), name[1], LETTER(2), name[2], LETTER(3), name[3],
+                                           LETTER(4), name[4], LETTER(5), name[5], LETTER(6), name[6], LETTER(7), name[7]);
+#undef LETTER
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 73, 16, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 0;
+            LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "NAME");
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 47, 16, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 1;
+            LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "USE DIRECTIONAL BUTTONS");
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 90, 8, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 1;
+            LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "TO CHANGE NAME");
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 100, 8, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 1;
+            break;
+        case 3:
+            LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], D_10d80[*sel]);
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 73, 16, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 0;
+            LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], what);
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 47, 16, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 1;
+            LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "LEFT AND RIGHT CHANGES %sS", what);
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 100, 8, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 1;
+            break;
+        case 4:
+            GetConfigRange(player, &cfg, &min, &max);
+            if (LevelInterface.Engine->GameConfig.MultiPlayerParams[player].cursorpos + player * 7 == str) {
+                if (pressed & 0x80) {
+                    LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"itm_pkup"}),
+                                                           &LevelInterface.Engine->Creatures->Draw.Location);
+                    (*cfg)--;
+                }
+                if (pressed & 0x20) {
+                    LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"itm_pkup"}),
+                                                           &LevelInterface.Engine->Creatures->Draw.Location);
+                    (*cfg)++;
+                }
+            }
+            if (*cfg < min)
+                *cfg = max - 1;
+            if (*cfg >= max)
+                *cfg = min;
+            LevelInterface.Engine->GameConfig.MultiPlayerParams[player].controllerSelected = *cfg;
+            LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], ControllerConfigs[LevelInterface.Engine->GameConfig.MultiPlayerParams[player].controllerSelected][0]);
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 26, 16, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 0;
+            if (!LevelInterface.Engine->IsPlayerPadShockable(player)) {
+                LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "gVIBRATE");
+                LevelInterface.Engine->MyStringTable[str].cursorDisabled = 1;
+                if (LevelInterface.Engine->GameConfig.MultiPlayerParams[player].cursorpos + player * 7 == str)
+                    LevelInterface.Engine->GameConfig.MultiPlayerParams[player].cursorpos--;
+            } else {
+                LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "VIBRATE");
+                LevelInterface.Engine->MyStringTable[str].cursorDisabled = 0;
+            }
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 43, 16, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            LevelInterface.Engine->MyStringTable[str].pBoolVar = &LevelInterface.Engine->GameConfig.MultiPlayerParams[player].vibration;
+            str++;
+            if (LevelInterface.Engine->GameWindows[player].Input.Method == 9 || LevelInterface.Engine->GameWindows[player].Input.Method == 10 ||
+                LevelInterface.Engine->GameWindows[player].Input.Method == 5 || LevelInterface.Engine->GameWindows[player].Input.Method == 7) {
+                LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "SWAP Y");
+                LevelInterface.Engine->MyStringTable[str].cursorDisabled = 0;
+            } else {
+                LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "gSWAP Y");
+                LevelInterface.Engine->MyStringTable[str].cursorDisabled = 1;
+                if (LevelInterface.Engine->GameConfig.MultiPlayerParams[player].cursorpos + player * 7 == str)
+                    LevelInterface.Engine->GameConfig.MultiPlayerParams[player].cursorpos--;
+            }
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 60, 16, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            LevelInterface.Engine->MyStringTable[str].pBoolVar = &LevelInterface.Engine->GameConfig.MultiPlayerParams[player].invertY;
+            str++;
+            if (LevelInterface.Engine->gFreeMice > 0 || LevelInterface.Engine->GameWindows[player].Input.Method == 10 || LevelInterface.Engine->GameWindows[player].Input.Method == 9) {
+                LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "MOUSE");
+                LevelInterface.Engine->MyStringTable[str].cursorDisabled = 0;
+            } else {
+                LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "gMOUSE");
+                LevelInterface.Engine->MyStringTable[str].cursorDisabled = 1;
+                if (LevelInterface.Engine->GameConfig.MultiPlayerParams[player].cursorpos + player * 7 == str)
+                    LevelInterface.Engine->GameConfig.MultiPlayerParams[player].cursorpos--;
+            }
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 77, 16, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            LevelInterface.Engine->MyStringTable[str].pBoolVar = &LevelInterface.Engine->GameConfig.MultiPlayerParams[player].useMouse;
+            str++;
+            if (LevelInterface.Engine->GameWindows[player].Input.Method == 9 || LevelInterface.Engine->GameWindows[player].Input.Method == 10) {
+                LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "MOUSE SPEED %d", LevelInterface.Engine->GameConfig.MultiPlayerParams[player].mouseSensitivity * 99 / 127);
+                LevelInterface.Engine->MyStringTable[str].cursorDisabled = 0;
+                if (LevelInterface.Engine->GameConfig.MultiPlayerParams[player].cursorpos + player * 7 == str) {
+                    if (LevelInterface.Engine->gFrontEndPad[player] & 0x80) {
+                        LevelInterface.Engine->GameConfig.MultiPlayerParams[player].mouseSensitivity--;
+                        if (LevelInterface.Engine->GameConfig.MultiPlayerParams[player].mouseSensitivity < 0)
+                            LevelInterface.Engine->GameConfig.MultiPlayerParams[player].mouseSensitivity = 0;
+                    } else if (LevelInterface.Engine->gFrontEndPad[player] & 0x20) {
+                        LevelInterface.Engine->GameConfig.MultiPlayerParams[player].mouseSensitivity++;
+                        if (LevelInterface.Engine->GameConfig.MultiPlayerParams[player].mouseSensitivity >= 128)
+                            LevelInterface.Engine->GameConfig.MultiPlayerParams[player].mouseSensitivity = 127;
+                    }
+                }
+            } else {
+                LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "gMOUSE SPEED %d", LevelInterface.Engine->GameConfig.MultiPlayerParams[player].mouseSensitivity * 99 / 127);
+                LevelInterface.Engine->MyStringTable[str].cursorDisabled = 1;
+                if (LevelInterface.Engine->GameConfig.MultiPlayerParams[player].cursorpos + player * 7 == str)
+                    LevelInterface.Engine->GameConfig.MultiPlayerParams[player].cursorpos--;
+            }
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 94, 16, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            str++;
+            func_7184(player, first, str);
+            if (pressed & 0x1000) {
+                LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"msc_menu3"}),
+                                                       &Pickups[0]->Draw.Location);
+                LevelInterface.Engine->GameConfig.MultiPlayerParams[player].waitingMode = 1;
+                LevelInterface.Engine->GameConfig.MultiPlayerParams[player].cursorpos = 2;
+            }
+            break;
+        case 5:
+            /* (the two arms of the READY!/LOADING test are one block in the original, crossjumped) */
+            LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "");
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 0, 0, 16, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 0;
+            if (D_12ae4 != *LevelInterface.Engine->MaxWindows) {
+                LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "READY!");
+                LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 73, 16, player);
+                STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+                LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 1;
+            } else {
+                LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "LOADING");
+                LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 73, 16, player);
+                STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+                LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 1;
+            }
+            LevelInterface.Engine->sprintf(buf, "%s", LevelInterface.Engine->GameConfig.MultiPlayerParams[player].playerName);
+            TrimName(buf);
+            LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "%s", buf);
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 47, 16, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 1;
+            break;
+        case 6:
+            LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "");
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 0, 0, 16, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 0;
+            LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "PLEASE");
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 25, 16, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 1;
+            LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "RE-INSERT");
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 39, 16, player);
+            STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+            LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 1;
+            if (GetPadViolation(player, &violation, &portname)) {
+                LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "%s", violation);
+                LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 53, 16, player);
+                STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+                LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 1;
+                LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "INTO");
+                LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 67, 16, player);
+                STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+                LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 1;
+                LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "CONTROLLER");
+                LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 81, 16, player);
+                STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+                LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 1;
+                LevelInterface.Engine->sprintf(buf, "PORT %s", portname);
+                LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], buf, 128, 95, 16, player);
+                STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
+                LevelInterface.Engine->MyStringTable[str++].cursorDisabled = 1;
+            }
+            break;
+        }
+        for (; str < (player + 1) * 7; str++) {
+            /* offset + table, in that order (&MyStringTable[str] adds them the other way round) */
+            st = (struct STRING_TABLE *)(str * (int)sizeof(struct STRING_TABLE) + (int)LevelInterface.Engine->MyStringTable);
+            LevelInterface.Engine->sprintf(st, " ");
+            LevelInterface.Engine->FrontEndAddText(st, st, 0, 0, 16, 0);
+            st->cursorDisabled = 1;
+        }
+        func_9c38(player);
+    }
+    if (LevelInterface.Engine->GameConfig.sNumPlayers == 2) {
+        for (str = 7; str < 14; str++)
+            LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 384,
+                                                   LevelInterface.Engine->MyStringTable[str].y, LevelInterface.Engine->MyStringTable[str].fontSize,
+                                                   STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->window);
+    }
+}
 
-ASM_FUNC(func_b1c4)
+void func_9c38(short w)
+{
+    short i;
+
+    for (i = 0; i < 4; i++)
+        Pickups[i + 1]->WinData[w].NoDraw = 1;
+    if (LevelInterface.Engine->GameConfig.sMultiMode == 1)
+        Pickups[LevelInterface.Engine->GameConfig.MultiPlayerParams[w].teamSelected + 1]->WinData[w].NoDraw = 0;
+    else
+        Pickups[LevelInterface.Engine->GameConfig.MultiPlayerParams[w].playerSelected + 1]->WinData[w].NoDraw = 0;
+}
+
+void FrontEndSpinPickup(struct CREATURE *Pickup)
+{
+    struct VECTOR Pos;
+    short Unused[2];
+    int Spin;
+    int dx, dy, dz; /* never used: the code computing them is optimised away late, after it has
+                     * split the function into blocks (the register allocation shows it) and made
+                     * the callers that inline this function too big to be inlined themselves */
+
+    Unused[0] = 2;
+    Unused[1] = 3;
+    LevelInterface.Engine->GetAbsoluteModelVert(Pickup, 1, &Pos);
+    Pos.vz = 512;
+    dx = LevelInterface.Engine->rand() % 64;
+    dy = LevelInterface.Engine->rand() % 64;
+    dz = Pos.vx % 4;
+    Spin = *LevelInterface.Engine->NewVcounts << 2;
+    Pickup->Ang.vy -= Spin;
+    LevelInterface.Engine->RotMatrixYXZ(&Pickup->Ang, &Pickup->Matrix);
+}
+
+void PickupSpinTitle(struct CREATURE *Pickup)
+{
+    if (Pickup->ModelOpaque < 4096)
+        Pickup->ModelOpaque += 256;
+    else
+        Pickup->ModelOpaque = 4096;
+    FrontEndSpinPickup(Pickup);
+}
+
+void PickupSpinMenu(struct CREATURE *Pickup)
+{
+    if (Pickup->ModelOpaque > 1024)
+        Pickup->ModelOpaque -= 256;
+    else
+        Pickup->ModelOpaque = 1024;
+    FrontEndSpinPickup(Pickup);
+}
+
+
+/* memcard_data as the engine declared it (its char fields are signed) */
+struct MEMCARD_DATA_S {
+    long cmds;
+    long result;
+    long ret;
+    long pendingStatus;
+    struct DIRENTRY fileName[15];
+    long cardInfo[8];
+    char fileDescription[15][32];
+    signed char numCards;
+    signed char activeCardIndex;
+    signed char numFiles;
+    signed char numMpFiles;
+    signed char numFreeFiles;
+    signed char activeFileIndex;
+    signed char testCardIndex;
+    signed char testDescriptionIndex;
+    char activeFileName[32];
+};
+
+#define MENU_SOUND() \
+    LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"msc_menu1"}), \
+                                           &Pickups[0]->Draw.Location)
+
+void func_9f08(void)
+{
+    LevelInterface.Engine->MemoryCardUpdate();
+    if (LevelInterface.Engine->gFrontEndPadShot || LevelInterface.Engine->MemoryCardGetStatus() == 13 ||
+        LevelInterface.Engine->MemoryCardGetStatus() == 3 || LevelInterface.Engine->MemoryCardGetStatus() == 16) {
+        switch (LevelInterface.Engine->MemoryCardGetStatus()) {
+        case 1:
+            break;
+        case 9:
+        case 12:
+        case 17:
+            if (LevelInterface.Engine->gFrontEndPadShot & 0x4000) {
+                MENU_SOUND();
+                /* the original tests the masked word here, not the byte */
+                if ((*(int *)LOADFLAGS(LevelInterface.Engine) & 0x7f000000) == 0x01000000) {
+                    FrontEndInitScreen("SINGLE PLAYER", 8);
+                    LevelInterface.Engine->FrontEndCreateMenu(FET_NEW_GAME, 16);
+                    LevelInterface.Engine->Backfunc = func_cdd8;
+                    LevelInterface.Engine->cursorpos = LevelInterface.Engine->FrontEndRestoreCursor();
+                } else {
+                    FrontEndInitScreen("MULTIPLAYER", 10);
+                    LevelInterface.Engine->FrontEndCreateMenu(FET_DEATHMATCH, 16);
+                    LevelInterface.Engine->Backfunc = func_cdd8;
+                    LevelInterface.Engine->Specialfunc = CHECK_FOR_MULTI_MODE;
+                    LevelInterface.Engine->cursorpos = LevelInterface.Engine->FrontEndRestoreCursor();
+                }
+            }
+            break;
+        case 16:
+            if (LOADFLAGS(LevelInterface.Engine)->LoadType == 0 && LOADFLAGS(LevelInterface.Engine)->LoadSubType == 1) {
+                LevelInterface.Engine->gFrontEndLevelComplete = 3;
+                LevelInterface.Engine->gFrontEndTimeout = 12;
+                LevelInterface.Engine->Specialfunc = LevelInterface.Engine->FrontEndLevelCompleteTimeout;
+            } else if (LevelInterface.Engine->gFrontEndPadShot & 0x4000) {
+                MENU_SOUND();
+                FrontEndInitScreen("MULTIPLAYER", 10);
+                LevelInterface.Engine->FrontEndCreateMenu(FET_DEATHMATCH, 16);
+                LevelInterface.Engine->Backfunc = func_cdd8;
+                LevelInterface.Engine->Specialfunc = CHECK_FOR_MULTI_MODE;
+                LevelInterface.Engine->cursorpos = LevelInterface.Engine->FrontEndRestoreCursor();
+            }
+            break;
+        case 3:
+            LevelInterface.Engine->CHECK_FOR_MCFILEWINDOW();
+            if (LevelInterface.Engine->gFrontEndPadShot & 0x4000) {
+                MENU_SOUND();
+                LevelInterface.Engine->MemoryCardSetActiveCard(LevelInterface.Engine->cursorpos - LevelInterface.Engine->cursorlower);
+                LevelInterface.Engine->MemoryCardSetStatus(4);
+            }
+            break;
+        case 13: {
+            char buf[32];
+            char CheatNames[4][8] = { "NONE", "BRONZE", "SILVER", "GOLD" };
+            char DifficultyNames[3][8] = { "EASY", "MEDIUM", "HARD" };
+            short i;
+            struct MEMCARD_DATA_S *md;
+            struct STRING_TABLE *st;
+            int cheats, continues, difficulty;
+            int idx;
+
+            for (i = LevelInterface.Engine->cursorlower; i < LevelInterface.Engine->cursorupper; i++)
+                LevelInterface.Engine->FrontEndModifyText(&LevelInterface.Engine->MyStringTable[i],
+                                                          &LevelInterface.Engine->MyStringTable[i].originalMessage[3]);
+            md = LevelInterface.Engine->memcard_data;
+            i = LevelInterface.Engine->cursorpos - LevelInterface.Engine->cursorlower;
+            LevelInterface.Engine->MemoryCardSetActiveFile(i);
+            idx = md->activeFileIndex;
+            LevelInterface.Engine->PDHCheats = (md->fileName[idx].name[13] - '0') & 3;
+            LevelInterface.Engine->PDHContinues = (md->fileName[idx].name[14] - '0') & 3;
+            LevelInterface.Engine->PDHDifficulty = (md->fileName[idx].name[15] - '0') & 3;
+            continues = LevelInterface.Engine->PDHContinues;
+            cheats = LevelInterface.Engine->PDHCheats;
+            difficulty = LevelInterface.Engine->PDHDifficulty;
+            if (i + 1 == LevelInterface.Engine->cursorupper - LevelInterface.Engine->cursorlower &&
+                LevelInterface.Engine->MemoryCardGetNumFreeBlocks() && LevelInterface.Engine->gFrontEndLoadType == 1) {
+                st = LevelInterface.Engine->MyStringTable;
+                STRFLAGS(&st[4])->dontDraw = 1;
+                STRFLAGS(&st[3])->dontDraw = 1;
+                STRFLAGS(&st[2])->dontDraw = 1;
+            } else if (LOADFLAGS(LevelInterface.Engine)->LoadType == 0 && LOADFLAGS(LevelInterface.Engine)->LoadSubType == 0) {
+                STRFLAGS(&LevelInterface.Engine->MyStringTable[2])->dontDraw = 1;
+                STRFLAGS(&LevelInterface.Engine->MyStringTable[4])->dontDraw = 1;
+                if (cheats) {
+                    LevelInterface.Engine->sprintf(buf, "CHEATS %s", CheatNames[cheats]);
+                    LevelInterface.Engine->FrontEndModifyText(&LevelInterface.Engine->MyStringTable[3], buf);
+                    STRFLAGS(&LevelInterface.Engine->MyStringTable[3])->dontDraw = 0;
+                } else
+                    STRFLAGS(&LevelInterface.Engine->MyStringTable[3])->dontDraw = 1;
+            } else {
+                if (LevelInterface.Engine->MyStringTable[i + LevelInterface.Engine->cursorlower].originalMessage[3] == 'M' &&
+                    *(long *)&LevelInterface.Engine->MyStringTable[i + LevelInterface.Engine->cursorlower].originalMessage[4] == 0x49544c55) {
+                    STRFLAGS(&LevelInterface.Engine->MyStringTable[2])->dontDraw = 1;
+                    STRFLAGS(&LevelInterface.Engine->MyStringTable[3])->dontDraw = 1;
+                } else {
+                    LevelInterface.Engine->sprintf(buf, "RESUPPLIES %d", continues);
+                    LevelInterface.Engine->FrontEndModifyText(&LevelInterface.Engine->MyStringTable[2], buf);
+                    LevelInterface.Engine->sprintf(buf, "DIFFICULTY %s", DifficultyNames[difficulty]);
+                    LevelInterface.Engine->FrontEndModifyText(&LevelInterface.Engine->MyStringTable[3], buf);
+                }
+                if (cheats) {
+                    LevelInterface.Engine->sprintf(buf, "CHEATS %s", CheatNames[cheats]);
+                    LevelInterface.Engine->FrontEndModifyText(&LevelInterface.Engine->MyStringTable[4], buf);
+                    STRFLAGS(&LevelInterface.Engine->MyStringTable[4])->dontDraw = 0;
+                } else
+                    STRFLAGS(&LevelInterface.Engine->MyStringTable[4])->dontDraw = 1;
+            }
+            LevelInterface.Engine->CHECK_FOR_MCFILEWINDOW();
+            if (LevelInterface.Engine->gFrontEndPadShot & 0x4000) {
+                MENU_SOUND();
+                LevelInterface.Engine->MemoryCardSetActiveFile(i);
+                if (LevelInterface.Engine->gFrontEndLoadType == 0)
+                    LevelInterface.Engine->MemoryCardSetStatus(21);
+                if (LevelInterface.Engine->gFrontEndLoadType == 1) {
+                    if (i + 1 == LevelInterface.Engine->cursorupper - LevelInterface.Engine->cursorlower &&
+                        LevelInterface.Engine->MemoryCardGetNumFreeBlocks() && LevelInterface.Engine->gFrontEndLoadType == 1)
+                        LevelInterface.Engine->MemoryCardSetStatus(22);
+                    else
+                        LevelInterface.Engine->MemoryCardSetStatus(19);
+                }
+            }
+            break;
+        }
+        case 19:
+            if (LevelInterface.Engine->gFrontEndPadShot & 0x4000) {
+                MENU_SOUND();
+                if (LevelInterface.Engine->cursorpos == LevelInterface.Engine->cursorlower + 1)
+                    LevelInterface.Engine->MemoryCardSetStatus(20);
+                else if (LevelInterface.Engine->cursorpos == LevelInterface.Engine->cursorlower)
+                    LevelInterface.Engine->MemoryCardSetStatus(13);
+            }
+            break;
+        case 5:
+            if (LevelInterface.Engine->gFrontEndPadShot & 0x4000) {
+                MENU_SOUND();
+                if (LevelInterface.Engine->cursorpos == LevelInterface.Engine->cursorlower + 1)
+                    LevelInterface.Engine->MemoryCardSetStatus(6);
+                else if (LevelInterface.Engine->cursorpos == LevelInterface.Engine->cursorlower)
+                    LevelInterface.Engine->MemoryCardSetStatus(1);
+            }
+            break;
+        case 8:
+            if (LevelInterface.Engine->gFrontEndPadShot & 0x4000) {
+                MENU_SOUND();
+                LevelInterface.Engine->MemoryCardSetStatus(1);
+            }
+            break;
+        }
+    }
+}
+
+/* the movie player: PSY-Q's strplay sample (as in level_qendmis1) */
+
+#define ENGINE LevelInterface.Engine
+
+/* libgpu's DR_MODE (not in types.h) */
+struct DR_MODE {
+    unsigned long tag;
+    unsigned long code[2];
+};
+
+/* the player's variables, by their names in the sample */
+#define ScreenX D_12a60
+#define ScreenY D_12a62
+#define VlcSize D_12a64[0]
+#define Loc (*(struct CdlLOC *)D_12a68)
+#define File (*(struct CdlFILE *)D_12a78)
+#define FileSize D_12a90[0]
+#define EndFrame D_12a94[0]
+#define isEndOfFlag D_12a98[0]
+#define IsRGB24Start D_12a9c[0]
+#define dec (*(struct DECENV *)D_12aa8)
+#define RingBuf (*(unsigned long **)D_12ad8)
+#define VlcTable (*(unsigned short **)D_12adc)
+#define YOffset D_11aac
+#define MaxVlcSize D_11ab0
+#define MovieWidth D_11ab4
+#define MovieHeight D_11ab8[0]
+#define Done D_11ac0
+
+/* libpress, linked after this object */
+unsigned short GetTPage(int tp, int abr, int x, int y);
+void DecDCTReset(int mode);
+void DecDCTin(unsigned long *buf, int mode);
+void DecDCTout(unsigned long *buf, int size);
+int DecDCToutCallback(void (*func)());
+int DecDCTvlc2(unsigned long *bs, unsigned long *buf, unsigned short *table);
+void DecDCTvlcBuild(unsigned short *table);
+int DecDCTBufSize(unsigned long *bs);
+
+int printf(char *fmt, ...)
+{
+}
+
+void func_ae00(void)
+{
+    struct RECT snap_rect;  /* unused, but in the frame */
+    int rest;
+
+    if (*ENGINE->StCdIntrFlagAddr) {
+        ENGINE->StCdInterrupt();
+        *ENGINE->StCdIntrFlagAddr = 0;
+    }
+    ENGINE->LoadImage(&dec.slice, dec.imgbuf);
+    rest = (short)(dec.rect[dec.rectid].w % 24);
+    if (IsRGB24Start && rest) {
+        IsRGB24Start = 0;
+        dec.slice.x += rest * 3 / 2;
+    } else
+        dec.slice.x += 24;
+    if (dec.slice.x < dec.rect[dec.rectid].x + dec.rect[dec.rectid].w)
+        /* "* 3 << 7", not "* 384": gcc would reassociate the product */
+        DecDCTout((unsigned long *)dec.imgbuf, ((dec.slice.w - 1) / 24 + 1) * (((dec.slice.h - 1) / 16 + 1) * 3 << 7) >> 1);
+    else {
+        dec.isdone = 1;
+        dec.rectid = dec.rectid ? 0 : 1;
+        dec.slice.x = dec.rect[dec.rectid].x;
+        dec.slice.y = dec.rect[dec.rectid].y + YOffset;
+        IsRGB24Start = 1;
+    }
+}
+
+unsigned long *func_b00c(void)
+{
+    unsigned long *addr;
+    struct StHEADER *sector;
+    int cnt;
+    struct RECT rect;
+
+    cnt = 0x800000;
+    while (ENGINE->StGetNext(&addr, &sector)) {
+        if (--cnt == 0)
+            return 0;
+    }
+    if (addr[0] != ((unsigned long *)sector)[5] || addr[1] != ((unsigned long *)sector)[6]) {
+        ENGINE->StFreeRing(addr);
+        return 0;
+    }
+    if (((unsigned long *)sector)[2] >= EndFrame)
+        isEndOfFlag = 1;
+    if (MovieWidth != ((unsigned short *)sector)[8] || MovieHeight != ((unsigned short *)sector)[9]) {
+        rect.w = 480;
+        rect.x = 0;
+        rect.y = 0;
+        rect.h = 240;
+        ENGINE->ClearImage(&rect, 0, 0, 0);
+        MovieWidth = ((unsigned short *)sector)[8];
+        MovieHeight = ((unsigned short *)sector)[9];
+    }
+    dec.rect[0].w = dec.rect[1].w = MovieWidth * 3 / 2;
+    dec.slice.h = dec.rect[0].h = dec.rect[1].h = MovieHeight;
+    YOffset = (240 - MovieHeight) / 2;
+    return addr;
+}
+
+void func_b1c4(struct DISPENV *disp, struct DRAWENV *draw)
+{
+    int id;
+
+    id = dec.rectid ? 0 : 1;
+    ENGINE->SetDefDispEnv(disp, dec.rect[id].x, dec.rect[id].y, dec.rect[id].w, dec.rect[id].h);
+    disp->screen.y = ScreenY + 8;
+    disp->screen.x = ScreenX;
+    ENGINE->SetDefDrawEnv(draw, dec.rect[id].x, dec.rect[id].y, dec.rect[id].w, dec.rect[id].h);
+    disp->isrgb24 = 1;
+    disp->disp.w = disp->disp.w * 2 / 3;
+    ENGINE->PutDispEnv(disp);
+    ENGINE->PutDrawEnv(draw);
+    ENGINE->SetDispMask(1);
+}
 
 ASM_FUNC(PlayMovie)
 
@@ -1641,40 +2935,128 @@ ASM_FUNC(func_bdf4)
 
 
 
-ASM_RDATA(GOTO_MISSIONCD_CHECKING)
+void GOTO_MISSIONCD_CHECKING(void)
+{
+    FrontEndInitScreen("MISSION CD", 22);
+    LevelInterface.Engine->FrontEndCreateMenu(FET_CHECKING, 16);
+    LevelInterface.Engine->FrontEndCreateMenu(FET_NULL, 16);
+    LevelInterface.Engine->Specialfunc = CHECK_FOR_MISSIONCD;
+    LevelInterface.Engine->ReReadToc();
+}
 
-ASM_RDATA(GOTO_MISSIONCD_SWAP)
+void GOTO_MISSIONCD_SWAP(void)
+{
+    FrontEndInitScreen("MISSION CD", 24);
+    LevelInterface.Engine->FrontEndCreateMenu(FET_IT_IS_NOW_SAFE, 16);
+    LevelInterface.Engine->FrontEndCreateMenu(FET_NULL, 16);
+    LevelInterface.Engine->Specialfunc = CHECK_FOR_MISSIONCD;
+    LevelInterface.Engine->Backfunc = func_cdd8;
+}
 
-ASM_RDATA(GOTO_MISSIONCD_LOADING)
+void GOTO_MISSIONCD_LOADING(void)
+{
+    FrontEndInitScreen("MISSION CD", 23);
+    LevelInterface.Engine->FrontEndCreateMenu(FET_LOADING, 16);
+    LevelInterface.Engine->FrontEndCreateMenu(FET_NULL, 16);
+    LevelInterface.Engine->Specialfunc = CHECK_FOR_MISSIONCD;
+}
 
-ASM_RDATA(GOTO_MISSIONCD_INVALID)
+void GOTO_MISSIONCD_INVALID(void)
+{
+    FrontEndInitScreen("MISSION CD", 25);
+    LevelInterface.Engine->FrontEndCreateMenu(FET_THIS_IS_NOT_A, 16);
+    LevelInterface.Engine->FrontEndCreateMenu(FET_NULL, 16);
+    LevelInterface.Engine->Specialfunc = CHECK_FOR_MISSIONCD;
+    LevelInterface.Engine->Backfunc = func_cdd8;
+}
 
-ASM_RDATA(GOTO_OPTIONS)
+void GOTO_OPTIONS(void)
+{
+    FrontEndInitScreen("OPTIONS", 2);
+    LevelInterface.Engine->FrontEndCreateMenu(FET_PLAYER_OPTIONS, 16);
+    LevelInterface.Engine->Backfunc = GOTO_TITLE;
+    LevelInterface.Engine->cursorpos = LevelInterface.Engine->FrontEndRestoreCursor();
+    *LevelInterface.Engine->targetcdvol = LevelInterface.Engine->GameConfig.sMusic * 2;
+}
 
-ASM_RDATA(func_cd54)
+void func_cd54(void)
+{
+    FrontEndInitScreen("SINGLE PLAYER", 8);
+    LevelInterface.Engine->FrontEndCreateMenu(FET_NEW_GAME, 16);
+    LevelInterface.Engine->Backfunc = func_cdd8;
+    LevelInterface.Engine->cursorpos = LevelInterface.Engine->FrontEndRestoreCursor();
+}
 
-ASM_RDATA(func_cdd8)
+void func_cdd8(void)
+{
+    char unused[32]; /* the original's frame has room for it */
+    int i;
+
+    FrontEndInitScreen("START", 1);
+    LevelInterface.Engine->FrontEndCreateMenu(FET_SINGLE_MULTI, 16);
+    LevelInterface.Engine->SetupScreen1by1(0);
+    for (i = 0; i < *LevelInterface.Engine->MaxWindows; i++)
+        LevelInterface.Engine->AlterFocalSubDiv(i, 160, 4000);
+    LevelInterface.Engine->Specialfunc = CHECK_FOR_START;
+    LevelInterface.Engine->Backfunc = GOTO_TITLE;
+    LevelInterface.Engine->cursorpos = LevelInterface.Engine->FrontEndRestoreCursor();
+}
 
 
-ASM_RDATA(func_d010)
+void func_d010(void)
+{
+    FrontEndInitScreen("SCREEN POSITION", 7);
+    LevelInterface.Engine->FrontEndCreateMenu(FET_USE_DIRECTIONAL_BUTTONS, 16);
+    LevelInterface.Engine->FrontEndCreateMenu(FET_NULL, 16);
+    LevelInterface.Engine->Backfunc = func_cc20;
+    LevelInterface.Engine->Specialfunc = CHECK_FOR_SCREENPOSITION;
+    LevelInterface.Engine->cursorpos = LevelInterface.Engine->FrontEndRestoreCursor();
+}
 
 
 
 
 
 
-ASM_RDATA(func_d414)
+void func_d414(void)
+{
+    FrontEndInitScreen("LOAD", 16);
+    LevelInterface.Engine->Specialfunc = func_9f08;
+    LevelInterface.Engine->gFrontEndLoadType = 0;
+    LOADFLAGS(LevelInterface.Engine)->LoadSubType = 1;
+    LevelInterface.Engine->Backfunc = func_cd54;
+    LevelInterface.Engine->MemoryCardSetStatus(1);
+    LevelInterface.Engine->cursorpos = LevelInterface.Engine->FrontEndRestoreCursor();
+}
 
 
 
-ASM_RDATA(func_d60c)
+void func_d60c(void)
+{
+    PlayMovie("ROGUEIN1.STX", 2949, 0x10000, 1, 255);
+}
 
 
 
 
 
 
-ASM_RDATA(func_d9b8)
+void func_d9b8(char *out)
+{
+    unsigned char *s;
+    unsigned char c;
+    short i;
+
+    s = (unsigned char *)((struct LEVELDATA *)LevelInterface.Engine->GetLevelDataFromIdentityName("COLD STORAGE"))[LevelInterface.Engine->GameConfig.bArena].Name.Name;
+    i = 0;
+    for (c = *s; c && i < 12; c = *++s) {
+        if (c == ' ' || (c >= '0' && c <= '9'))
+            out[i++] = c;
+        else
+            out[i++] = c & 0xdf;
+    }
+    out[i] = 0;
+}
 
 
 
@@ -1717,55 +3099,252 @@ void FrontEndDrawSortedObjs(void)
     LevelInterface.Engine->DrawAllSortedObjs();
 }
 
-ASM_DEFERRED(FrontEndSpinPickup)
 
 
 
 
-ASM_DEFERRED(FrontEndSpawnPickups)
-ASM_DEFERRED(func_c6c0)
-ASM_DEFERRED(CHECK_FOR_START)
-ASM_DEFERRED(func_c7bc)
-ASM_DEFERRED(GOTO_MISSIONCD_SPINDOWN)
-ASM_DEFERRED(GOTO_MISSIONCD_CHECKING)
-ASM_DEFERRED(GOTO_MISSIONCD_SWAP)
-ASM_DEFERRED(GOTO_MISSIONCD_LOADING)
-ASM_DEFERRED(GOTO_MISSIONCD_INVALID)
-ASM_DEFERRED(GOTO_PLAYER)
-ASM_DEFERRED(func_cb88)
-ASM_DEFERRED(func_cc20)
-ASM_DEFERRED(GOTO_OPTIONS)
-ASM_DEFERRED(func_cd54)
-ASM_DEFERRED(func_cdd8)
-ASM_DEFERRED(GOTO_TITLE)
-ASM_DEFERRED(GOTO_MULTIPLAYER)
-ASM_DEFERRED(func_d010)
-ASM_DEFERRED(func_d0c0)
-ASM_DEFERRED(func_d15c)
-ASM_DEFERRED(func_d210)
-ASM_DEFERRED(func_d2d8)
-ASM_DEFERRED(func_d394)
-ASM_DEFERRED(func_d3bc)
-ASM_DEFERRED(func_d3e8)
-ASM_DEFERRED(func_d414)
-ASM_DEFERRED(func_d4d0)
-ASM_DEFERRED(func_d58c)
-ASM_DEFERRED(func_d60c)
-ASM_DEFERRED(func_d644)
-ASM_DEFERRED(func_d6fc)
-ASM_DEFERRED(func_d734)
-ASM_DEFERRED(GOTO_REINSERT_WAIT)
-ASM_DEFERRED(func_d8c0)
-ASM_DEFERRED(func_d9b8)
-ASM_DEFERRED(func_dab0)
-ASM_DEFERRED(func_db64)
-ASM_DEFERRED(func_dbe0)
-ASM_DEFERRED(DMACallback)
-ASM_DEFERRED(func_dc4c)
-ASM_DEFERRED(func_dcc8)
-ASM_DEFERRED(func_ddbc)
-ASM_DEFERRED(func_dec4)
-ASM_DEFERRED(func_df90)
+void func_c6c0(void)
+{
+    if (LevelInterface.Engine->gFrontEndPad[0]) {
+        D_12dd8[0] = 9000;
+        return;
+    }
+    if ((D_12dd8[0] -= *LevelInterface.Engine->NewVcounts) <= 0)
+        GOTO_DEMO();
+}
+void func_c7bc(void)
+{
+    LevelInterface.Engine->GameConfig.sBlastScale = 64;
+    LevelInterface.Engine->GameConfig.sGravity = 64;
+    LevelInterface.Engine->GameConfig.sGameSpeed = 64;
+    LevelInterface.Engine->GameConfig.sTimeLimit = 10;
+    LevelInterface.Engine->GameConfig.sFragLimit = 10;
+    LevelInterface.Engine->GameConfig.bWeaponStay = 0;
+    LevelInterface.Engine->GameConfig.bInfiniteAmmo = 0;
+    LevelInterface.Engine->GameConfig.bAllWeapons = 0;
+    LevelInterface.Engine->GameConfig.bFallingDamage = 1;
+    LevelInterface.Engine->GameConfig.bOneShotKill = 0;
+}
+void GOTO_REINSERT_WAIT(void)
+{
+    unsigned char port;
+    void (*f)();
+
+    if (LevelInterface.Engine->SnapShotPadViolation(0, &port) != 1) {
+        f = D_116e4[LevelInterface.Engine->gFrontEndPrevScreen];
+        if (f)
+            f();
+        else
+            GOTO_TITLE();
+    }
+}
+
+void GOTO_TITLE(void)
+{
+    short pos;
+
+    FrontEndInitScreen(0, 0);
+    LevelInterface.Engine->FrontEndCreateMenu(FET_START, 32);
+    pos = LevelInterface.Engine->FrontEndRestoreCursor();
+    D_12dd8[0] = 9000;
+    LevelInterface.Engine->cursorpos = pos;
+    LevelInterface.Engine->Specialfunc = func_c6c0;
+}
+void func_d210(void)
+{
+    FrontEndInitScreen(0, 17);
+    LOADFLAGS(LevelInterface.Engine)->LoadIsSpecial = 0;
+    LevelInterface.Engine->Specialfunc = func_9f08;
+    LevelInterface.Engine->Backfunc = GOTO_MULTIPLAYER;
+    LevelInterface.Engine->gFrontEndLoadType = 1;
+    LOADFLAGS(LevelInterface.Engine)->LoadSubType = 0;
+    LevelInterface.Engine->MemoryCardSetStatus(1);
+    LevelInterface.Engine->cursorpos = LevelInterface.Engine->FrontEndRestoreCursor();
+}
+void func_d2d8(void)
+{
+    LOADFLAGS(LevelInterface.Engine)->LoadIsSpecial = 1;
+    LevelInterface.Engine->Specialfunc = func_9f08;
+    LevelInterface.Engine->Backfunc = GOTO_UNLOCK_SAVE;
+    LevelInterface.Engine->gFrontEndLoadType = 1;
+    LOADFLAGS(LevelInterface.Engine)->LoadSubType = 0;
+    LevelInterface.Engine->MemoryCardSetStatus(1);
+    LevelInterface.Engine->cursorpos = LevelInterface.Engine->FrontEndRestoreCursor();
+}
+void func_d394(void)
+{
+    LevelInterface.Engine->GameConfig.sDifficulty = 0;
+    GOTO_INTRO();
+}
+void func_d3bc(void)
+{
+    LevelInterface.Engine->GameConfig.sDifficulty = 1;
+    GOTO_INTRO();
+}
+void func_d3e8(void)
+{
+    LevelInterface.Engine->GameConfig.sDifficulty = 2;
+    GOTO_INTRO();
+}
+void func_d58c(void)
+{
+    int i;
+
+    for (i = 0; i < 5; i++) {
+        WINFLAGS(Pickups[i], 0)->NoDraw = 1;
+        WINFLAGS(Pickups[i], 1)->NoDraw = 1;
+        WINFLAGS(Pickups[i], 2)->NoDraw = 1;
+        WINFLAGS(Pickups[i], 3)->NoDraw = 1;
+    }
+}
+void func_d644(unsigned short *clut, short slot, int is256)
+{
+    struct RECT rect;
+
+    rect.x = (LevelInterface.Engine->palette[slot] & 0x3f) << 4;
+    rect.y = LevelInterface.Engine->palette[slot] >> 6;
+    rect.h = 1;
+    rect.w = is256 ? 256 : 16;
+    LevelInterface.Engine->LoadImage(&rect, clut);
+    LevelInterface.Engine->DrawSync(0);
+}
+void func_d6fc(short *clut, int n)
+{
+    while (n) {
+        *clut &= 0x7fff;
+        if (*clut)
+            *clut |= 0x8000;
+        n--;
+        clut++;
+    }
+}
+void func_d734(void)
+{
+    struct WINDOW *w;
+    short i;
+
+    for (i = 0; i < *LevelInterface.Engine->MaxWindows; i++) {
+        w = &LevelInterface.Engine->GameWindows[i];
+        w->CamPos.vx = 0;
+        w->CamPos.vy = 0;
+        w->CamPos.vz = 0;
+        w->CamAng.vx = 0;
+        w->CamAng.vy = 0;
+        w->CamAng.vz = 0;
+        w->ControlBits |= 7;
+        LevelInterface.Engine->QGenWindowSortList(w);
+        LevelInterface.Engine->UpdateWindowStuff(w);
+    }
+}
+void func_d8c0(int pad, char **sel, short *first, short *last)
+{
+    switch (LevelInterface.Engine->GameWindows[pad].Input.Method) {
+    case 9:
+    case 10:
+        *sel = &LevelInterface.Engine->GameConfig.MultiPlayerParams[pad].mouseConfigSelected;
+        *first = 0;
+        *last = 3;
+        break;
+    case 5:
+    case 7:
+        *sel = &LevelInterface.Engine->GameConfig.MultiPlayerParams[pad].analogConfigSelected;
+        *first = 3;
+        *last = 6;
+        break;
+    case 4:
+    default:
+        *sel = &LevelInterface.Engine->GameConfig.MultiPlayerParams[pad].standardConfigSelected;
+        *first = 6;
+        *last = 9;
+        break;
+    }
+}
+short func_dab0(short pad, char **type, char **port)
+{
+    unsigned char p;
+    short v;
+
+    v = LevelInterface.Engine->SnapShotPadViolation(pad, &p);
+    if (v == 0)
+        return 0;
+    *type = D_11a9c[v - 1];
+    *port = LevelInterface.Engine->ControlGetPortName(p);
+    return v;
+}
+void func_dbe0(char *s)
+{
+    short i;
+
+    for (i = 7; i > 0; i--) {
+        if (s[i] != ' ')
+            break;
+        s[i] = 0;
+    }
+}
+int DMACallback(int dma, void (*func)())
+{
+    return LevelInterface.Engine->DMACallback(dma, func);
+}
+void func_dc4c(void)
+{
+    while (!LevelInterface.Engine->CdControl(0x15, StrLoc, 0))
+        ;
+    while (!LevelInterface.Engine->CdRead2(0x1c0))
+        ;
+}
+void func_dcc8(unsigned long *ring, void (*callback)(), int endframe)
+{
+    DecDCTReset(0);
+    StrEndFlag = 0;
+    DecDCToutCallback(callback);
+    LevelInterface.Engine->StSetRing(StrRingBuf, 64);
+    LevelInterface.Engine->StSetStream(1, 1, ring, 0, endframe);
+    func_dc4c();
+}
+void func_ddbc(int x0, int y0, int x1, int y1)
+{
+    setRECT(&StrDec.rect[0], x0, y0, 480, 240);
+    setRECT(&StrDec.rect[1], x1, y1, 480, 240);
+    LevelInterface.Engine->ClearImage(&StrDec.rect[0], 0, 0, 0);
+    LevelInterface.Engine->ClearImage(&StrDec.rect[1], 0, 0, 0);
+    LevelInterface.Engine->DrawSync(0);
+    setRECT(&StrDec.slice, x0, y0, 24, 240);
+    StrDec.vlcid = 0;
+    StrDec.rectid = 0;
+    StrDec.isdone = 0;
+}
+int func_dec4(void)
+{
+    int cnt;
+    unsigned long *next;
+
+    cnt = 0x800000;
+    while ((next = func_b00c()) == 0) {
+        if (--cnt == 0)
+            return -1;
+    }
+    if (D_11ab0 < DecDCTBufSize(next))
+        D_11ab0 = DecDCTBufSize(next);
+    StrDec.vlcid = StrDec.vlcid ^ 1;
+    DecDCTvlc2(next, StrDec.vlcbuf[StrDec.vlcid], StrVlcTable);
+    LevelInterface.Engine->StFreeRing(next);
+    return 0;
+}
+void func_df90(void)
+{
+    volatile int cnt;
+
+    cnt = 0x800000;
+    while (!StrDec.isdone) {
+        if (--cnt == 0) {
+            StrDec.isdone = 1;
+            StrDec.rectid = StrDec.rectid ? 0 : 1;
+            StrDec.slice.x = StrDec.rect[StrDec.rectid].x;
+            StrDec.slice.y = StrDec.rect[StrDec.rectid].y + D_11aac;
+        }
+    }
+    StrDec.isdone = 0;
+}
 
 /* the word the original link left after the libraries' .data (in .sdata, which follows it) */
 __asm__(".section .sdata\n .word 0x0d7b0a0d\n .text");
