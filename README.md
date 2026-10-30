@@ -162,6 +162,16 @@ The prototypes left in the sources are the files' own functions: the block at th
 the order in which gcc emits the small ones (see Toolchain), and others declare a function or table used
 before its definition. A prototype that changed neither was removed.
 
+The executable's files declare the game's own variables and other objects' functions themselves
+(`extern ...` near their use), not through `globals.h`. That is how the original was written: what
+matches is per-file declarations that disagree with SYM and with each other. `tppalx` is
+`unsigned short` in draw.c (SYM: `short`), a file calls `SeekL` and `HideObjWithSolid` with no
+prototype in scope (SYM's `short` parameters would change the calls), some `int` functions are
+`void` where they're called, and `DoDamage` is called with four arguments and with five. One
+generated header can't reproduce that. (A definition after an `extern` declaration also turns into
+a common in gcc 2.8, losing the `.sbss`/`.bss` section attribute that `bss.h` relies on.)
+`globals.h` stays a reference.
+
 ## Data
 
 - `x[] = {...}` goes to `.data`, `x[N] = {...}` of 8 bytes or less to `.sdata`, as do strings of up to 8
