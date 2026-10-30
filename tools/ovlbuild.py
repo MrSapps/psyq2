@@ -30,7 +30,9 @@ HEADERS = glob.glob(f'{R}/src/include/*.h') + glob.glob(f'{R}/src/ovl/include/*.
 def compile_ovl(name):
     src = f'{R}/src/ovl/{name}.c'
     obj = f'{OUT}/{name}.obj'
-    if not build.newer(obj, [src] + HEADERS + [__file__]):
+    # a module may #include another module's source or a private header: depend on all of src/ovl
+    deps = glob.glob(f'{R}/src/ovl/*.[ch]') + HEADERS + [__file__]
+    if not build.newer(obj, deps):
         return 0, ''
     text = open(src).read()
     import re
