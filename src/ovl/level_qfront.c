@@ -57,12 +57,6 @@ struct DECENV {
     struct RECT slice;          /* 0x24 */
     int isdone;                 /* 0x2c */
 };
-/* the strplay variables, over the .bss words they occupy */
-#define StrLoc ((struct CdlLOC *)D_12a68)
-#define StrEndFlag D_12a98[0]
-#define StrDec (*(struct DECENV *)D_12aa8)
-#define StrRingBuf ((unsigned long *)D_12ad8[0])
-#define StrVlcTable ((unsigned short *)D_12adc[0])
 
 /* STRING_TABLE's flags, accessed as a word */
 struct STRFLAGS {
@@ -165,7 +159,7 @@ void IntroDelayElapsed();
 void GOTO_INTRO();
 void GOTO_START_MULTIPLAYER();
 void FrontEndLoadCluts();
-void func_24fc();
+void func_24fc(short y, short clut, short tpage, int is24, struct COLOUR col, int semitrans);
 void FrontEndAddQuad(struct POLY_FT4 **pp, short x, short y, short u, short v, short w, short h, short tpage, short clut, short col, int xoff);
 void FrontEndDraw256();
 void FrontEndLighting();
@@ -197,44 +191,47 @@ int printf(char *fmt, ...);
 void func_ae00();
 unsigned long *func_b00c();
 void func_b1c4();
-void PlayMovie();
-void func_bdf4();
+short PlayMovie(char *name, int endframe, int vlcsize, int clear, int volume);
+void func_bdf4(int id);
 
 struct QLEVELINTERFACE LevelInterface OVL_HEADER = { InitLevel, 0, 0 };
 
 /* bss */
-static short D_12a60 BSS;
-static short D_12a62 BSS;
-int D_12a64[1] BSS;
-int D_12a68[4] BSS;
-int D_12a78[6] BSS;
-int D_12a90[1] BSS;
-int D_12a94[1] BSS;
-int D_12a98[1] BSS;
-int D_12a9c[3] BSS;
-int D_12aa8[4] BSS;
-int D_12ab8[5] BSS;
-int D_12acc[2] BSS;
-int D_12ad4[1] BSS;
-int D_12ad8[1] BSS;
-int D_12adc[2] BSS;
+/* the movie player's (PSY-Q's strplay sample), with the unused words between them */
+static short ScreenX BSS;
+static short ScreenY BSS;
+static int VlcSize BSS;
+static struct CdlLOC Loc BSS;
+static int UnusedBss0[3] BSS;
+static struct CdlFILE File BSS;
+static int FileSize BSS;
+static int EndFrame BSS;
+static int isEndOfFlag BSS;
+static int IsRGB24Start BSS;
+static int UnusedBss1[2] BSS;
+static struct DECENV dec BSS;
+static unsigned long *RingBuf BSS;
+static unsigned short *VlcTable BSS;
+static int UnusedBss2 BSS;
 short D_12ae4 BSS;
-struct POLY_FT4 D_12ae8[2] BSS;
+struct DR_TPAGE TPages[2][5] BSS;
 struct CREATURE *Pickups[5] BSS;
-struct POLY_FT4 *D_12b4c[3] BSS;
-char D_12b58[2][100] BSS;
+struct DR_TPAGE *TPageEnd BSS;
+int Unused_12b50[2] BSS;
+struct SPRT Sprites[2][5] BSS;
 unsigned char D_12c20[4] BSS;
-struct POLY_FT4 *D_12c24[48] BSS;
+struct DR_TPAGE *TPagePtr BSS;
+int Unused_12c28[47] BSS;
 unsigned long SavedSp BSS;
 unsigned char D_12ce8[8] BSS;
 DRAWENV CreditsEnv[2] BSS;
 short IntroDelay BSS;
-char *D_12dac BSS;
+struct SPRT *SprtEnd BSS;
 unsigned long MainLoopSp BSS;
 int Unused_12db4 BSS;
 int D_12db8[8] BSS;
 int D_12dd8[1] BSS;
-char *D_12ddc[1] BSS;
+struct SPRT *SprtPtr BSS;
 struct POLY_FT4 PolyStack0[512] BSS;
 struct POLY_FT4 PolyStack1[512] BSS;
 
@@ -1151,7 +1148,67 @@ void FrontEndLoadCluts(struct CLUTENTRY *Big, struct CLUTENTRY *Small)
     }
 }
 
-ASM_FUNC(func_24fc)
+/* libgpu, linked after this object */
+unsigned short GetTPage(int tp, int abr, int x, int y);
+void SetDrawTPage(struct DR_TPAGE *p, int dfe, int dtd, int tpage);
+
+/* draws a 512x240 picture from four 256x256 texture pages, scrolled up by y lines (the
+ * intermission module's DrawPicture) */
+void func_24fc(short y, short clut, short tpage, int is24, struct COLOUR col, int semitrans)
+{
+    unsigned long *ot;
+    int v;
+    int mode;
+    int tpstep;
+    int i;
+    int x;
+    int h;
+    int w;
+
+    x = 0;
+    v = y;
+    h = 240;
+    if (is24) {
+        tpstep = 2;
+        mode = 1;
+    } else {
+        tpstep = 1;
+        mode = 0;
+    }
+    w = 256 - y;
+    ot = &(*LevelInterface.Engine->currdb)->InitOt[1];
+    for (i = 0; i < 4; i++) {
+        if (h) {
+            if (h < w)
+                w = h;
+            if (SprtPtr < SprtEnd) {
+                *(struct COLOUR *)&SprtPtr->r0 = col;
+                /* field pairs stored as small structs (as in mainloop.c): each pair shares
+                 * one SprtPtr load and the load after each pair survives reload_cse */
+                *(struct SCRPNT *)&SprtPtr->x0 = (struct SCRPNT){(i << 8) & 0x1ff, x};
+                *(struct CHARPAIR *)&SprtPtr->u0 = (struct CHARPAIR){0, v};
+                SprtPtr->clut = LevelInterface.Engine->palette[clut];
+                *(struct SCRPNT *)&SprtPtr->w = (struct SCRPNT){256, w};
+                SprtPtr->code = 0x64;
+                if (semitrans)
+                    SprtPtr->code |= 2;
+                SprtPtr->tag = 0x04000000;
+                LevelInterface.Engine->AddPrim_(ot, SprtPtr++);
+            }
+            if (i == 1) {
+                x += 256 - y;
+                h -= w;
+                w = 256;
+                v = 0;
+            }
+            if (TPagePtr < TPageEnd) {
+                SetDrawTPage(TPagePtr, 1, 0, GetTPage(mode, 1, LevelInterface.Engine->tpscreenx[tpage], LevelInterface.Engine->tpscreeny[tpage]));
+                tpage += tpstep;
+                LevelInterface.Engine->AddPrim_(ot, TPagePtr++);
+            }
+        }
+    }
+}
 
 void FrontEndAddQuad(struct POLY_FT4 **pp, short x, short y, short u, short v, short w, short h,
                      short tpage, short clut, short col, int xoff)
@@ -2084,17 +2141,17 @@ void * D_11a9c[3] = {
 
 short D_11aa8 = 0;
 
-int D_11aac = 0;
+int YOffset = 0;
 
-int D_11ab0 = 0;
+int MaxVlcSize = 0;
 
-int D_11ab4 = 0;
+int MovieWidth = 0;
 
-int D_11ab8[2] = {
-    0, 0,
-};
+int MovieHeight = 0;
 
-int D_11ac0 = 0;
+int UnusedData0 = 0;
+
+int Done = 0;
 
 void func_59e0(void)
 {
@@ -2156,10 +2213,10 @@ void func_5da8(void)
     short Old;
 
     D_12ae4 = 0;
-    D_12ddc[0] = D_12b58[*LevelInterface.Engine->DbFrame];
-    D_12dac = D_12ddc[0] + 100;
-    D_12c24[0] = &D_12ae8[*LevelInterface.Engine->DbFrame];
-    D_12b4c[0] = D_12c24[0] + 1;
+    SprtPtr = Sprites[*LevelInterface.Engine->DbFrame];
+    SprtEnd = SprtPtr + 5;
+    TPagePtr = TPages[*LevelInterface.Engine->DbFrame];
+    TPageEnd = TPagePtr + 5;
     func_24fc(0, 2, 2, 1, (struct COLOUR){64, 64, 64}, 1);
     for (i = 0; i < LevelInterface.Engine->GameConfig.sNumPlayers; i++) {
         Old = LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos;
@@ -2939,27 +2996,8 @@ struct DR_MODE {
     unsigned long code[2];
 };
 
-/* the player's variables, by their names in the sample */
-#define ScreenX D_12a60
-#define ScreenY D_12a62
-#define VlcSize D_12a64[0]
-#define Loc (*(struct CdlLOC *)D_12a68)
-#define File (*(struct CdlFILE *)D_12a78)
-#define FileSize D_12a90[0]
-#define EndFrame D_12a94[0]
-#define isEndOfFlag D_12a98[0]
-#define IsRGB24Start D_12a9c[0]
-#define dec (*(struct DECENV *)D_12aa8)
-#define RingBuf (*(unsigned long **)D_12ad8)
-#define VlcTable (*(unsigned short **)D_12adc)
-#define YOffset D_11aac
-#define MaxVlcSize D_11ab0
-#define MovieWidth D_11ab4
-#define MovieHeight D_11ab8[0]
-#define Done D_11ac0
 
 /* libpress, linked after this object */
-unsigned short GetTPage(int tp, int abr, int x, int y);
 void DecDCTReset(int mode);
 void DecDCTin(unsigned long *buf, int mode);
 void DecDCTout(unsigned long *buf, int size);
@@ -3049,9 +3087,278 @@ void func_b1c4(struct DISPENV *disp, struct DRAWENV *draw)
     ENGINE->SetDispMask(1);
 }
 
-ASM_FUNC(PlayMovie)
+/* the sample's macros */
+#define bound(val, n) ((((val) - 1) / (n) + 1) * (n))
+#define bound16(val) bound(val, 16)
+#define bound24(val) bound(val, 24)
 
-ASM_FUNC(func_bdf4)
+/* the small helpers PlayMovie inlines (gcc still emits them at the end of the file, in
+ * prototype order) */
+void func_dc4c(void)
+{
+    while (!LevelInterface.Engine->CdControl(0x15, &Loc, 0))
+        ;
+    while (!LevelInterface.Engine->CdRead2(0x1c0))
+        ;
+}
+
+void func_dcc8(unsigned long *ring, void (*callback)(), int endframe)
+{
+    DecDCTReset(0);
+    isEndOfFlag = 0;
+    DecDCToutCallback(callback);
+    LevelInterface.Engine->StSetRing(RingBuf, 64);
+    LevelInterface.Engine->StSetStream(1, 1, ring, 0, endframe);
+    func_dc4c();
+}
+
+void func_ddbc(int x0, int y0, int x1, int y1)
+{
+    setRECT(&dec.rect[0], x0, y0, 480, 240);
+    setRECT(&dec.rect[1], x1, y1, 480, 240);
+    LevelInterface.Engine->ClearImage(&dec.rect[0], 0, 0, 0);
+    LevelInterface.Engine->ClearImage(&dec.rect[1], 0, 0, 0);
+    LevelInterface.Engine->DrawSync(0);
+    setRECT(&dec.slice, x0, y0, 24, 240);
+    dec.vlcid = 0;
+    dec.rectid = 0;
+    dec.isdone = 0;
+}
+
+int func_dec4(void)
+{
+    int cnt;
+    unsigned long *next;
+
+    cnt = 0x800000;
+    while ((next = func_b00c()) == 0) {
+        if (--cnt == 0)
+            return -1;
+    }
+    if (DecDCTBufSize(next) > MaxVlcSize)
+        MaxVlcSize = DecDCTBufSize(next);
+    dec.vlcid = dec.vlcid ^ 1;
+    DecDCTvlc2(next, dec.vlcbuf[dec.vlcid], VlcTable);
+    LevelInterface.Engine->StFreeRing(next);
+    return 0;
+}
+
+void func_df90(void)
+{
+    volatile int cnt;
+
+    cnt = 0x800000;
+    while (!dec.isdone) {
+        if (--cnt == 0) {
+            dec.isdone = 1;
+            dec.rectid = dec.rectid ? 0 : 1;
+            dec.slice.x = dec.rect[dec.rectid].x;
+            dec.slice.y = dec.rect[dec.rectid].y + YOffset;
+        }
+    }
+    dec.isdone = 0;
+}
+
+short PlayMovie(char *name, int endframe, int vlcsize, int clear, int volume)
+{
+    long unused[12];    /* never used, but in the original's frame */
+    char path[40];
+    struct DISPENV disp;
+    struct DRAWENV draw;
+    int frame;
+    int i;
+    short ret;
+
+    frame = 0;
+    ret = 0;
+    YOffset = 0;
+    ScreenY = ENGINE->GameConfig.sScreenPosY;
+    ScreenX = ENGINE->GameConfig.sScreenPosX;
+    ENGINE->strcpy(path, "\\Q2DATA\\");
+    ENGINE->strcat(path, "MOVIES\\");
+    ENGINE->strcat(path, name);
+    ENGINE->strcat(path, ";1");
+    ENGINE->PrintF("Play movie %s %d\n", path, endframe);
+    EndFrame = endframe;
+    if (vlcsize)
+        VlcSize = vlcsize;
+    else
+        VlcSize = 0x20400;
+    MaxVlcSize = 0;
+    ENGINE->DrawSync(0);
+    ENGINE->VSync(0);
+    ENGINE->DrawSync(0);
+    ENGINE->VSync(0);
+    if (clear) {
+        ENGINE->ClearImage(&ENGINE->Db[0].DispEnv.disp, 0, 0, 0);
+        ENGINE->ClearImage(&ENGINE->Db[1].DispEnv.disp, 0, 0, 0);
+    }
+    ENGINE->DrawSync(0);
+    ENGINE->VSync(0);
+    Done = 0;
+    VlcTable = ENGINE->My_malloc_name(0x11000, "ring buffer");
+    RingBuf = ENGINE->My_malloc_name(0x20000, "ring buffer");
+    dec.vlcbuf[0] = ENGINE->My_malloc_name(VlcSize, "vlc buffer 0");
+    dec.vlcbuf[1] = ENGINE->My_malloc_name(VlcSize, "vlc buffer 1");
+    dec.imgbuf = ENGINE->My_malloc_name(0x5a00, "image buffer");
+    DecDCTvlcBuild(VlcTable);
+    IsRGB24Start = 1;
+    if (!ENGINE->CdSearchFile(&File, path)) {
+        ENGINE->PrintF("Movie not found\n");
+        Done = 1;
+    }
+    Loc.minute = File.pos.minute;
+    Loc.second = File.pos.second;
+    Loc.sector = File.pos.sector;
+    FileSize = File.size;
+    func_ddbc(0, YOffset, 512, YOffset);
+    func_b1c4(&disp, &draw);
+    func_dcc8((unsigned long *)0x0fffffff, func_ae00, 0);
+    if (!Done)
+        func_dec4();
+    dec.slice.y = dec.rect[dec.rectid].y + YOffset;
+    while (!isEndOfFlag && !Done) {
+        frame++;
+        if (frame <= 16)    /* loop.c strength-reduces frame * volume */
+            ENGINE->SetCDVolume(frame * volume / 16);
+        DecDCTin(dec.vlcbuf[dec.vlcid], 3);
+        /* "/ 2", unlike func_ae00's ">> 1": same code, but the division's RTL leaves reload
+         * the original's two unreferenced spill slots (the frame is 8 bytes bigger) */
+        DecDCTout((unsigned long *)dec.imgbuf, bound24(dec.slice.w) * bound16(dec.slice.h) / 2);
+        if (func_dec4() < 0) {
+            Done = 1;
+            ret = -1;
+        }
+        func_df90();
+        ENGINE->VSync(0);
+        ENGINE->NewPadRead();
+        if (ENGINE->GameWindows->Input.Original & 8) {
+            Done = 1;
+            ret = 2;
+        }
+        if (ENGINE->GameWindows->Input.Original & 0x4000) {
+            Done = 1;
+            ret = 1;
+        }
+        func_b1c4(&disp, &draw);
+    }
+    for (i = 4; i > 0; i--) {
+        ENGINE->SetCDVolume(i * volume / 4);
+        ENGINE->VSync(0);
+    }
+    ENGINE->StUnSetRing();
+    ENGINE->CdControlB(9, 0, 0);
+    DecDCToutCallback(0);
+    DecDCToutCallback(0);
+    ENGINE->CdDataCallback(0);
+    ENGINE->CdReadyCallback(0);
+    ENGINE->MyFree(&VlcTable);
+    ENGINE->MyFree(&RingBuf);
+    ENGINE->MyFree(&dec.vlcbuf[0]);
+    ENGINE->MyFree(&dec.vlcbuf[1]);
+    ENGINE->MyFree(&dec.imgbuf);
+    ENGINE->DrawSync(0);
+    func_bdf4(dec.rectid ? 0 : 1);
+    ENGINE->PrintF("Max size of each VLC buffer = %d bytes.\n\n", MaxVlcSize * 4 + 1024);
+    ENGINE->DrawSync(0);
+    ENGINE->VSync(0);
+    ENGINE->PutDispEnv(&(*ENGINE->currdb)->DispEnv);
+    ENGINE->VSync(0);
+    ENGINE->DrawSync(0);
+    ENGINE->ClearOTag(ENGINE->Db[0].InitOt, 0xd9);
+    ENGINE->ClearOTag(ENGINE->Db[1].InitOt, 0xd9);
+    return ret;
+}
+
+/* id: PlayMovie passes it, but it is recomputed here (the original's code ignores $a0) */
+void func_bdf4(int id)
+{
+    struct RECT srcrect;
+    struct RECT dstrect;
+    struct RECT *src;
+    struct RECT *dst;
+    struct TILE tile;
+    struct TILE *t;
+    struct DR_MODE mode;
+    struct DR_MODE *m;
+    struct DISPENV disp;
+    struct DRAWENV draw;
+    unsigned char *buf;
+    int yoff;
+    int x, y;
+    int i;
+    unsigned char *s;
+    unsigned short *d;
+
+    yoff = YOffset;
+    id = dec.rectid ? 0 : 1;
+    if (dec.rectid) {
+        dec.rect[id].y += yoff;
+        ENGINE->MoveImage(&dec.rect[id], dec.rect[1].x, dec.rect[1].y + yoff);
+        dec.rect[id].y -= yoff;
+        ENGINE->DrawSync(0);
+    }
+    dec.rectid = 0;
+    func_b1c4(&disp, &draw);
+    src = &srcrect;
+    dst = &dstrect;
+    setRECT(src, dec.rect[1].x, dec.rect[1].y + YOffset, dec.rect[1].w, dec.rect[1].h);
+    setRECT(dst, dec.rect[0].x, dec.rect[0].y, dec.rect[0].w * 2 / 3, dec.rect[0].h);
+    buf = ENGINE->My_malloc_name(src->w * src->h * 2, "source buf");
+    ENGINE->StoreImage(src, buf);
+    ENGINE->DrawSync(0);
+    s = buf;
+    d = (unsigned short *)buf;
+    for (y = 0; y < src->h; y++) {
+        for (x = 0; x < src->w; x += 3) {
+            d[0] = (s[0] >> 3) + (((s[2] & 0xf8) << 7) + ((s[1] & 0xf8) << 2));
+            d[1] = ((s[5] & 0xf8) << 7) + ((s[4] & 0xf8) << 2) + (s[3] >> 3);
+            s += 6;
+            d += 2;
+        }
+    }
+    i = dst->h;
+    dst->h = 240;
+    ENGINE->ClearImage(dst, 0, 0, 0);
+    dst->h = i;
+    dst->y += yoff;
+    ENGINE->LoadImage(dst, buf);
+    dst->h = 240;
+    dst->y -= yoff;
+    ENGINE->DrawSync(0);
+    ENGINE->SetDefDispEnv(&disp, dst->x, dst->y, dst->w, dst->h);
+    ENGINE->SetDefDrawEnv(&draw, dst->x, dst->y, dst->w, dst->h);
+    draw.dtd = 1;
+    draw.isbg = 0;
+    disp.screen.x = ScreenX;
+    disp.screen.y = ScreenY + 8;
+    ENGINE->VSync(0);
+    ENGINE->PutDispEnv(&disp);
+    ENGINE->PutDrawEnv(&draw);
+    t = &tile;
+    t->x0 = 0;
+    t->y0 = 0;
+    t->w = dst->w;
+    t->h = dst->h;
+    t->r0 = 8;
+    t->g0 = 8;
+    t->b0 = 8;
+    ENGINE->SetTile(t);
+    t->code = (t->code & 0xfe) | 2;
+    m = &mode;
+    ENGINE->SetDrawMode(m, 1, 0, ENGINE->GetTPage(0, 2, 512, 256), 0);
+    for (i = 32; i > 0; i--) {
+        ENGINE->DrawSync(0);
+        ENGINE->ClearOTag(ENGINE->Db->BigOt, 11);
+        ENGINE->AddPrim_(ENGINE->Db->BigOt, t);
+        ENGINE->AddPrim_(ENGINE->Db->BigOt, m);
+        ENGINE->VSync(0);
+        ENGINE->DrawOTag(ENGINE->Db->BigOt);
+    }
+    ENGINE->MyFree(&buf);
+    ENGINE->ClearImage(&ENGINE->Db[0].DispEnv.disp, 0, 0, 0);
+    ENGINE->ClearImage(&ENGINE->Db[1].DispEnv.disp, 0, 0, 0);
+}
 
 
 
@@ -3409,66 +3716,6 @@ void func_dbe0(char *s)
 int DMACallback(int dma, void (*func)())
 {
     return LevelInterface.Engine->DMACallback(dma, func);
-}
-void func_dc4c(void)
-{
-    while (!LevelInterface.Engine->CdControl(0x15, StrLoc, 0))
-        ;
-    while (!LevelInterface.Engine->CdRead2(0x1c0))
-        ;
-}
-void func_dcc8(unsigned long *ring, void (*callback)(), int endframe)
-{
-    DecDCTReset(0);
-    StrEndFlag = 0;
-    DecDCToutCallback(callback);
-    LevelInterface.Engine->StSetRing(StrRingBuf, 64);
-    LevelInterface.Engine->StSetStream(1, 1, ring, 0, endframe);
-    func_dc4c();
-}
-void func_ddbc(int x0, int y0, int x1, int y1)
-{
-    setRECT(&StrDec.rect[0], x0, y0, 480, 240);
-    setRECT(&StrDec.rect[1], x1, y1, 480, 240);
-    LevelInterface.Engine->ClearImage(&StrDec.rect[0], 0, 0, 0);
-    LevelInterface.Engine->ClearImage(&StrDec.rect[1], 0, 0, 0);
-    LevelInterface.Engine->DrawSync(0);
-    setRECT(&StrDec.slice, x0, y0, 24, 240);
-    StrDec.vlcid = 0;
-    StrDec.rectid = 0;
-    StrDec.isdone = 0;
-}
-int func_dec4(void)
-{
-    int cnt;
-    unsigned long *next;
-
-    cnt = 0x800000;
-    while ((next = func_b00c()) == 0) {
-        if (--cnt == 0)
-            return -1;
-    }
-    if (D_11ab0 < DecDCTBufSize(next))
-        D_11ab0 = DecDCTBufSize(next);
-    StrDec.vlcid = StrDec.vlcid ^ 1;
-    DecDCTvlc2(next, StrDec.vlcbuf[StrDec.vlcid], StrVlcTable);
-    LevelInterface.Engine->StFreeRing(next);
-    return 0;
-}
-void func_df90(void)
-{
-    volatile int cnt;
-
-    cnt = 0x800000;
-    while (!StrDec.isdone) {
-        if (--cnt == 0) {
-            StrDec.isdone = 1;
-            StrDec.rectid = StrDec.rectid ? 0 : 1;
-            StrDec.slice.x = StrDec.rect[StrDec.rectid].x;
-            StrDec.slice.y = StrDec.rect[StrDec.rectid].y + D_11aac;
-        }
-    }
-    StrDec.isdone = 0;
 }
 
 /* the word the original link left after the libraries' .data (in .sdata, which follows it) */

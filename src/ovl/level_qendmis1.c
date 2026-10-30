@@ -3,13 +3,7 @@
  * The movie player is PSY-Q's streaming sample (strplay) driven through the engine's
  * libcd/libgpu pointers; libpress and three small libc/libgpu functions were linked into
  * the module after this object.
- *
- * TODO, not matching yet (the rest of the module, .rdata, .data and .bss match; the shared code
- * is in level_qend_common.h/level_qend_player.h): DrawSprite and DrawPicture (which SprtPtr
- * reloads survive: the original keeps the reload after the first struct copy in DrawPicture and
- * after the second in DrawSprite, here reload_cse turns both into copies; plus a register
- * permutation in DrawPicture) and PlayMovie (the frame is 8 bytes short, and global alloc gives
- * &LevelInterface, the Done/dec address pseudos and frame different callee-saved registers). */
+ */
 /* ovl-libs: libc2/MEMSET libgpu/P00 libgpu/P33 libpress/LIBPRESS libpress/VLC_C libpress/BUILD libpress/DCT002 */
 #include "ovl.h"
 #include "bss.h"

@@ -37,8 +37,9 @@ static void DrawSprite(struct DVECTOR xy, struct DVECTOR wh, short clut, short t
     if (SprtPtr < SprtEnd) {
         *(struct COLOUR *)&SprtPtr->r0 = col;
         *(struct DVECTOR *)&SprtPtr->x0 = xy;
-        SprtPtr->u0 = 0;
-        SprtPtr->v0 = (abr & 1) << 7;
+        /* u0/v0 as one 2-byte struct store (as in mainloop.c): both bytes go through one
+         * SprtPtr load; two plain char stores would reload it in between */
+        *(struct CHARPAIR *)&SprtPtr->u0 = (struct CHARPAIR){0, (abr & 1) << 7};
         SprtPtr->clut = ENGINE->palette[clut];
         *(struct DVECTOR *)&SprtPtr->w = wh;
         SprtPtr->code = 0x66;
@@ -62,8 +63,8 @@ static void DrawPicture(short y, short clut, short tpage, int is24, struct COLOU
     int h;
     int w;
 
-    v = y;
     x = 0;
+    v = y;
     h = 240;
     if (is24) {
         tpstep = 2;
@@ -80,13 +81,12 @@ static void DrawPicture(short y, short clut, short tpage, int is24, struct COLOU
                 w = h;
             if (SprtPtr < SprtEnd) {
                 *(struct COLOUR *)&SprtPtr->r0 = col;
-                SprtPtr->x0 = (i << 8) & 0x1ff;
-                SprtPtr->y0 = x;
-                SprtPtr->u0 = 0;
-                SprtPtr->v0 = v;
+                /* field pairs stored as small structs, as DrawSprite does: each pair shares
+                 * one SprtPtr load and the load after each pair survives reload_cse */
+                *(struct SCRPNT *)&SprtPtr->x0 = (struct SCRPNT){(i << 8) & 0x1ff, x};
+                *(struct CHARPAIR *)&SprtPtr->u0 = (struct CHARPAIR){0, v};
                 SprtPtr->clut = ENGINE->palette[clut];
-                SprtPtr->w = 256;
-                SprtPtr->h = w;
+                *(struct SCRPNT *)&SprtPtr->w = (struct SCRPNT){256, w};
                 SprtPtr->code = 0x64;
                 if (semitrans)
                     SprtPtr->code |= 2;
@@ -94,8 +94,8 @@ static void DrawPicture(short y, short clut, short tpage, int is24, struct COLOU
                 ENGINE->AddPrim_(ot, SprtPtr++);
             }
             if (i == 1) {
-                h -= w;
                 x += 256 - y;
+                h -= w;
                 w = 256;
                 v = 0;
             }
@@ -229,7 +229,7 @@ int strNextVlc(void)
         if (--cnt == 0)
             return -1;
     }
-    if (MaxVlcSize < DecDCTBufSize(next))
+    if (DecDCTBufSize(next) > MaxVlcSize)
         MaxVlcSize = DecDCTBufSize(next);
     dec.vlcid = dec.vlcid ^ 1;
     DecDCTvlc2(next, dec.vlcbuf[dec.vlcid], VlcTable);
@@ -253,7 +253,7 @@ void strSync(void)
     dec.isdone = 0;
 }
 
-static void MovieFreeze(void);
+static void MovieFreeze(int id);
 
 static short PlayMovie(char *name, int endframe, int vlcsize, int clear, int volume)
 {
@@ -316,9 +316,11 @@ static short PlayMovie(char *name, int endframe, int vlcsize, int clear, int vol
         ENGINE->PrintF("Movie not found\n");
         Done = 1;
     }
-    strSetDefDecEnv(0, YOffset, 512, YOffset);
-    Loc = File.pos;
+    Loc.minute = File.pos.minute;
+    Loc.second = File.pos.second;
+    Loc.sector = File.pos.sector;
     FileSize = File.size;
+    strSetDefDecEnv(0, YOffset, 512, YOffset);
     strSetDispEnv(&disp, &draw);
     strInit((unsigned long *)0x0fffffff, strCallback, 0);
     if (!Done)
@@ -329,7 +331,9 @@ static short PlayMovie(char *name, int endframe, int vlcsize, int clear, int vol
         if (frame <= 16)    /* loop.c strength-reduces frame * volume */
             ENGINE->SetCDVolume(frame * volume / 16);
         DecDCTin(dec.vlcbuf[dec.vlcid], 3);
-        DecDCTout((unsigned long *)dec.imgbuf, bound24(dec.slice.w) * bound16(dec.slice.h) >> 1);
+        /* "/ 2", unlike strCallback's ">> 1": same code, but the division's RTL leaves reload
+         * the original's two unreferenced spill slots (the frame is 8 bytes bigger) */
+        DecDCTout((unsigned long *)dec.imgbuf, bound24(dec.slice.w) * bound16(dec.slice.h) / 2);
         if (strNextVlc() < 0) {
             Done = 1;
             ret = -1;
@@ -365,13 +369,13 @@ static short PlayMovie(char *name, int endframe, int vlcsize, int clear, int vol
     ENGINE->MyFree(&dec.vlcbuf[1]);
     ENGINE->MyFree(&dec.imgbuf);
 #ifdef QEND_QDUMMY
-    MovieFreeze();
+    MovieFreeze(dec.rectid ? 0 : 1);
     ENGINE->PrintF("Max size of each VLC buffer = %d bytes.\n\n", MaxVlcSize * 4 + 1024);
     ENGINE->DrawSync(0);
     ENGINE->PutDispEnv(&(*ENGINE->currdb)->DispEnv);
 #else
     ENGINE->DrawSync(0);
-    MovieFreeze();
+    MovieFreeze(dec.rectid ? 0 : 1);
     ENGINE->PrintF("Max size of each VLC buffer = %d bytes.\n\n", MaxVlcSize * 4 + 1024);
     ENGINE->DrawSync(0);
     ENGINE->VSync(0);
@@ -387,7 +391,8 @@ static short PlayMovie(char *name, int endframe, int vlcsize, int clear, int vol
 }
 
 /* copies the last frame (24-bit) into a 15-bit picture in the display area and fades it out */
-static void MovieFreeze(void)
+/* id: PlayMovie passes it, but it is recomputed here (the original's code ignores $a0) */
+static void MovieFreeze(int id)
 {
     struct RECT srcrect;
     struct RECT dstrect;
@@ -401,7 +406,6 @@ static void MovieFreeze(void)
     struct DRAWENV draw;
     unsigned char *buf;
     int yoff;
-    int id;
     int x, y;
     int i;
     unsigned char *s;
