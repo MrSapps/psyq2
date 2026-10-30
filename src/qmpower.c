@@ -7,9 +7,8 @@ void Power_SetPump1On(void);
 void Power_SetPump2On(void);
 void Power_NextPump(void);
 void Power_CheckPumps(void);
-void MissionLoadSaveHub_80023978(int Write);
-void PrintMissionDetails_80023F7C(void); void InitMissionPower(void);
-void PrintMissionDetails_80023F7C(void);
+static void MissionLoadSaveHub(int Write);
+static void PrintMissionDetails(void); void InitMissionPower(void);
 void Power_NextPump(void);
 void Power_CheckPumps(void);
 int Event_DoNamed(struct IDENTITYNAME name3, struct CREATURE *Cre);
@@ -38,7 +37,6 @@ extern struct IDENTITYNAME MainStartName;
 void *MY_malloc_namehb(int s, char *name);
 char *PrintIdentityName(struct IDENTITYNAME Name);
 char *PrintBool(int Bool);
-void MissionLoadSaveHub_80023978(int Write);
 
 extern char GameDeathWatchA;
 extern char GameDeathWatchB;
@@ -83,7 +81,7 @@ void Power_SetPump2On(void)
     Power_CheckPumps();
 }
 
-void MissionLoadSaveHub_80023978(int Write)
+static void MissionLoadSaveHub(int Write)
 {
     struct SAVEFILEHDR *FileHdr;
     struct POWERDATA *ThisData;
@@ -127,7 +125,6 @@ void MissionLoadSaveHub_80023978(int Write)
     }
 }
 
-void PrintMissionDetails_80023F7C(void);
 
 void InitMissionPower(void)
 {
@@ -135,15 +132,15 @@ void InitMissionPower(void)
     PowerData = (struct POWERDATA *)MissionSpecificMemory;
     Engine.MissionData = PowerData;
     MissionEvents = ThisMissionEvents;
-    MissionPrintStatus = PrintMissionDetails_80023F7C;
-    GameHubLoadSaveData = MissionLoadSaveHub_80023978;
+    MissionPrintStatus = PrintMissionDetails;
+    GameHubLoadSaveData = MissionLoadSaveHub;
     SelfPlay = 0;
     GameHubLoadSaveData(0);
     PrintIdentityName(NextLevelName);
     PrintIdentityName(MainStartName);
 }
 
-void PrintMissionDetails_80023F7C(void)
+static void PrintMissionDetails(void)
 {
     PrintIdentityName(PowerData->HelpObjective);
     PrintIdentityName(PowerData->HelpOrders);

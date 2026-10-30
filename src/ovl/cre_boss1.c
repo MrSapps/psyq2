@@ -42,6 +42,19 @@ struct QCREINTERFACE Iface OVL_HEADER = { SP_monster_supertank, Supertank_EveryF
    sounds, a local copy, casts, a prototyped call, *(T *)& and other spellings of the argument,
    a do/while(0) around the call, the IDENTITYNAME as *(struct IDENTITYNAME *)"..."; only
    passing the value twice (an extra stack argument) keeps the load late.
+   Why (gcc 2.8.1 sched.c): the load `$a3 = sound_search2` has priority 6 (its only
+   predecessors are the previous call and the sound_search1 store) while the byte-assembly
+   insns are 7 (lbu latency 2), and it is never boosted by adjust_priority because
+   birthing_insn_p needs REG_N_SETS == 1 and $a3 is also set by the three
+   GetModSubOffFrom2Verteces calls. A 7 needs a load feeding it, i.e. a pseudo copy into $a3
+   that combine leaves alone: a local copy of a volatile sound_search2, or a copy loaded
+   before the sound_search1 store (combine won't move a load past a store), does keep the
+   load last (local-alloc ties the copy to $a3), but the extra boosted load then reorders the
+   IDENTITYNAME bytes (64 lines). With an instrumented cc1, forcing the $a3 load to the top
+   priority, the lui to 8 and the GetSoundNum pointer load to 8 leaves only
+   `lw $2,36($17)` / `lw $7,%lo(sound_search2)` swapped by sched2, so the original's RTL
+   (insn order) for this call differs, not just the priorities. No other module passes a
+   stray argument to copy the shape from.
    This block also holds PreInit's string literals, in their .rdata order. It sits right after
    Iface, where gcc is in a named section and so re-emits a section directive before its next
    output. */

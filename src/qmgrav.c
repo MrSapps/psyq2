@@ -3,9 +3,8 @@
 #include <memory.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
-void MissionLoadSaveHub_800241A8(int Write);
-void PrintMissionDetails_8002478C(void); void InitMissionGrav(void);
-void PrintMissionDetails_8002478C(void);
+static void MissionLoadSaveHub(int Write);
+static void PrintMissionDetails(void); void InitMissionGrav(void);
 extern struct QENGINELEVINTERFACE Engine;
 extern struct MISSIONEVENT *MissionEvents;
 extern char *MissionSpecificMemory;
@@ -23,7 +22,6 @@ static struct MISSIONEVENT ThisMissionEvents[1] = { { { "" }, 0 } };
 struct GRAVDATA *GravData SBSS;
 
 /* static in the original; splat's suffixed names */
-void MissionLoadSaveHub_800241A8(int Write);
 
 extern char GameDeathWatchA;
 extern char GameDeathWatchB;
@@ -38,7 +36,7 @@ int HelpComputer_Reset(void);
 
 static const struct IDENTITYNAME MissionName = {"Mission 4"};
 
-void MissionLoadSaveHub_800241A8(int Write)
+static void MissionLoadSaveHub(int Write)
 {
     struct SAVEFILEHDR *FileHdr;
     struct GRAVDATA *SaveGravData;
@@ -70,21 +68,20 @@ void MissionLoadSaveHub_800241A8(int Write)
     }
 }
 
-void PrintMissionDetails_8002478C(void);
 
 void InitMissionGrav(void)
 {
     Engine.MissionData = GravData = (struct GRAVDATA *)(MissionSpecificMemory = MY_malloc_namehb(sizeof(struct GRAVDATA), "Grav Mission"));
     MissionEvents = ThisMissionEvents;
-    MissionPrintStatus = PrintMissionDetails_8002478C;
+    MissionPrintStatus = PrintMissionDetails;
     SelfPlay = 0;
-    GameHubLoadSaveData = MissionLoadSaveHub_800241A8;
+    GameHubLoadSaveData = MissionLoadSaveHub;
     GameHubLoadSaveData(0);
     PrintIdentityName(NextLevelName);
     PrintIdentityName(MainStartName);
 }
 
-void PrintMissionDetails_8002478C(void)
+static void PrintMissionDetails(void)
 {
     PrintIdentityName(GravData->HelpObjective);
     PrintIdentityName(GravData->HelpOrders);

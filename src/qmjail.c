@@ -3,9 +3,8 @@
 #include <memory.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
-void MissionLoadSaveHub(int Write);
-void PrintMissionDetails_80023594(void); void InitMissionJail(void);
-void PrintMissionDetails_80023594(void);
+static void MissionLoadSaveHub(int Write);
+static void PrintMissionDetails(void); void InitMissionJail(void);
 extern struct QENGINELEVINTERFACE Engine;
 extern struct MISSIONEVENT *MissionEvents;
 extern char *MissionSpecificMemory;
@@ -23,7 +22,6 @@ static struct MISSIONEVENT ThisMissionEvents[1] = { { { "" }, 0 } };
 struct JAILDATA *JailData SBSS;
 
 /* static in the original; splat's names */
-void MissionLoadSaveHub(int Write);
 
 extern char GameDeathWatchA;
 extern char GameDeathWatchB;
@@ -38,7 +36,7 @@ int HelpComputer_Reset(void);
 
 static const struct IDENTITYNAME MissionName = {"Mission 2"};
 
-void MissionLoadSaveHub(int Write)
+static void MissionLoadSaveHub(int Write)
 {
     struct SAVEFILEHDR *FileHdr;
     struct JAILDATA *SaveJailData;
@@ -80,12 +78,11 @@ void MissionLoadSaveHub(int Write)
     }
 }
 
-void PrintMissionDetails_80023594(void);
 
 void InitMissionJail(void)
 {
     Engine.MissionData = JailData = (struct JAILDATA *)(MissionSpecificMemory = MY_malloc_namehb(sizeof(struct JAILDATA), "Jail Mission"));
-    MissionPrintStatus = PrintMissionDetails_80023594;
+    MissionPrintStatus = PrintMissionDetails;
     MissionEvents = ThisMissionEvents;
     GameHubLoadSaveData = MissionLoadSaveHub;
     SelfPlay = 0;
@@ -94,7 +91,7 @@ void InitMissionJail(void)
     PrintIdentityName(MainStartName);
 }
 
-void PrintMissionDetails_80023594(void)
+static void PrintMissionDetails(void)
 {
     PrintIdentityName(JailData->HelpObjective);
     PrintIdentityName(JailData->HelpOrders);

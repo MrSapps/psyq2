@@ -4,8 +4,7 @@
 
 /* defined below; gcc defers these to the end of the file in this order */
 void BaseLoadSaveHub(int Write);
-void PrintMissionDetails(void); void InitMissionBase(void);
-void PrintMissionDetails(void);
+static void PrintMissionDetails(void); void InitMissionBase(void);
 extern struct QENGINELEVINTERFACE Engine;
 extern struct MISSIONEVENT ThisMissionEvents[];
 extern struct MISSIONEVENT *MissionEvents;
@@ -68,7 +67,6 @@ void BaseLoadSaveHub(int Write)
     }
 }
 
-void PrintMissionDetails(void);
 
 void InitMissionBase(void)
 {
@@ -84,7 +82,7 @@ void InitMissionBase(void)
     PrintIdentityName(MainStartName);
 }
 
-void PrintMissionDetails(void)
+static void PrintMissionDetails(void)
 {
     PrintIdentityName(BaseData->HelpObjective);
     PrintIdentityName(BaseData->HelpOrders);

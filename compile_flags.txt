@@ -3,6 +3,8 @@
 -m32
 -funsigned-char
 -nostdinc
+-D_LANGUAGE_C
+-DLANGUAGE_C
 -Isrc/include
 -Isrc/ovl/include
 -Isrc/ovl
