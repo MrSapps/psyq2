@@ -9,7 +9,8 @@ Relocations (the .rel is __SN_RELOCATE's list, offset | type):
   1  hi16:  next word is the full target (the lo16 half of the pair has its low part)
   2  lo16:  the low half is a module offset
   3  jal:   the target is a module offset
-Function starts: jal targets, words relocated to text, the interface's pointers.
+Function starts: jal targets, words relocated to text (the interface's pointers, tables), the
+instruction after a jr ra's delay slot.
 Text is found as the run of code from the first function start to the last jr ra.
 """
 import os
@@ -78,7 +79,8 @@ def main():
         tstart = int(sys.argv[sys.argv.index('--start') + 1], 16)
     if '--end' in sys.argv:
         tend = int(sys.argv[sys.argv.index('--end') + 1], 16)
-    funcs = {v for o, v in tg.items() if relocs[o][0] in (0, 3) and tstart <= v < tend and v % 4 == 0}
+    funcs = {v for o, v in tg.items() if tstart <= v < tend and v % 4 == 0 and
+             (relocs[o][0] == 0 or relocs[o][0] == 3 and word(code, o) >> 26 == 3)}  # words and jal, not j
     # after each jr ra + delay slot a new function starts (unless padding)
     for o in range(tstart, tend - 8, 4):
         if word(code, o) == 0x03e00008:
