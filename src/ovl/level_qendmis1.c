@@ -21,26 +21,6 @@ struct QLEVELINTERFACE LevelInterface OVL_HEADER = { InitLevel, 0, 0 };
 
 #define ENGINE LevelInterface.Engine
 
-/* libgpu's DR_MODE (not in types.h) */
-struct DR_MODE {
-    unsigned long tag;
-    unsigned long code[2];
-};
-
-/* libgpu.h */
-#define setRECT(r, _x, _y, _w, _h) ((r)->x = (_x), (r)->y = (_y), (r)->w = (_w), (r)->h = (_h))
-
-/* the strplay sample's decode environment */
-struct DECENV {
-    unsigned long *vlcbuf[2];   /* 0x0 */
-    unsigned short *imgbuf;     /* 0x8 */
-    int vlcid;                  /* 0xc */
-    struct RECT rect[2];        /* 0x10 */
-    int rectid;                 /* 0x20 */
-    struct RECT slice;          /* 0x24 */
-    int isdone;                 /* 0x2c */
-};
-
 /* STRING_TABLE with its flags as the int bitfields this module was built with */
 struct SCORELINE {
     char message[32];
@@ -62,17 +42,7 @@ struct SCORELINE {
     short *pBoolVar;
 };
 
-/* library functions linked into the module */
-void *memset(void *s, int c, int n);
-unsigned short GetTPage(int tp, int abr, int x, int y);
-void SetDrawTPage(struct DR_TPAGE *p, int dfe, int dtd, int tpage);
-void DecDCTReset(int mode);
-void DecDCTin(unsigned long *buf, int mode);
-void DecDCTout(unsigned long *buf, int size);
-int DecDCToutCallback(void (*func)());
-int DecDCTvlc2(unsigned long *bs, unsigned long *buf, unsigned short *table);
-void DecDCTvlcBuild(unsigned short *table);
-int DecDCTBufSize(unsigned long *bs);
+#include "level_qend_common.h"
 
 int ResetCallback(void);
 void DummyUpdate(void);
@@ -324,7 +294,7 @@ void FormatScoreLine(struct SCORELINE *line, char *name, short score)
         namelen++;
     for (i = 0; i < 31; i++)
         line->message[i] = ' ';
-    line->message[31] = 0;
+    line->message[i] = 0;
     p = &line->message[12];
     i = 0;
     while (namelen--)
@@ -380,40 +350,40 @@ static void SetupScoreLines(struct SCORELINE *line)
     }
     y = (244 - n * 11) >> 1;
     if (ENGINE->GameConfig.sMultiMode == 1) {
-        for (i = 0; i < numteams; i++) {
-            ENGINE->sprintf(line->message, "%s TEAM SCORED %d", teamnames[teamids[i]], teamscores[i]);
+        for (j = 0; j < numteams; j++) {
+            ENGINE->sprintf(line->message, "%s TEAM SCORED %d", teamnames[teamids[j]], teamscores[j]);
             line->cursorItem = 1;
-            line->bannerColour = teamids[i];
+            line->bannerColour = teamids[j];
             ENGINE->FrontEndModifyText(line, line);
             line->x = 256;
             line->y = y;
             y += 15;
             line++;
-            for (j = 0; j < numplayers; j++) {
-                if (ENGINE->GameConfig.MultiPlayerParams[ids[j]].teamSelected == teamids[i]) {
-                    FormatScoreLine(line, ENGINE->GameConfig.MultiPlayerParams[ids[j]].playerName, scores[j]);
+            for (i = 0; i < numplayers; i++) {
+                if (ENGINE->GameConfig.MultiPlayerParams[ids[i]].teamSelected == teamids[j]) {
+                    FormatScoreLine(line, ENGINE->GameConfig.MultiPlayerParams[ids[i]].playerName, scores[i]);
                     ENGINE->FrontEndModifyText(line, line);
-                    PlayerLines[ids[j]] = line;
-                    ENGINE->PrintF("Adding Player %d to team table %d\nString is %s\n", ids[j], teamids[i], line);
+                    PlayerLines[ids[i]] = line;
+                    ENGINE->PrintF("Adding Player %d to team table %d\nString is %s\n", ids[i], teamids[j], line);
                     line->y = y;
                     y += 15;
                     line->x = 256;
-                    line->bannerColour = teamids[i];
+                    line->bannerColour = teamids[j];
                     line++;
                 }
             }
             y += 15;
         }
     } else {
-        for (i = 0; i < ENGINE->GameConfig.sNumPlayers; i++) {
-            FormatScoreLine(line, ENGINE->GameConfig.MultiPlayerParams[ids[i]].playerName, scores[i]);
+        for (j = 0; j < ENGINE->GameConfig.sNumPlayers; j++) {
+            FormatScoreLine(line, ENGINE->GameConfig.MultiPlayerParams[ids[j]].playerName, scores[j]);
             ENGINE->FrontEndModifyText(line, line);
-            PlayerLines[ids[i]] = line;
+            PlayerLines[ids[j]] = line;
             line->x = 256;
             line->y = y;
             y += 15;
             line->cursorItem = 1;
-            line->bannerColour = ENGINE->GameConfig.MultiPlayerParams[ids[i]].playerSelected;
+            line->bannerColour = ENGINE->GameConfig.MultiPlayerParams[ids[j]].playerSelected;
             line++;
         }
     }
@@ -567,12 +537,13 @@ static void EndMissionUpdate(void)
 static void Logos2Update(void)
 {
     int t;
+    int u;
 
     SprtPtr = Sprites[*ENGINE->DbFrame];
     SprtEnd = SprtPtr + 5;
     TPagePtr = TPages[*ENGINE->DbFrame];
     TPageEnd = TPagePtr + 5;
-    Logos2Fade[2] = Logos2Fade[1] = Logos2Fade[0] = 0;
+    Logos2Fade[0] = Logos2Fade[1] = Logos2Fade[2] = 0;
     t = ++Logos2Frame;
     if (t >= 0) {
         Logos2Time = t;
@@ -586,13 +557,13 @@ static void Logos2Update(void)
             DrawPicture(0, 0, 4, 1, (struct COLOUR){Logos2Fade[0], Logos2Fade[0], Logos2Fade[0]}, 1);
         }
         if (Logos2Time >= 308) {
-            t = Logos2Time -= 308;
-            if (t < 8)
-                Logos2Fade[1] = t * 16;
-            else if (t < 98)
+            u = Logos2Time -= 308;
+            if (u < 8)
+                Logos2Fade[1] = u * 16;
+            else if (u < 98)
                 Logos2Fade[1] = 128;
-            else if (t < 106)
-                Logos2Fade[1] = 128 - (t - 98) * 16;
+            else if (u < 106)
+                Logos2Fade[1] = 128 - (u - 98) * 16;
             if (Logos2Fade[1]) {
                 DrawPicture(0, 1, 0, 1, (struct COLOUR){Logos2Fade[1], Logos2Fade[1], Logos2Fade[1]}, 1);
             }
@@ -605,12 +576,13 @@ static void Logos2Update(void)
 static void LogosUpdate(void)
 {
     int t;
+    int u;
 
     SprtPtr = Sprites[*ENGINE->DbFrame];
     SprtEnd = SprtPtr + 5;
     TPagePtr = TPages[*ENGINE->DbFrame];
     TPageEnd = TPagePtr + 5;
-    LogosFade[2] = LogosFade[1] = LogosFade[0] = 0;
+    LogosFade[0] = LogosFade[1] = LogosFade[2] = 0;
     t = ++LogosFrame;
     if (t >= 0) {
         LogosTime = t;
@@ -624,13 +596,13 @@ static void LogosUpdate(void)
             DrawPicture(0, 1, 4, 1, (struct COLOUR){LogosFade[1], LogosFade[1], LogosFade[1]}, 1);
         }
         if (LogosTime >= 98) {
-            t = LogosTime -= 98;
-            if (t < 8)
-                LogosFade[2] = t * 16;
-            else if (t < 98)
+            u = LogosTime -= 98;
+            if (u < 8)
+                LogosFade[2] = u * 16;
+            else if (u < 98)
                 LogosFade[2] = 128;
-            else if (t < 106)
-                LogosFade[2] = 128 - (t - 98) * 16;
+            else if (u < 106)
+                LogosFade[2] = 128 - (u - 98) * 16;
             if (LogosFade[2]) {
                 DrawPicture(0, 2, 8, 1, (struct COLOUR){LogosFade[2], LogosFade[2], LogosFade[2]}, 1);
             }
@@ -640,533 +612,7 @@ static void LogosUpdate(void)
     }
 }
 
-static void PictureUpdate(int len, short clut, short next)
-{
-    int fade[3];
-    int t;
-
-    SprtPtr = Sprites[*ENGINE->DbFrame];
-    SprtEnd = SprtPtr + 5;
-    t = ++PictureFrame;
-    PictureTime = t;
-    fade[2] = fade[1] = fade[0] = 0;
-    TPagePtr = TPages[*ENGINE->DbFrame];
-    TPageEnd = TPagePtr + 5;
-    if (t < 8)
-        fade[0] = t * 16;
-    else if (t < len + 8)
-        fade[0] = 128;
-    else if (t < len + 16)
-        fade[0] = 128 - (t - 8 - len) * 16;
-    if (fade[0]) {
-        DrawPicture(0, 0, 2, 1, (struct COLOUR){fade[0], fade[0], fade[0]}, 1);
-    }
-    if (PictureTime >= len + 18)
-        *ENGINE->LevelComplete = next;
-}
-
-static void DrawSprite(struct DVECTOR xy, struct DVECTOR wh, short clut, short tpage, struct COLOUR col, int abr)
-{
-    unsigned long *ot = &(*ENGINE->currdb)->Ot[0][48];
-    short tp = tpage + (abr >> 1);
-
-    if (SprtPtr < SprtEnd) {
-        *(struct COLOUR *)&SprtPtr->r0 = col;
-        *(struct DVECTOR *)&SprtPtr->x0 = xy;
-        SprtPtr->u0 = 0;
-        SprtPtr->v0 = (abr & 1) << 7;
-        SprtPtr->clut = ENGINE->palette[clut];
-        *(struct DVECTOR *)&SprtPtr->w = wh;
-        SprtPtr->code = 0x66;
-        SprtPtr->tag = 0x04000000;
-        ENGINE->AddPrim_(ot, SprtPtr++);
-    }
-    if (TPagePtr < TPageEnd) {
-        SetDrawTPage(TPagePtr, 1, 0, GetTPage(0, 1, ENGINE->tpscreenx[tp], ENGINE->tpscreeny[tp]));
-        ENGINE->AddPrim_(ot, TPagePtr++);
-    }
-}
-
-static void DrawPicture(short y, short clut, short tpage, int is24, struct COLOUR col, int semitrans)
-{
-    unsigned long *ot;
-    int v;
-    int mode;
-    int tpstep;
-    int i;
-    int x;
-    int h;
-    int w;
-
-    v = y;
-    x = 0;
-    h = 240;
-    if (is24) {
-        tpstep = 2;
-        mode = 1;
-    } else {
-        tpstep = 1;
-        mode = 0;
-    }
-    w = 256 - y;
-    ot = &(*ENGINE->currdb)->Ot[0][48];
-    for (i = 0; i < 4; i++) {
-        if (h) {
-            if (h < w)
-                w = h;
-            if (SprtPtr < SprtEnd) {
-                *(struct COLOUR *)&SprtPtr->r0 = col;
-                SprtPtr->x0 = (i << 8) & 0x1ff;
-                SprtPtr->y0 = x;
-                SprtPtr->u0 = 0;
-                SprtPtr->v0 = v;
-                SprtPtr->clut = ENGINE->palette[clut];
-                SprtPtr->w = 256;
-                SprtPtr->h = w;
-                SprtPtr->code = 0x64;
-                if (semitrans)
-                    SprtPtr->code |= 2;
-                SprtPtr->tag = 0x04000000;
-                ENGINE->AddPrim_(ot, SprtPtr++);
-            }
-            if (i == 1) {
-                h -= w;
-                w = 256;
-                v = 0;
-                x = x + 256 - y;
-            }
-            if (TPagePtr < TPageEnd) {
-                SetDrawTPage(TPagePtr, 1, 0, GetTPage(mode, 1, ENGINE->tpscreenx[tpage], ENGINE->tpscreeny[tpage]));
-                tpage += tpstep;
-                ENGINE->AddPrim_(ot, TPagePtr++);
-            }
-        }
-    }
-}
-
-int printf(char *fmt, ...)
-{
-}
-
-static void strCallback(void)
-{
-    struct RECT snap_rect;
-    short rest;
-
-    if (*ENGINE->StCdIntrFlagAddr) {
-        ENGINE->StCdInterrupt();
-        *ENGINE->StCdIntrFlagAddr = 0;
-    }
-    ENGINE->LoadImage(&dec.slice, dec.imgbuf);
-    rest = dec.rect[dec.rectid].w % 24;
-    if (IsRGB24Start && rest) {
-        IsRGB24Start = 0;
-        dec.slice.x += rest * 3 / 2;
-    } else
-        dec.slice.x += 24;
-    if (dec.slice.x < dec.rect[dec.rectid].x + dec.rect[dec.rectid].w)
-        DecDCTout((unsigned long *)dec.imgbuf, ((dec.slice.w - 1) / 24 + 1) * (((dec.slice.h - 1) / 16 + 1) * 384) >> 1);
-    else {
-        dec.isdone = 1;
-        dec.rectid = dec.rectid ? 0 : 1;
-        dec.slice.x = dec.rect[dec.rectid].x;
-        IsRGB24Start = 1;
-        dec.slice.y = dec.rect[dec.rectid].y + YOffset;
-    }
-}
-
-static unsigned long *strNext(void)
-{
-    unsigned long *addr;
-    struct StHEADER *sector;
-    int cnt;
-    struct RECT rect;
-
-    cnt = 0x800000;
-    while (ENGINE->StGetNext(&addr, &sector)) {
-        if (--cnt == 0)
-            return 0;
-    }
-    if (addr[0] != ((unsigned long *)sector)[5] || addr[1] != ((unsigned long *)sector)[6]) {
-        ENGINE->StFreeRing(addr);
-        return 0;
-    }
-    if (((unsigned long *)sector)[2] >= EndFrame)
-        isEndOfFlag = 1;
-    if (MovieWidth != ((unsigned short *)sector)[8] || MovieHeight != ((unsigned short *)sector)[9]) {
-        rect.w = 480;
-        rect.x = 0;
-        rect.y = 0;
-        rect.h = 240;
-        ENGINE->ClearImage(&rect, 0, 0, 0);
-        MovieWidth = ((unsigned short *)sector)[8];
-        MovieHeight = ((unsigned short *)sector)[9];
-    }
-    dec.rect[0].w = dec.rect[1].w = MovieWidth * 3 / 2;
-    dec.slice.h = dec.rect[0].h = dec.rect[1].h = MovieHeight;
-    YOffset = (240 - MovieHeight) / 2;
-    return addr;
-}
-
-static void strSetDispEnv(struct DISPENV *disp, struct DRAWENV *draw)
-{
-    int id;
-
-    id = dec.rectid ? 0 : 1;
-    ENGINE->SetDefDispEnv(disp, dec.rect[id].x, dec.rect[id].y, dec.rect[id].w, dec.rect[id].h);
-    disp->screen.y = ScreenY + 8;
-    disp->screen.x = ScreenX;
-    ENGINE->SetDefDrawEnv(draw, dec.rect[id].x, dec.rect[id].y, dec.rect[id].w, dec.rect[id].h);
-    disp->isrgb24 = 1;
-    disp->disp.w = disp->disp.w * 2 / 3;
-    ENGINE->PutDispEnv(disp);
-    ENGINE->PutDrawEnv(draw);
-    ENGINE->SetDispMask(1);
-}
-
-void strKickCD(void)
-{
-    while (!ENGINE->CdControl(0x15, &Loc, 0))
-        ;
-    while (!ENGINE->CdRead2(0x1c0))
-        ;
-}
-
-void strInit(unsigned long *ring, void (*callback)(), int endframe)
-{
-    DecDCTReset(0);
-    isEndOfFlag = 0;
-    DecDCToutCallback(callback);
-    ENGINE->StSetRing(RingBuf, 64);
-    ENGINE->StSetStream(1, 1, ring, 0, endframe);
-    strKickCD();
-}
-
-void strSetDefDecEnv(int x0, int y0, int x1, int y1)
-{
-    setRECT(&dec.rect[0], x0, y0, 480, 240);
-    setRECT(&dec.rect[1], x1, y1, 480, 240);
-    ENGINE->ClearImage(&dec.rect[0], 0, 0, 0);
-    ENGINE->ClearImage(&dec.rect[1], 0, 0, 0);
-    ENGINE->DrawSync(0);
-    setRECT(&dec.slice, x0, y0, 24, 240);
-    dec.vlcid = 0;
-    dec.rectid = 0;
-    dec.isdone = 0;
-}
-
-int strNextVlc(void)
-{
-    int cnt;
-    unsigned long *next;
-
-    cnt = 0x800000;
-    while ((next = strNext()) == 0) {
-        if (--cnt == 0)
-            return -1;
-    }
-    if (MaxVlcSize < DecDCTBufSize(next))
-        MaxVlcSize = DecDCTBufSize(next);
-    dec.vlcid = dec.vlcid ^ 1;
-    DecDCTvlc2(next, dec.vlcbuf[dec.vlcid], VlcTable);
-    ENGINE->StFreeRing(next);
-    return 0;
-}
-
-void strSync(void)
-{
-    volatile int cnt;
-
-    cnt = 0x800000;
-    while (!dec.isdone) {
-        if (--cnt == 0) {
-            dec.isdone = 1;
-            dec.rectid = dec.rectid ? 0 : 1;
-            dec.slice.x = dec.rect[dec.rectid].x;
-            dec.slice.y = dec.rect[dec.rectid].y + YOffset;
-        }
-    }
-    dec.isdone = 0;
-}
-
-static void MovieFreeze(void);
-
-static short PlayMovie(char *name, int endframe, int vlcsize, int clear, int volume)
-{
-    long unused[12];    /* never used, but in the original's frame */
-    char path[40];
-    struct DISPENV disp;
-    struct DRAWENV draw;
-    int frame;
-    int vol;
-    int i;
-    short ret;
-
-    frame = 0;
-    ret = 0;
-    YOffset = 0;
-    ScreenY = ENGINE->GameConfig.sScreenPosY;
-    ScreenX = ENGINE->GameConfig.sScreenPosX;
-    ENGINE->strcpy(path, "\\Q2DATA\\");
-    ENGINE->strcat(path, "MOVIES\\");
-    ENGINE->strcat(path, name);
-    ENGINE->strcat(path, ";1");
-    ENGINE->PrintF("Play movie %s %d\n", path, endframe);
-    EndFrame = endframe;
-    if (vlcsize)
-        VlcSize = vlcsize;
-    else
-        VlcSize = 0x20400;
-    MaxVlcSize = 0;
-    ENGINE->DrawSync(0);
-    ENGINE->VSync(0);
-    ENGINE->DrawSync(0);
-    ENGINE->VSync(0);
-    if (clear) {
-        ENGINE->ClearImage(&ENGINE->Db[0].DispEnv.disp, 0, 0, 0);
-        ENGINE->ClearImage(&ENGINE->Db[1].DispEnv.disp, 0, 0, 0);
-    }
-    ENGINE->DrawSync(0);
-    ENGINE->VSync(0);
-    Done = 0;
-    VlcTable = ENGINE->My_malloc_name(0x11000, "ring buffer");
-    RingBuf = ENGINE->My_malloc_name(0x20000, "ring buffer");
-    dec.vlcbuf[0] = ENGINE->My_malloc_name(VlcSize, "vlc buffer 0");
-    dec.vlcbuf[1] = ENGINE->My_malloc_name(VlcSize, "vlc buffer 1");
-    dec.imgbuf = ENGINE->My_malloc_name(0x5a00, "image buffer");
-    DecDCTvlcBuild(VlcTable);
-    IsRGB24Start = 1;
-    if (!ENGINE->CdSearchFile(&File, path)) {
-        ENGINE->PrintF("Movie not found\n");
-        Done = 1;
-    }
-    strSetDefDecEnv(0, YOffset, 512, YOffset);
-    Loc = File.pos;
-    FileSize = File.size;
-    strSetDispEnv(&disp, &draw);
-    strInit((unsigned long *)0x0fffffff, strCallback, 0);
-    if (!Done)
-        strNextVlc();
-    dec.slice.y = dec.rect[dec.rectid].y + YOffset;
-    vol = 0;
-    while (!isEndOfFlag && !Done) {
-        frame++;
-        vol += volume;
-        if (frame <= 16)
-            ENGINE->SetCDVolume(vol / 16);
-        DecDCTin(dec.vlcbuf[dec.vlcid], 3);
-        DecDCTout((unsigned long *)dec.imgbuf, ((dec.slice.w - 1) / 24 + 1) * (((dec.slice.h - 1) / 16 + 1) * 384) >> 1);
-        if (strNextVlc() < 0) {
-            Done = 1;
-            ret = -1;
-        }
-        strSync();
-        ENGINE->VSync(0);
-        ENGINE->NewPadRead();
-        if (ENGINE->GameWindows->Input.Original & 8) {
-            Done = 1;
-            ret = 2;
-        }
-        if (ENGINE->GameWindows->Input.Original & 0x4000) {
-            Done = 1;
-            ret = 1;
-        }
-        strSetDispEnv(&disp, &draw);
-    }
-    vol = volume * 4;
-    for (i = 4; i > 0; i--) {
-        ENGINE->SetCDVolume(vol / 4);
-        ENGINE->VSync(0);
-        vol -= volume;
-    }
-    ENGINE->StUnSetRing();
-    ENGINE->CdControlB(9, 0, 0);
-    DecDCToutCallback(0);
-    DecDCToutCallback(0);
-    ENGINE->CdDataCallback(0);
-    ENGINE->CdReadyCallback(0);
-    ENGINE->MyFree(&VlcTable);
-    ENGINE->MyFree(&RingBuf);
-    ENGINE->MyFree(&dec.vlcbuf[0]);
-    ENGINE->MyFree(&dec.vlcbuf[1]);
-    ENGINE->MyFree(&dec.imgbuf);
-    ENGINE->DrawSync(0);
-    MovieFreeze();
-    ENGINE->PrintF("Max size of each VLC buffer = %d bytes.\n\n", MaxVlcSize * 4 + 1024);
-    ENGINE->DrawSync(0);
-    ENGINE->VSync(0);
-    ENGINE->PutDispEnv(&(*ENGINE->currdb)->DispEnv);
-    ENGINE->VSync(0);
-    ENGINE->DrawSync(0);
-    ENGINE->ClearOTag(ENGINE->Db[0].InitOt, 0xd9);
-    ENGINE->ClearOTag(ENGINE->Db[1].InitOt, 0xd9);
-    return ret;
-}
-
-/* copies the last frame (24-bit) into a 15-bit picture in the display area and fades it out */
-static void MovieFreeze(void)
-{
-    struct RECT src;
-    struct RECT dst;
-    struct TILE tile;
-    struct DR_MODE mode;
-    struct DISPENV disp;
-    struct DRAWENV draw;
-    unsigned char *buf;
-    int yoff;
-    int x, y;
-    int i;
-    unsigned char *s;
-    unsigned short *d;
-
-    yoff = YOffset;
-    if (dec.rectid) {
-        int id = dec.rectid ? 0 : 1;
-
-        dec.rect[id].y += yoff;
-        ENGINE->MoveImage(&dec.rect[id], dec.rect[1].x, dec.rect[1].y + yoff);
-        dec.rect[id].y -= yoff;
-        ENGINE->DrawSync(0);
-    }
-    dec.rectid = 0;
-    strSetDispEnv(&disp, &draw);
-    setRECT(&src, dec.rect[1].x, dec.rect[1].y + YOffset, dec.rect[1].w, dec.rect[1].h);
-    setRECT(&dst, dec.rect[0].x, dec.rect[0].y, dec.rect[0].w * 2 / 3, dec.rect[0].h);
-    buf = ENGINE->My_malloc_name(src.w * src.h * 2, "source buf");
-    ENGINE->StoreImage(&src, buf);
-    ENGINE->DrawSync(0);
-    s = buf;
-    d = (unsigned short *)buf;
-    for (y = 0; y < src.h; y++) {
-        for (x = 0; x < src.w; x += 3) {
-            d[0] = (s[0] >> 3) + ((s[2] & 0xf8) << 7) + ((s[1] & 0xf8) << 2);
-            d[1] = (s[3] >> 3) + ((s[5] & 0xf8) << 7) + ((s[4] & 0xf8) << 2);
-            s += 6;
-            d += 2;
-        }
-    }
-    i = dst.h;
-    dst.h = 240;
-    ENGINE->ClearImage(&dst, 0, 0, 0);
-    dst.h = i;
-    dst.y += yoff;
-    ENGINE->LoadImage(&dst, buf);
-    dst.h = 240;
-    dst.y -= yoff;
-    ENGINE->DrawSync(0);
-    ENGINE->SetDefDispEnv(&disp, dst.x, dst.y, dst.w, dst.h);
-    ENGINE->SetDefDrawEnv(&draw, dst.x, dst.y, dst.w, dst.h);
-    disp.isrgb24 = 1;
-    disp.isinter = 0;
-    disp.screen.x = ScreenX;
-    disp.screen.y = ScreenY + 8;
-    ENGINE->VSync(0);
-    ENGINE->PutDispEnv(&disp);
-    ENGINE->PutDrawEnv(&draw);
-    tile.x0 = 0;
-    tile.y0 = 0;
-    tile.w = dst.w;
-    tile.r0 = 8;
-    tile.g0 = 8;
-    tile.b0 = 8;
-    tile.h = dst.h;
-    ENGINE->SetTile(&tile);
-    tile.code = (tile.code & 0xfe) | 2;
-    ENGINE->SetDrawMode(&mode, 1, 0, GetTPage(0, 2, 512, 256), 0);
-    for (i = 32; i > 0; i--) {
-        ENGINE->DrawSync(0);
-        ENGINE->ClearOTag(ENGINE->Db->BigOt, 11);
-        ENGINE->AddPrim_(ENGINE->Db->BigOt, &tile);
-        ENGINE->AddPrim_(ENGINE->Db->BigOt, &mode);
-        ENGINE->VSync(0);
-        ENGINE->DrawOTag(ENGINE->Db->BigOt);
-    }
-    ENGINE->MyFree(&buf);
-    ENGINE->ClearImage(&ENGINE->Db[0].DispEnv.disp, 0, 0, 0);
-    ENGINE->ClearImage(&ENGINE->Db[1].DispEnv.disp, 0, 0, 0);
-}
-
-int ResetCallback(void)
-{
-    return ENGINE->ResetCallback();
-}
-
-void DummyUpdate(void)
-{
-    if (*ENGINE->ChrisCount >= 4)
-        *ENGINE->LevelComplete = 10;
-}
-
-void IntroUpdate(void)
-{
-    if (*ENGINE->ChrisCount >= 4)
-        *ENGINE->LevelComplete = 6;
-}
-
-void ExtroUpdate(void)
-{
-    ENGINE->GameWindows->CameraRoutine = StaticCamera;
-    if (*ENGINE->ChrisCount >= 4)
-        *ENGINE->LevelComplete = 17;
-}
-
-void MagazineIntrUpdate(void)
-{
-    PictureUpdate(150, 1, 6);
-}
-
-void MagazineExtrUpdate(void)
-{
-    PictureUpdate(750, 0, 9);
-}
-
-/* sets the semi-transparency bit of every non-black colour */
-void SetClutSemiTrans(short *clut, int n)
-{
-    while (n) {
-        *clut &= 0x7fff;
-        if (*clut)
-            *clut |= 0x8000;
-        n--;
-        clut++;
-    }
-}
-
-void LoadClut(unsigned short *clut, short slot, int is256)
-{
-    struct RECT rect;
-
-    rect.x = (ENGINE->palette[slot] & 0x3f) << 4;
-    rect.y = ENGINE->palette[slot] >> 6;
-    rect.h = 1;
-    rect.w = is256 ? 256 : 16;
-    ENGINE->LoadImage(&rect, clut);
-    ENGINE->DrawSync(0);
-}
-
-void StaticCamera(void)
-{
-    struct WINDOW *w;
-    short i;
-
-    for (i = 0; i < *ENGINE->MaxWindows; i++) {
-        w = &ENGINE->GameWindows[i];
-        w->CamPos.vx = 0;
-        w->CamPos.vy = 0;
-        w->CamPos.vz = 0;
-        w->CamAng.vx = 0;
-        w->CamAng.vy = 0;
-        w->CamAng.vz = 0;
-        w->ControlBits |= 7;
-        ENGINE->QGenWindowSortList(w);
-        ENGINE->UpdateWindowStuff(w);
-    }
-}
-
-int DMACallback(int dma, void (*func)())
-{
-    return ENGINE->DMACallback(dma, func);
-}
+#include "level_qend_player.h"
 
 /* the byte the original link left between this object's .rdata and LIBPRESS's */
 __asm__(".rdata\n .byte 0x3b\n .text");
