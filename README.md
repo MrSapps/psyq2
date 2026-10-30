@@ -51,7 +51,27 @@ The pipeline, per object of the original link (`config/link_order.txt`):
 - `tools/datacmp.py EXE config/link_order.txt build/obj` compares the data sections cumulatively in link order.
 - `tools/exediff.py` diffs a build with the original by section and lists where symbols first move.
 
-## Toolchain
+## Overlays
+
+The game's other code is in 51 relocatable modules inside the level files: each level's
+`COMMON.DAT` has a level module (`LevelBin`/`LevelRel`), and `COMMON.DAT` and the `ZONEn.DAT`s have
+creature AI modules (`CreAIBin`/`CreAIRel`), loaded by `ReadCommonFiles`/`ReadZoneFiles` and relocated
+by `__SN_RELOCATE`. They have no debug info. The engine reaches a module through the interface struct
+at its start (`QLEVELINTERFACE`, `QCREINTERFACE`); the module reaches the engine only through the
+function pointers the engine fills in there (`LevelInterface.Engine->...`, `Iface.rand(...)`).
+
+    python3 tools/ovlextract.py "Quake II (USA) (Track 1).bin"   # -> baserom/ovl/<module>.bin, .rel
+    make ovl                                                     # build src/ovl/*.c, compare with config/overlays.txt
+    python3 tools/ovldis.py baserom/ovl/<module>.bin             # disassembly with the relocations as labels
+
+- `config/overlays.txt` lists every module, the sha1s of its image and relocations, and the level files that hold it.
+- `src/ovl/<module>.c` is one module. Same compiler as the executable but **`-O3 -G0 -g`** (a module has no `$gp`).
+- `tools/ovllink.py` links a module: `.header` (the interface, `OVL_HEADER` in `src/ovl/include/ovl.h`), then
+  `.rdata`, `.text`, `.data`, `.bss`, from address 0. The image holds 0 in every hi16 and the target's low half
+  in every lo16; the `.rel` lists the relocations in the order of the object's patches, a hi16 followed by its target.
+- The interface is a plain writable variable: `const` lets gcc keep its fields in registers across calls,
+  which the originals don't.
+
 
 The game was built with the **`cc1psx` of PSY-Q 4.4 (gcc 2.8.1 SN32 build 4.0.0010), `-O3 -G8 -g`,
 assembled by an ASPSX of version 2.80 or later** (2.81, from PSY-Q 4.5), and linked with the **PSY-Q 4.5

@@ -95,7 +95,7 @@ def assemble(src, obj, g='0'):
 def main():
     jobs = int(sys.argv[sys.argv.index('-j') + 1]) if '-j' in sys.argv else os.cpu_count()
     os.makedirs(OBJ, exist_ok=True)
-    run(['wineserver', '-p'])  # keep wine up between runs: much faster
+    subprocess.run(['wineserver', '-p'], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, env=ENV)  # keep wine up between runs: much faster (not captured: the server would hold the pipe open)
     names = [l.split()[0] for l in open(f'{R}/config/link_order.txt') if l.strip()]
     only = sys.argv[sys.argv.index('--only') + 1:] if '--only' in sys.argv else None
     if only:
