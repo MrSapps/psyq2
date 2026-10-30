@@ -75,50 +75,95 @@ void FrontEndNothing();
 void FrontEndResetWindows();
 void FrontEndDrawSortedObjs();
 void FrontEndSpinPickup();
+ASM_DEFERRED_END(FrontEndSpinPickup)
 void FrontEndSpawnPickups();
+ASM_DEFERRED_END(FrontEndSpawnPickups)
 void func_c6c0();
+ASM_DEFERRED_END(func_c6c0)
 void CHECK_FOR_START();
+ASM_DEFERRED_END(CHECK_FOR_START)
 void func_c7bc();
+ASM_DEFERRED_END(func_c7bc)
 void GOTO_MISSIONCD_SPINDOWN();
+ASM_DEFERRED_END(GOTO_MISSIONCD_SPINDOWN)
 void GOTO_MISSIONCD_CHECKING();
+ASM_DEFERRED_END(GOTO_MISSIONCD_CHECKING)
 void GOTO_MISSIONCD_SWAP();
+ASM_DEFERRED_END(GOTO_MISSIONCD_SWAP)
 void GOTO_MISSIONCD_LOADING();
+ASM_DEFERRED_END(GOTO_MISSIONCD_LOADING)
 void GOTO_MISSIONCD_INVALID();
+ASM_DEFERRED_END(GOTO_MISSIONCD_INVALID)
 void GOTO_PLAYER();
+ASM_DEFERRED_END(GOTO_PLAYER)
 void func_cb88();
+ASM_DEFERRED_END(func_cb88)
 void func_cc20();
+ASM_DEFERRED_END(func_cc20)
 void GOTO_OPTIONS();
+ASM_DEFERRED_END(GOTO_OPTIONS)
 void func_cd54();
+ASM_DEFERRED_END(func_cd54)
 void func_cdd8();
+ASM_DEFERRED_END(func_cdd8)
 void GOTO_TITLE();
+ASM_DEFERRED_END(GOTO_TITLE)
 void GOTO_MULTIPLAYER();
+ASM_DEFERRED_END(GOTO_MULTIPLAYER)
 void func_d010();
+ASM_DEFERRED_END(func_d010)
 void func_d0c0();
+ASM_DEFERRED_END(func_d0c0)
 void func_d15c();
+ASM_DEFERRED_END(func_d15c)
 void func_d210();
+ASM_DEFERRED_END(func_d210)
 void func_d2d8();
+ASM_DEFERRED_END(func_d2d8)
 void func_d394();
+ASM_DEFERRED_END(func_d394)
 void func_d3bc();
+ASM_DEFERRED_END(func_d3bc)
 void func_d3e8();
+ASM_DEFERRED_END(func_d3e8)
 void func_d414();
+ASM_DEFERRED_END(func_d414)
 void func_d4d0();
+ASM_DEFERRED_END(func_d4d0)
 void func_d58c();
+ASM_DEFERRED_END(func_d58c)
 void func_d60c();
+ASM_DEFERRED_END(func_d60c)
 void func_d644();
+ASM_DEFERRED_END(func_d644)
 void func_d6fc();
+ASM_DEFERRED_END(func_d6fc)
 void func_d734();
+ASM_DEFERRED_END(func_d734)
 void GOTO_REINSERT_WAIT();
+ASM_DEFERRED_END(GOTO_REINSERT_WAIT)
 void func_d8c0();
+ASM_DEFERRED_END(func_d8c0)
 void func_d9b8();
+ASM_DEFERRED_END(func_d9b8)
 void func_dab0();
+ASM_DEFERRED_END(func_dab0)
 void func_db64();
+ASM_DEFERRED_END(func_db64)
 void func_dbe0();
+ASM_DEFERRED_END(func_dbe0)
 void DMACallback();
+ASM_DEFERRED_END(DMACallback)
 void func_dc4c();
+ASM_DEFERRED_END(func_dc4c)
 void func_dcc8();
+ASM_DEFERRED_END(func_dcc8)
 void func_ddbc();
+ASM_DEFERRED_END(func_ddbc)
 void func_dec4();
+ASM_DEFERRED_END(func_dec4)
 void func_df90();
+ASM_DEFERRED_END(func_df90)
 /* the others */
 void FrontEndFindLimitIndices();
 void CHECK_FOR_SCREENPOSITION();
