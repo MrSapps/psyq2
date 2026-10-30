@@ -75,6 +75,17 @@ function pointers the engine fills in there (`LevelInterface.Engine->...`, `Ifac
 - The interface is a plain writable variable: `const` lets gcc keep its fields in registers across calls,
   which the originals don't.
 
+## A native CC1PSX
+
+CC1PSX is stock gcc 2.8.1 for MIPS with `-mgas -msplit-addresses -msoft-float -funsigned-char` as
+defaults, built for a 32-bit host. `tools/build-cc1.sh GCC_2.8.1_SOURCE` builds the same compiler for
+Linux into `build/cc1/` (with the host fixes that takes, see the script), and `tools/cc1n` runs it with
+those flags: every function of every overlay module and of 78 of the 79 objects of the executable
+compiles to the same assembly as under wine (draw.c's `DrawTimeBar` is scheduled differently). It is
+much faster than wine and has the gcc 2.8.1 source behind it: RTL dumps (`-da`), gdb, printf in a
+pass, decomp-permuter. Matches are still checked with CC1PSX.
+
+## Toolchain
 
 The game was built with the **`cc1psx` of PSY-Q 4.4 (gcc 2.8.1 SN32 build 4.0.0010), `-O3 -G8 -g`,
 assembled by an ASPSX of version 2.80 or later** (2.81, from PSY-Q 4.5), and linked with the **PSY-Q 4.5
