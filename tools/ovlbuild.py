@@ -6,7 +6,9 @@ usage: tools/ovlbuild.py [-j N] [NAME...]        (default: every src/ovl/NAME.c)
   src/ovl/<module>.c   gcc -E -> CC1PSX 4.4 (-O3 -G0 -g) -> ASPSX 2.81 (-G0) -> build/ovl/<module>.obj
                        tools/ovllink.py                                 -> build/ovl/<module>.bin, .rel
 
-A module is one C file. Prints, per module, whether .bin and .rel match the sha1s that
+A module is one C file, plus the PSY-Q library modules its source names in an
+/* ovl-libs: lib/MODULE ... */ comment (e.g. libpress/LIBPRESS), linked after it in that order from
+the PSY-Q 4.5 libraries (PSYQ_LIB), extracted to build/ovl/lib/<lib>/. Prints, per module, whether .bin and .rel match the sha1s that
 tools/ovlextract.py recorded; with baserom/ovl/ present a mismatch also names the first
 differing offset. Exit status 1 if any module fails to build or match.
 Env and flags as for tools/build.py (PSYQ, ASPSX, /* calib-flags: ... */).
@@ -15,6 +17,7 @@ import concurrent.futures
 import glob
 import hashlib
 import os
+import shutil
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -53,6 +56,23 @@ def compile_ovl(name):
     return rc, out if rc else ''
 
 
+def ovl_libs(name):
+    """the library objects src/ovl/<name>.c asks for, extracted from PSYQ_LIB as needed"""
+    import re
+    m = re.search(r'ovl-libs: *([^*]*[^ *]) *\*/', open(f'{R}/src/ovl/{name}.c').read())
+    objs = []
+    for spec in (m.group(1).split() if m else []):
+        lib, mod = spec.split('/')
+        d = f'{OUT}/lib/{lib}'
+        if not os.path.isdir(d):
+            os.makedirs(d)
+            shutil.copy(f'{build.PSYQ_LIB}/lib/{lib}.lib', d)
+            build.run(['wine', f'{build.PSYQ}/bin/psylib.exe', '/x', f'{lib}.lib'], cwd=d)
+            os.remove(f'{d}/{lib}.lib')
+        objs.append(f'{d}/{mod.upper()}.OBJ')
+    return objs
+
+
 def sha1(path):
     return hashlib.sha1(open(path, 'rb').read()).hexdigest()
 
@@ -89,8 +109,8 @@ def main():
             continue
         binp = f'{OUT}/{name}.bin'
         try:
-            image, rel, glob_ = ovllink.link([ovllink.Obj(f'{OUT}/{name}.obj')])
-        except ValueError as e:
+            image, rel, glob_ = ovllink.link([ovllink.Obj(p) for p in [f'{OUT}/{name}.obj'] + ovl_libs(name)])
+        except (ValueError, OSError) as e:
             print(f'{name}: link failed: {e}')
             bad += 1
             continue

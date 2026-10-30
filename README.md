@@ -69,6 +69,9 @@ function pointers the engine fills in there (`LevelInterface.Engine->...`, `Ifac
 - `tools/ovllink.py` links a module: `.header` (the interface, `OVL_HEADER` in `src/ovl/include/ovl.h`), then
   `.rdata`, `.text`, `.data`, `.bss`, from address 0. The image holds 0 in every hi16 and the target's low half
   in every lo16; the `.rel` lists the relocations in the order of the object's patches, a hi16 followed by its target.
+- Some modules also link PSY-Q library modules (libpress's MDEC code, `memset`, ...) after their own object;
+  the source names them in an `/* ovl-libs: libpress/LIBPRESS ... */` comment and `tools/ovlbuild.py` links
+  the real objects from the PSY-Q 4.5 libraries, whose patch order the `.rel` keeps.
 - The interface is a plain writable variable: `const` lets gcc keep its fields in registers across calls,
   which the originals don't.
 
