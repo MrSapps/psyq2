@@ -9,30 +9,8 @@ enum { L_NONE, L_WALK, L_HIT1, L_FIRE_RIGHT, L_FIRE_LEFT, L_RUN, L_UNUSED, L_DEA
 #define CLASS_ARACHNER 64
 #define CRE(e) ((struct CREATURE *)(e)->Extra.Creature)
 
-int abs(int);
 
 /* gcc emits the small functions last, in this order */
-void arachner_walk(struct edict_s *self);
-void arachner_hit1(struct edict_s *self);
-void arachner_hit2(struct edict_s *self);
-void arachner_run(struct edict_s *self);
-void arachner_dead(struct edict_s *self);
-void SP_monster_arachner(struct edict_s *self);
-void arachner_attack1(struct edict_s *self);
-void arachner_melee_loop(struct edict_s *self);
-void arachner_end_melee(struct edict_s *self);
-void arachner_stand(struct edict_s *self);
-void arachner_idle(struct edict_s *self);
-void arachner_sight(struct edict_s *self);
-void arachner_search(struct edict_s *self);
-void arachner_swing(struct edict_s *self);
-void arachner_melee(struct edict_s *self);
-void arachner_attack(struct edict_s *self);
-void arachner_pain(struct edict_s *self, struct edict_s *other, long kick, int damage);
-void arachner_die(struct edict_s *self, struct edict_s *inflictor, struct edict_s *attacker, int damage);
-void PreInit_Arachner(struct GLOBMODHDR *Hdr);
-void Arachner_EveryFrame(struct CREATURE *Cre);
-void arachner_fire_right(struct edict_s *self);
 void arachner_walk(struct edict_s *self);
 void arachner_hit1(struct edict_s *self);
 void arachner_hit2(struct edict_s *self);

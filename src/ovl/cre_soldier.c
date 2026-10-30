@@ -44,8 +44,6 @@ enum {
 };
 
 void PreInit_Soldier(struct GLOBMODHDR *Hdr);
-static void soldier_pain(struct edict_s *self);
-static void soldier_fire(struct edict_s *self, int flash_number);
 void SP_Soldier(struct edict_s *self);
 static void soldier_stand(struct edict_s *self);
 static void soldier_idle(struct edict_s *self);

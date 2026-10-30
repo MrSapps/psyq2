@@ -9,7 +9,6 @@ void InitLevel(void);
 void QMultiPlayer_AdvanceScoresCheckLevelComplete(int Killer, int Victim);
 struct QLEVELINTERFACE LevelInterface OVL_HEADER = { InitLevel, QMultiPlayer_AdvanceScoresCheckLevelComplete, 0 };
 
-void CheckTimeLimit(void);
 
 static void SpawnPickups(void)
 {

@@ -10,7 +10,6 @@ struct QCREINTERFACE Iface OVL_HEADER = { SP_Boss32Bottom, 0, PreInit_Boss32Bott
 static void Boss32Bottom_die(struct edict_s *self);
 static void Boss32Bottom_pain(struct edict_s *self);
 static void Boss32Bottom_think(struct edict_s *self);
-void Boss32Bottom_init(struct edict_s *self);
 
 static void Boss32Bottom_die(struct edict_s *self)
 {

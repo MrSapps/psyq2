@@ -30,7 +30,6 @@ enum {
 /* a dead monster (a CREATURE of type DEADBODY) has no edict; the medic aims at it
  * through FakeEdict and keeps the creature in pos1: vx while it is the enemy, vy
  * while it is the goal, vz its Ident */
-int abs(int);
 
 #define DEADBODY 47
 #define ENEMYCRE(e) (*(struct CREATURE **)&(e)->pos1.vx)
@@ -38,13 +37,9 @@ int abs(int);
 #define CRE(e) ((struct CREATURE *)(e)->Extra.Creature)
 
 void PreInit_Medic(struct GLOBMODHDR *Hdr);
-void medic_UpdateTarget(struct edict_s *self);
-struct CREATURE *medic_FindDeadMonster(struct edict_s *self);
 static void medic_idle(struct edict_s *self);
-static void medic_search(struct edict_s *self);
 static void medic_run(struct edict_s *self);
 static void medic_fire_blaster(struct edict_s *self);
-static void medic_Resurrect(struct CREATURE *Cre);
 static void medic_cable_attack(struct edict_s *self);
 void SP_monster_medic(struct edict_s *self);
 static void medic_dead(struct edict_s *self);

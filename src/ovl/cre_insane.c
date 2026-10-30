@@ -11,8 +11,6 @@ enum { L_NONE, L_STAND, L_DEAD, L_UNUSED, L_WALK, L_RUN, L_CHECKDOWN, L_CHECKUP,
 
 /* gcc emits the small functions last, in this order */
 void PreInit_Insane(struct GLOBMODHDR *Hdr);
-static void insane_pain(struct edict_s *self, struct edict_s *other, long kick, int damage);
-static void insane_die(struct edict_s *self, struct edict_s *inflictor, struct edict_s *attacker, int damage);
 void SP_misc_insane(struct edict_s *self);
 static void insane_stand(struct edict_s *self);
 static void insane_dead(struct edict_s *self);

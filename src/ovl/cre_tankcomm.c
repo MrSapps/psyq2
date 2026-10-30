@@ -39,7 +39,6 @@
 static void TankBlaster(struct edict_s *self);
 static void TankRocket(struct edict_s *self);
 static void TankMachineGun(struct edict_s *self);
-static void tank_attack(struct edict_s *self);
 static void tank_refire_rocket(struct edict_s *self);
 static void tank_doattack_rocket(struct edict_s *self);
 static void tank_reattack_blaster(struct edict_s *self);

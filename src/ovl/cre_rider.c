@@ -61,8 +61,6 @@ struct QCREINTERFACE Iface OVL_HEADER = { SP_monster_makron, 0, PreInit_Makron, 
 static void makronBFG(struct edict_s *self);
 static void MakronRailgun(struct edict_s *self);
 static void MakronHyperblaster(struct edict_s *self);
-static void makron_pain(struct edict_s *self, struct edict_s *other, int kick, int damage);
-static int Makron_CheckAttack(struct edict_s *self);
 
 static struct mmove_t makron_move_stand;
 static struct mmove_t makron_move_run;

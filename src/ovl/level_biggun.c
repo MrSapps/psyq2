@@ -41,9 +41,7 @@ void SetGlassHidden(int n, int Hidden);
 int InSweep(int n);
 struct CREATURE *FindGun(void);
 static void DrawExtra(void);
-void *memset(void *s, int c, int n);
 int rand(void);
-void srand(unsigned int seed);
 void LinkedLibraries(void);
 
 static void DrawBeam(struct BEAM *Beam);

@@ -37,7 +37,6 @@ void flyer_pain(struct edict_s *self, struct edict_s *other, long kick, int dama
 void flyer_die(struct edict_s *self);
 void PreInit_Flyer(struct GLOBMODHDR *Hdr);
 void Flyer_EveryFrame(struct CREATURE *Cre);
-void flyer_fire(struct edict_s *self, int flash_number);
 static struct NEWANIMREMAP AnimRemap[];
 static struct mmove_t flyer_move_stand, flyer_move_walk, flyer_move_run, flyer_move_start;
 static struct mmove_t flyer_move_stop, flyer_move_pain3, flyer_move_pain2, flyer_move_pain1;

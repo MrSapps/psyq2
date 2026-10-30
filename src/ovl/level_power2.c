@@ -10,7 +10,6 @@ struct QLEVELINTERFACE LevelInterface OVL_HEADER = { InitLevel, 0, 0 };
 void Nothing(void);
 void DoCoreCountdown(void);
 
-static void CoreCountdown(void);
 static void Zone0Load(void);
 static void Zone1Load(void);
 static void Zone2Load(void);

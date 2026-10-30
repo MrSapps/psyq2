@@ -32,7 +32,6 @@
 
 #define CLASS_STRIDER 68
 
-int abs(int);
 
 /* aiflags */
 #define AI_STAND_GROUND 0x1
@@ -40,7 +39,6 @@ int abs(int);
 
 void SP_monster_strider(struct edict_s *self);
 void PreInit_Strider(struct GLOBMODHDR *Hdr);
-static int strider_can_attack(struct edict_s *self);
 static void StriderLaser(struct edict_s *self);
 static void StriderHyperBlaster(struct edict_s *self);
 

@@ -45,17 +45,10 @@
 #define CLASS_MAKRON 83
 
 void PreInit_Jorg(struct GLOBMODHDR *Hdr);
-static void jorg_pain(struct edict_s *self, struct edict_s *other, int kick, int damage);
 static void jorgBFG(struct edict_s *self);
-static void jorg_firebullet_right(struct edict_s *self);
-static void jorg_firebullet_left(struct edict_s *self);
-static int Jorg_CheckAttack(struct edict_s *self);
 static void makronBFG(struct edict_s *self);
 static void MakronRailgun(struct edict_s *self);
 static void MakronHyperblaster(struct edict_s *self);
-static void makron_pain(struct edict_s *self, struct edict_s *other, int kick, int damage);
-static int Makron_CheckAttack(struct edict_s *self);
-static void MakronSpawn(struct edict_s *self);
 static void MakronToss(struct edict_s *self);
 
 /* the small ones, which gcc emits at the end in this order */

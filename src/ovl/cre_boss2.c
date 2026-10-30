@@ -27,9 +27,6 @@
 
 void PreInit_Boss2(struct GLOBMODHDR *Hdr);
 static void Boss2Rocket(struct edict_s *self);
-static void boss2_firebullet_right(struct edict_s *self);
-static void boss2_firebullet_left(struct edict_s *self);
-static int Boss2_CheckAttack(struct edict_s *self);
 
 /* the small ones, which gcc emits at the end in this order */
 static void boss2_run(struct edict_s *self);
