@@ -1,0 +1,8 @@
+-xc
+-std=gnu89
+-m32
+-funsigned-char
+-Isrc/include
+-Isrc/ovl/include
+-Isrc/ovl
+-Wno-everything
