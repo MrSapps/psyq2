@@ -102,9 +102,6 @@ Each is commented where it is:
   - level_lab's and level_boss1's `FindCreature`, with the functions that inline it (`CheckGotHead`,
     `CheckNearMakron`): the original never gives `$v1` to the loop temporaries, which frees it for the
     address of `FoundCre`. What source shape makes `$v1` unavailable to local-alloc is not known.
-  - level_qfront's `func_7184` (in `level_qfront_asm.h`): loop.c hoists the format string's address
-    out of the loop, one luid over its threshold, and global-alloc ranks the loop counter below two
-    masks.
 
 ## A native CC1PSX
 

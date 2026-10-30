@@ -4,17 +4,6 @@
 #include <libetc.h>
 #include <stdio.h>
 
-/* TODO: the functions not decompiled yet are their original instructions, generated into
- * level_qfront_asm.h (with the strings and jump tables they own):
- *   ASM_FUNC(f)      a function gcc emits where it is defined
- *   ASM_RDATA(f)     the .rdata a not-yet-C small function owns, at its place in the file
- *   ASM_DEFERRED(f)  a not-yet-C small function, as a C function whose body is its instructions
- *                    but for the final "jr $31" (gcc emits the small ones, inline candidates,
- *                    after everything else in prototype order).
- * Labels: LevelInterface, the C names below, S_<addr> for .rdata, Lq_<addr> inside functions. */
-#include "level_qfront_asm.h"
-#define ASM_FUNC(name) ASM_##name
-#define ASM_RDATA(name) ASMR_##name
 /* uninitialised data goes to .bss in definition order (no commons, no .lcomm) */
 #define BSS __attribute__((section(".bss")))
 
@@ -152,7 +141,7 @@ void func_4d78();
 void func_50e4();
 void func_59e0();
 void func_5da8();
-void func_7184();
+void CHECK_FOR_PLAYER_BOOLEAN(int pad, short first, int last);
 void func_75dc();
 void func_9c38(short w);
 void PickupSpinTitle();
@@ -2367,10 +2356,46 @@ void func_db64(struct STRING_TABLE *st)
     st->cursorDisabled = 1;
 }
 
-ASM_FUNC(func_7184)
+/* CHECK_FOR_BOOLEAN for one player's options: the ON/OFF strings first..last-1
+ * (as in CHECK_FOR_BOOLEAN, each arm calls FrontEndModifyText; jump2 crossjumps the two calls into
+ * one, but before that the extra insns keep loop.c from hoisting the "b%s %sON %sOFF" address) */
+void CHECK_FOR_PLAYER_BOOLEAN(int pad, short first, int last)
+{
+    short i;
+    char buf[32];
+    unsigned short pressed;
+    int cursor;
+    short on;
 
-/* "b" belongs to func_7184, still asm: its label (TODO: the literal once that is C) */
-extern char S_12d8[];
+    pressed = LevelInterface.Engine->gFrontEndPad[pad] & (LevelInterface.Engine->gFrontEndPad[pad] ^ LevelInterface.Engine->gFrontEndOPad[pad]);
+    cursor = LevelInterface.Engine->GameConfig.MultiPlayerParams[pad].cursorpos + pad * 7;
+    for (i = first; i < last; i++) {
+        if (LevelInterface.Engine->MyStringTable[i].pBoolVar) {
+            if (i == cursor) {
+                if (pressed & 0x80) {
+                    if (*LevelInterface.Engine->MyStringTable[i].pBoolVar != 1)
+                        LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"itm_pkup"}),
+                                                               &LevelInterface.Engine->Creatures->Draw.Location);
+                    *LevelInterface.Engine->MyStringTable[i].pBoolVar = 1;
+                }
+                if (pressed & 0x20) {
+                    if (*LevelInterface.Engine->MyStringTable[i].pBoolVar != 0)
+                        LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"itm_pkup"}),
+                                                               &LevelInterface.Engine->Creatures->Draw.Location);
+                    *LevelInterface.Engine->MyStringTable[i].pBoolVar = 0;
+                }
+                on = *LevelInterface.Engine->MyStringTable[i].pBoolVar;
+                LevelInterface.Engine->sprintf(buf, "b%s %sON %sOFF", LevelInterface.Engine->MyStringTable[i].message,
+                                               *LevelInterface.Engine->MyStringTable[i].pBoolVar ? "b" : "d", on ? "d" : "b");
+                LevelInterface.Engine->FrontEndModifyText(&LevelInterface.Engine->MyStringTable[i], buf);
+            } else {
+                LevelInterface.Engine->sprintf(buf, "%s %s", LevelInterface.Engine->MyStringTable[i].message,
+                                               *LevelInterface.Engine->MyStringTable[i].pBoolVar ? "ON" : "OFF");
+                LevelInterface.Engine->FrontEndModifyText(&LevelInterface.Engine->MyStringTable[i], buf);
+            }
+        }
+    }
+}
 
 /* the configuration list a player's controller type picks from: Configs[min..max-1] */
 static void GetConfigRange(int player, signed char **cfg, short *min, short *max)
@@ -2523,7 +2548,7 @@ void func_75dc(void)
         case 2:
             letter = LevelInterface.Engine->GameConfig.MultiPlayerParams[player].currentLetter;
             name = LevelInterface.Engine->GameConfig.MultiPlayerParams[player].playerName;
-#define LETTER(n) (letter == (n) ? (D_11aa8 & 8 ? "u" : S_12d8) : S_12d8)
+#define LETTER(n) (letter == (n) ? (D_11aa8 & 8 ? "u" : "b") : "b")
             LevelInterface.Engine->sprintf(&LevelInterface.Engine->MyStringTable[str], "%s%c%s%c%s%c%s%c%s%c%s%c%s%c%s%c",
                                            LETTER(0), name[0], LETTER(1), name[1], LETTER(2), name[2], LETTER(3), name[3],
                                            LETTER(4), name[4], LETTER(5), name[5], LETTER(6), name[6], LETTER(7), name[7]);
@@ -2644,7 +2669,7 @@ void func_75dc(void)
             LevelInterface.Engine->FrontEndAddText(&LevelInterface.Engine->MyStringTable[str], &LevelInterface.Engine->MyStringTable[str], 128, 94, 16, player);
             STRFLAGS(&LevelInterface.Engine->MyStringTable[str])->bannerColour = colour;
             str++;
-            func_7184(player, first, str);
+            CHECK_FOR_PLAYER_BOOLEAN(player, first, str);
             if (pressed & 0x1000) {
                 LevelInterface.Engine->SoundAtLocation(LevelInterface.Engine->GetSoundNum((struct IDENTITYNAME){"msc_menu3"}),
                                                        &Pickups[0]->Draw.Location);
