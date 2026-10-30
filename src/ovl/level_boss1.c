@@ -14,11 +14,6 @@ static void Stairs0(void);
 static void Stairs1(void);
 void LevelNull(void);
 
-static void Zone0Load(void);
-static void Zone1Load(void);
-static void Zone2Load(void);
-static void Zone3Load(void);
-static void Zone4Load(void);
 
 /* the laser beams in zone 1; the second of each pair sweeps round its start */
 static struct VECT Laser0Start = { 16107, -19700, 3520 };

@@ -13,11 +13,6 @@ struct CREATURE *FindCreature(struct IDENTITYNAME Name);
 static void Laser0Off(void);
 static void Laser1Off(void);
 
-static void Zone0Load(void);
-static void Zone1Load(void);
-static void Zone2Load(void);
-static void Zone3Load(void);
-static void Zone4Load(void);
 
 static struct IDENTITYNAME LiftNames[2] = { { "Lift A" }, { "Lift C" } };
 

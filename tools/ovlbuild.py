@@ -3,8 +3,8 @@
 
 usage: tools/ovlbuild.py [-j N] [NAME...]        (default: every src/ovl/NAME.c)
 
-  src/ovl/<module>.c   gcc -E -> CC1PSX 4.4 (-O3 -G0 -g) -> ASPSX 2.81 (-G0) -> build/ovl/<module>.obj
-                       tools/ovllink.py                                 -> build/ovl/<module>.bin, .rel
+  src/ovl/<module>.c   CPPPSX -> CC1PSX 4.4 (-O3 -G0 -g) -> ASPSX 2.81 (-G0) -> build/ovl/<module>.obj
+                       PSYLINK 2.73 /p /rmips (pure binary, relocations) -> build/ovl/<module>.bin, .rel
 
 A module is one C file, plus the PSY-Q library modules its source names in an
 /* ovl-libs: lib/MODULE ... */ comment (e.g. libpress/LIBPRESS), linked after it in that order from
@@ -24,7 +24,7 @@ import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import build      # noqa: E402  (shares the toolchain paths and helpers)
-import ovllink    # noqa: E402
+import snobj      # noqa: E402
 
 R = build.R
 OUT = os.path.join(R, 'build', 'ovl')
@@ -71,14 +71,35 @@ def ovl_libs(name):
             shutil.copy(f'{build.PSYQ_LIB}/lib/{lib}.lib', d)
             build.run(['wine', f'{build.PSYQ}/bin/psylib.exe', '/x', f'{lib}.lib'], cwd=d)
             os.remove(f'{d}/{lib}.lib')
-        o = ovllink.Obj(f'{d}/{mod.upper()}.OBJ')
+        o = f'lib/{lib}/{mod.upper()}.OBJ'
         if size:
-            text = o.data[o.sec('.text')]
-            if any(text[int(size, 16):]):
-                raise ValueError(f'{spec}@{size}: would cut code')
-            del text[int(size, 16):]
+            # a copy with .text cut to size (snobj.cut checks it only drops zero padding)
+            o = f'lib/{lib}/{mod.upper()}_{size}.OBJ'
+            snobj.cut(f'{d}/{mod.upper()}.OBJ', f'{OUT}/{o}', '.text', int(size, 16))
         objs.append(o)
     return objs
+
+
+LNK = """; tools/ovlbuild.py: an overlay module from address 0, its interface (.header) first
+\torg\t0
+
+text\tgroup
+""" + "".join(f"\tsection\t{s}, text\n" for s in ['.header', '.rdata', '.text', '.data', '.sdata', '.sbss', '.bss', '.commons'])
+
+
+def link(name):
+    """PSYLINK, as the original: a pure binary (/p) with __SN_RELOCATE's list (/rmips)"""
+    objs = [f'{name}.obj'] + ovl_libs(name)
+    with open(f'{OUT}/{name}.lnk', 'w', newline='\r\n') as f:
+        f.write(LNK + '\n' + ''.join(f'\tinclude\t"{o.replace("/", chr(92))}"\n' for o in objs))
+    for ext in ('bin', 'rel', 'map'):
+        if os.path.exists(f'{OUT}/{name}.{ext}'):
+            os.remove(f'{OUT}/{name}.{ext}')
+    rc, out = build.run(['wine', f'{build.PSYQ}/bin/psylink.exe', '/c', '/p', '/z', '/m', f'/rmips={name}.rel',
+                         f'@{name}.lnk,{name}.bin,,{name}.map'], cwd=OUT)
+    if rc or 'Error' in out or not os.path.exists(f'{OUT}/{name}.bin'):
+        raise ValueError(out.strip())
+    return open(f'{OUT}/{name}.bin', 'rb').read(), open(f'{OUT}/{name}.rel', 'rb').read()
 
 
 def sha1(path):
@@ -117,16 +138,11 @@ def main():
             continue
         binp = f'{OUT}/{name}.bin'
         try:
-            image, rel, glob_ = ovllink.link([ovllink.Obj(f'{OUT}/{name}.obj')] + ovl_libs(name))
+            image, rel = link(name)
         except (ValueError, OSError) as e:
             print(f'{name}: link failed: {e}')
             bad += 1
             continue
-        open(binp, 'wb').write(image)
-        open(binp[:-4] + '.rel', 'wb').write(rel)
-        with open(binp[:-4] + '.map', 'w') as f:
-            for n, a in sorted(glob_.items(), key=lambda x: x[1]):
-                f.write(f'{a:08x} {n}\n')
         want = expect.get(name)
         got = (hashlib.sha1(image).hexdigest(), hashlib.sha1(rel).hexdigest())
         if want == got:

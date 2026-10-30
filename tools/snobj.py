@@ -3,6 +3,7 @@
 
     sections(path) -> {name: bytearray}    the bytes each section holds (bss sections: zero-filled)
     symbols(path)  -> [(section name, offset, name, exported)]
+    cut(path, out, section, size)          copy the object with the section cut to size bytes
 
 usage: snobj.py FILE.obj      prints section sizes and symbols
 """
@@ -22,6 +23,7 @@ def parse(path):
     patches = []
     parse.numbers = getattr(parse, 'numbers', []) + [[]]
     chunk_start = {}
+    parse.chunks = []      # (section id, file offset of the length field, length)
     cur = None
 
     def u8():
@@ -61,6 +63,7 @@ def parse(path):
         if cmd == 0:
             break
         elif cmd == 2:                     # code bytes
+            parse.chunks.append((cur, pos, struct.unpack_from('<H', data, pos)[0]))
             n = u16()
             chunk_start[cur] = len(code.get(cur, b''))
             code.setdefault(cur, bytearray()).extend(data[pos:pos + n])
@@ -149,6 +152,7 @@ def parse(path):
             b = b + bytes(bss[sid])
         secs[name] = b
     parse.patches = [(names.get(sec, sec), off, t) for sec, off, t, _ in patches]
+    parse.names = names
     return secs, [(names.get(sec, sec), off, n, x) for sec, off, n, x in syms]
 
 
@@ -164,6 +168,21 @@ def patches(path):
     """[(section name, offset, patch type)]: the places the linker fills in"""
     parse(path)
     return parse.patches
+
+
+def cut(path, out, section, size):
+    """Copy an object with a section's code cut to size bytes. Only the trailing bytes of its
+    last code record can go, and only zeroes (padding), not code a patch or symbol uses."""
+    secs = sections(path)
+    data = bytearray(open(path, 'rb').read())
+    sid = next(k for k, v in parse.names.items() if v == section)
+    drop = len(secs[section]) - size
+    _, at, n = [c for c in parse.chunks if c[0] == sid][-1]
+    if drop < 0 or drop > n or any(secs[section][size:]):
+        raise ValueError(f'{path}: cannot cut {section} to {size:#x}')
+    struct.pack_into('<H', data, at, n - drop)
+    del data[at + 2 + n - drop:at + 2 + n]
+    open(out, 'wb').write(data)
 
 
 if __name__ == '__main__':

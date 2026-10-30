@@ -708,7 +708,6 @@ static void EndMissionUpdate(void)
     }
 }
 
-static void DrawPicture(short y, short clut, short tpage, int is24, struct COLOUR col, int semitrans);
 /* the three logos, 83 frames each; fire after frame 126 fades them out and leaves */
 static void LogosUpdate(void)
 {

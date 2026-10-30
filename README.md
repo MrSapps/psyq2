@@ -66,15 +66,17 @@ function pointers the engine fills in there (`LevelInterface.Engine->...`, `Ifac
 
 - `config/overlays.txt` lists every module, the sha1s of its image and relocations, and the level files that hold it.
 - `src/ovl/<module>.c` is one module. Same compiler as the executable but **`-O3 -G0 -g`** (a module has no `$gp`).
-- `tools/ovllink.py` links a module: `.header` (the interface, `OVL_HEADER` in `src/ovl/include/ovl.h`), then
-  `.rdata`, `.text`, `.data`, `.bss`, from address 0. The image holds 0 in every hi16 and the target's low half
-  in every lo16; the `.rel` lists the relocations in the order of the object's patches, a hi16 followed by its target.
+- A module is linked by PSYLINK 2.73, as the originals were: `/p` writes the image (a pure binary from
+  address 0) and `/rmips` the `.rel`, the relocation list `__SN_RELOCATE` reads. The link script
+  (`build/ovl/<module>.lnk`, written by `tools/ovlbuild.py`) puts `.header` (the interface, `OVL_HEADER` in
+  `src/ovl/include/ovl.h`) first, then `.rdata`, `.text`, `.data`, `.sdata`, `.sbss`, `.bss`.
 - Some modules also link PSY-Q library modules (libpress's MDEC code, `memset`, ...) after their own object;
   the source names them in an `/* ovl-libs: libpress/LIBPRESS ... */` comment and `tools/ovlbuild.py` links
-  the real objects from the PSY-Q 4.5 libraries, whose patch order the `.rel` keeps.
+  the real objects from the PSY-Q 4.5 libraries.
 - The interface is a plain writable variable: `const` lets gcc keep its fields in registers across calls,
   which the originals don't.
-- `lib/MODULE@SIZE` in `ovl-libs` cuts the module's `.text` to SIZE bytes (zero padding only, checked).
+- `lib/MODULE@SIZE` in `ovl-libs` links a copy of the library module with its `.text` cut to SIZE bytes
+  (`snobj.cut`, zero padding only).
   level_biggun's RAND is 0x3c bytes in the original and 0x40 (the same code and a trailing `nop`) in
   PSY-Q 4.3 to 4.5.
 - The movie-playing modules (level_qfront, level_qendmis1, level_qdummy, level_qmagextr) link libpress,
@@ -92,8 +94,11 @@ Each is commented where it is:
 - **`.bss` alignment.** cre_gunner, cre_infantry, cre_strider and cre_soldier_magdemo start `.bss` 4
   bytes later than their data ends (8-aligned, which other modules aren't), filled with a `.data` word,
   `BssAlign`.
-- **bss order.** Uninitialised statics use the `BSS` section attribute (`bss.h`): ASPSX's `.lcomm`
-  aligns 8-byte statics to 8 and bigger ones to 16, which the originals don't.
+- **bss order.** Uninitialised statics use the `BSS` section attribute (`bss.h`) where the original
+  doesn't have `.lcomm`'s alignment (ASPSX aligns 8-byte statics to 8 and bigger ones to 16).
+- **Commons.** The original linker allocated a module's commons after its `.bss` in definition order;
+  PSYLINK 2.73 uses hash order. level_security, whose four differ, defines them into a `.commons`
+  section (`OVL_COMMON`) that the link script puts last.
 - **Functions still in assembly** (the C is under `#ifdef NONMATCHING`, with what was tried):
   - cre_boss1's `PreInit_Supertank`: sched1 puts a load of an uninitialised variable, passed as a
     stray extra argument, into `$a3` last, because `$a3` is also set by three 4-argument calls, so the

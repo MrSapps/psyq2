@@ -49,12 +49,11 @@ static int OrbSpace;
 static int WallTimer[4];
 static struct BRUSHMOVEBUF *HexLiftBuf;
 static int Unused7;
-/* commons: the linker lays these out after the statics, in ASPSX's symbol hash order
-   (sum of the name's characters mod 256), which these names reproduce */
-struct ORBSPARK Sparks[5];
-int HexLiftScene;
-struct BRUSHMOVEBUF *OrbMoveBuf;
-int QuakeTimer;
+/* the module's commons, after its statics (OVL_COMMON in ovl.h) */
+struct ORBSPARK Sparks[5] OVL_COMMON;
+int HexLiftScene OVL_COMMON;
+struct BRUSHMOVEBUF *OrbMoveBuf OVL_COMMON;
+int QuakeTimer OVL_COMMON;
 
 static void RestoreLifts(void)
 {

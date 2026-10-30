@@ -3,6 +3,10 @@
 #include "ovl.h"
 #include <rand.h>
 #include "bss.h"
+/* ovl-libs: libc2/MEMSET libc2/RAND@3c */
+/* The original links libc2's memset, rand and srand after the module's object. Its RAND has
+ * 0x3c bytes of text, PSY-Q 4.3-4.5's 0x40 (the same code and a trailing nop), so the
+ * nop is cut. RAND's .bss (next, then 12 unused bytes) ends the module's bss. */
 void InitLevel(void);
 struct QLEVELINTERFACE LevelInterface OVL_HEADER = { InitLevel, 0, 0 };
 
@@ -42,7 +46,6 @@ void SetGlassHidden(int n, int Hidden);
 int InSweep(int n);
 struct CREATURE *FindGun(void);
 static void DrawExtra(void);
-void LinkedLibraries(void);
 
 static void DrawBeam(struct BEAM *Beam);
 
@@ -679,48 +682,3 @@ static void DrawExtra(void)
     DrawBeams();
 }
 
-/* The library code the original linked after the module's own object: libc2 MEMSET (memset)
- * and RAND (rand, srand). It was built with other flags (the stores to next go through $at),
- * so it is reproduced here byte for byte: one asm block in the last function the compiler
- * emits, whose own epilogue goes to a section the linker ignores. (Not ovl-libs: RAND.OBJ of
- * PSY-Q 4.3-4.5 has 0x40 bytes of text, the original's 0x3c.) RAND's seed is next, the
- * last of the module's bss. */
-static unsigned long next BSS;
-static int Unused6[3] BSS;
-
-void LinkedLibraries(void)
-{
-    __asm__(
-        ".set noreorder\n"
-        ".set noat\n"
-        " .globl memset\n"
-        " .globl rand\n"
-        " .globl srand\n"
-        "memset:\n"
-        " .word 0x10800009,0x00001021,0x1cc00003,0x00801021\n"
-        " j memset_t28\n"
-        " addu $2,$0,$0\n"
-        " .word 0xa0850000,0x24c6ffff,0x1cc0fffd,0x24840001\n"
-        "memset_t28:\n"
-        " .word 0x03e00008,0x00000000\n"
-        "rand:\n"
-        " lui $3,0x41c6\n"
-        " lui $2,%hi(next)\n"
-        " lw $2,%lo(next)($2)\n"
-        " ori $3,$3,0x4e6d\n"
-        " mult $2,$3\n"
-        " mflo $4\n"
-        " addiu $2,$4,12345\n"
-        " lui $1,%hi(next)\n"
-        " sw $2,%lo(next)($1)\n"
-        " srl $2,$2,16\n"
-        " jr $31\n"
-        " andi $2,$2,0x7fff\n"
-        "srand:\n"
-        " lui $1,%hi(next)\n"
-        " jr $31\n"
-        " sw $4,%lo(next)($1)\n"
-        ".set at\n"
-        ".set reorder\n"
-        ".section .discard\n");
-}
