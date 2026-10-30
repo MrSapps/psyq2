@@ -50,10 +50,13 @@ struct QCREINTERFACE Iface OVL_HEADER = { SP_monster_supertank, Supertank_EveryF
    that combine leaves alone: a local copy of a volatile sound_search2, or a copy loaded
    before the sound_search1 store (combine won't move a load past a store), does keep the
    load last (local-alloc ties the copy to $a3), but the extra boosted load then reorders the
-   IDENTITYNAME bytes (64 lines). With an instrumented cc1, forcing the $a3 load to the top
-   priority, the lui to 8 and the GetSoundNum pointer load to 8 leaves only
-   `lw $2,36($17)` / `lw $7,%lo(sound_search2)` swapped by sched2, so the original's RTL
-   (insn order) for this call differs, not just the priorities. No other module passes a
+   IDENTITYNAME bytes (64 lines). With an instrumented cc1 the C below matches exactly when
+   two things are forced together: the $a3 load's sched1 priority is exactly 7 (not
+   boosted to the maximum: that swaps it with the GetSoundNum pointer load), and local-alloc
+   puts the sound_search2 lui pseudo in $8 instead of $2 (sched2 then hoists the lui to just
+   after the last use of $8, where the original has it). Either alone leaves 2-4 lines. No
+   spelling found gives the load a load-latency predecessor (the only way to a 7 in this
+   block: anti/output deps cost 1 on MIPS) without an extra insn. No other module passes a
    stray argument to copy the shape from.
    This block also holds PreInit's string literals, in their .rdata order. It sits right after
    Iface, where gcc is in a named section and so re-emits a section directive before its next
