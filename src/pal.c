@@ -194,15 +194,13 @@ short NumMapPals SBSS;
 short palette[80] BSS;
 
 
-int LoadImage(struct RECT *rect, unsigned long *p);
-int DrawSync(int mode);
 void *MY_malloc_namehb(int s, char *name);
 extern struct PALLIST pallist0[];
 
 void DownloadPals(void)
 {
     struct PALLIST *Pals;
-    struct RECT desrect;
+    RECT desrect;
     int tcnt;
     short *pal;
     short tp[16];
@@ -248,7 +246,7 @@ void InitLevPals(void)
     int a;
     int PalX;
     int PalY;
-    struct RECT Rect;
+    RECT Rect;
 
     TotalNumGamePals = NumMapPals + NumModelPals;
     for (a = 0; a < TotalNumGamePals * 16; a++)

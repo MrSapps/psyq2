@@ -10,8 +10,8 @@ struct QENGINELEVINTERFACE_OLD {  /* size 0x488 */
     int SizeOf;  /* 0x0 */
     int (*PrintF)();  /* 0x4 */
     struct IDENTITYNAME *ThisLevelName;  /* 0x8 */
-    struct POLY_FT4 *PolyStack0;  /* 0xc */
-    struct POLY_FT4 *PolyStack1;  /* 0x10 */
+    POLY_FT4 *PolyStack0;  /* 0xc */
+    POLY_FT4 *PolyStack1;  /* 0x10 */
     void *MissionData;  /* 0x14 */
     unsigned int *usp;  /* 0x18 */
     struct CREATURE *(*InitialiseQuakePlayer)();  /* 0x1c */
@@ -74,7 +74,7 @@ struct QENGINELEVINTERFACE_OLD {  /* size 0x488 */
     void ***OnZoneLoadTable;  /* 0x100 */
     int (*rand)();  /* 0x104 */
     int (*sprintf)();  /* 0x108 */
-    struct MATRIX *(*RotMatrixYXZ)();  /* 0x10c */
+    MATRIX *(*RotMatrixYXZ)();  /* 0x10c */
     char *(*PrintIdentityName)();  /* 0x110 */
     void (*centreprintf)();  /* 0x114 */
     void (*dprintf)();  /* 0x118 */
@@ -226,10 +226,10 @@ struct QENGINELEVINTERFACE_OLD {  /* size 0x488 */
     void (*StSetRing)();  /* 0x3f0 */
     void (*StSetStream)();  /* 0x3f4 */
     void (*SetDispMask)();  /* 0x3f8 */
-    struct DISPENV *(*SetDefDispEnv)();  /* 0x3fc */
-    struct DRAWENV *(*SetDefDrawEnv)();  /* 0x400 */
-    struct DISPENV *(*PutDispEnv)();  /* 0x404 */
-    struct DRAWENV *(*PutDrawEnv)();  /* 0x408 */
+    DISPENV *(*SetDefDispEnv)();  /* 0x3fc */
+    DRAWENV *(*SetDefDrawEnv)();  /* 0x400 */
+    DISPENV *(*PutDispEnv)();  /* 0x404 */
+    DRAWENV *(*PutDrawEnv)();  /* 0x408 */
     void (*SetDrawMode)();  /* 0x40c */
     void (*SetTile)();  /* 0x410 */
     unsigned long *(*ClearOTag)();  /* 0x414 */
@@ -242,7 +242,7 @@ struct QENGINELEVINTERFACE_OLD {  /* size 0x488 */
     void *(*CdDataCallback)();  /* 0x430 */
     void (*(*CdReadyCallback)())();  /* 0x434 */
     int (*CdRead2)();  /* 0x438 */
-    struct CdlFILE *(*CdSearchFile)();  /* 0x43c */
+    CdlFILE *(*CdSearchFile)();  /* 0x43c */
     void (*SetCDVolume)();  /* 0x440 */
     void (*NewPadRead)();  /* 0x444 */
     int (*ResetCallback)();  /* 0x448 */

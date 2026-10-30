@@ -2,6 +2,19 @@
 #ifndef TYPES_H
 #define TYPES_H
 
+/* the PSY-Q headers' types (SDK_HEADERS in tools/symdump.py) */
+#include <sys/types.h>
+#include <stddef.h>
+#include <stdarg.h>
+#include <libgte.h>
+#include <libgpu.h>
+#include <libcd.h>
+#include <libspu.h>
+#include <libsnd.h>
+#include <libpress.h>
+#include <kernel.h>
+#include <libmcrd.h>
+
 /* forward declarations */
 /* enum DAMAGETYPES */
 /* enum Fire_Status */
@@ -52,30 +65,14 @@ struct CRESAVE;
 struct CRESAVEPACKED;
 struct CRESAVEUNPACKED;
 struct CROSSDATA;
-struct CRVECTOR3;
-struct CRVECTOR4;
 struct CSTBL;
 struct CTRLER;
 struct CURSOR_MEMORY;
-struct CVECTOR;
-struct CdlATV;
-struct CdlFILE;
-struct CdlFILTER;
-struct CdlLOC;
 struct ControllerPacket;
 struct DB;
-struct DIRENTRY;
-struct DISPENV;
-struct DIVPOLYGON4;
-struct DRAWENV;
 struct DRAWMOD;
-struct DR_ENV;
-struct DR_MOVE;
-struct DR_TPAGE;
 struct DUMMYGPU;
-struct DVECTOR;
 struct EVENTTIMER;
-struct EXEC;
 struct EXTRASORTDIRTABLE;
 struct EffectStruct;
 struct ExpandedData;
@@ -104,12 +101,9 @@ struct LENSFLARE;
 struct LEVELDATA;
 struct LIGHTBACK;
 struct LIGHTS;
-struct LINE_F2;
-struct LINE_G2;
 struct LONGINT;
 struct MAPNAME;
 struct MAT2D;
-struct MATRIX;
 struct MENUT;
 struct MESSAGES;
 struct MINMAX;
@@ -140,11 +134,6 @@ struct PICKUPENTRY;
 struct PLAYER;
 struct PLAYERCONTROLS;
 struct PLAYEREXTRAS;
-struct POLY_F4;
-struct POLY_FT3;
-struct POLY_FT4;
-struct POLY_G4;
-struct POLY_GT4;
 struct PORTALDATA;
 struct PORTDATA;
 struct POWER;
@@ -189,12 +178,10 @@ struct QUATANIMFRAME;
 struct RAILEXTRA;
 struct RANGE;
 struct RANGESHDR;
-struct RECT;
 struct RESOURCE;
 struct RESPAWNDATA;
 struct RGB3;
 struct RGBQUAD;
-struct RVECTOR;
 struct SAVEFILEHDR;
 struct SCENE;
 struct SCENE2;
@@ -222,8 +209,6 @@ struct SPAWNDETAILS;
 struct SPECIALEFFECT;
 struct SPLURGE;
 struct SPRITEDATA;
-struct SPRT;
-struct SPRT_16;
 struct STARTPOSITION;
 struct STORELIFTDATA;
 struct STORELIFTDATA2;
@@ -232,19 +217,10 @@ struct SUBAREA;
 struct SUBMOD;
 struct SUBPACK;
 struct SVECT;
-struct SVECTOR;
-struct SndVolume2;
 struct SoundList;
-struct SpuCommonAttr;
-struct SpuExtAttr;
-struct SpuStVoiceAttr;
-struct SpuVoiceAttr;
-struct SpuVolume;
-struct TCB;
 struct TEMPBACKUPPOS;
 struct TEMPTYPE;
 struct THICKLINE;
-struct TILE;
 struct TIMEDLIGHT;
 struct TRIBUTEDATA;
 struct TRIGGERTARGET;
@@ -258,7 +234,6 @@ struct UVWH;
 struct VDB;
 struct VECT;
 struct VECTBOX;
-struct VECTOR;
 struct VagHdr;
 struct WAYPOINT;
 struct WEAPON_ANIM;
@@ -420,30 +395,14 @@ typedef struct CRESAVE CRESAVE;
 typedef struct CRESAVEPACKED CRESAVEPACKED;
 typedef struct CRESAVEUNPACKED CRESAVEUNPACKED;
 typedef struct CROSSDATA CROSSDATA;
-typedef struct CRVECTOR3 CRVECTOR3;
-typedef struct CRVECTOR4 CRVECTOR4;
 typedef struct CSTBL CSTBL;
 typedef struct CTRLER CTRLER;
 typedef struct CURSOR_MEMORY CURSOR_MEMORY;
-typedef struct CVECTOR CVECTOR;
-typedef struct CdlATV CdlATV;
-typedef void (*CdlCB)();
-typedef struct CdlFILE CdlFILE;
-typedef struct CdlFILTER CdlFILTER;
-typedef struct CdlLOC CdlLOC;
 typedef struct ControllerPacket ControllerPacket;
 typedef enum DAMAGETYPES DAMAGETYPES;
 typedef struct DB DB;
-typedef unsigned short DECDCTTAB[34816];
-typedef struct DISPENV DISPENV;
-typedef struct DIVPOLYGON4 DIVPOLYGON4;
-typedef struct DRAWENV DRAWENV;
 typedef struct DRAWMOD DRAWMOD;
-typedef struct DR_ENV DR_ENV;
-typedef struct DR_MOVE DR_MOVE;
-typedef struct DR_TPAGE DR_TPAGE;
 typedef struct DUMMYGPU DUMMYGPU;
-typedef struct DVECTOR DVECTOR;
 typedef unsigned long DWORD;
 typedef struct EVENTTIMER EVENTTIMER;
 typedef struct EXTRASORTDIRTABLE EXTRASORTDIRTABLE;
@@ -474,14 +433,11 @@ typedef struct LENSFLARE LENSFLARE;
 typedef struct LEVELDATA LEVELDATA;
 typedef struct LIGHTBACK LIGHTBACK;
 typedef struct LIGHTS LIGHTS;
-typedef struct LINE_F2 LINE_F2;
-typedef struct LINE_G2 LINE_G2;
 typedef long LONG;
 typedef struct LONGINT LONGINT;
 typedef struct _XPIC *LPXPIC;
 typedef struct MAPNAME MAPNAME;
 typedef struct MAT2D MAT2D;
-typedef struct MATRIX MATRIX;
 typedef struct _MEMCARD_DATA MEMCARD_DATA;
 typedef struct _MEMCARD_HEADER MEMCARD_HEADER;
 typedef struct MENUT MENUT;
@@ -496,7 +452,6 @@ typedef struct MODPRE MODPRE;
 typedef struct MODSUBOFF MODSUBOFF;
 typedef struct MODWIN MODWIN;
 typedef struct MULTIPLAYER MULTIPLAYER;
-typedef void (*MemCB)();
 typedef struct MouseData MouseData;
 typedef struct MultiTapData MultiTapData;
 typedef struct NEWANIMREMAP NEWANIMREMAP;
@@ -516,11 +471,6 @@ typedef enum PICKUPSTATUS PICKUPSTATUS;
 typedef struct PLAYER PLAYER;
 typedef struct PLAYERCONTROLS PLAYERCONTROLS;
 typedef struct PLAYEREXTRAS PLAYEREXTRAS;
-typedef struct POLY_F4 POLY_F4;
-typedef struct POLY_FT3 POLY_FT3;
-typedef struct POLY_FT4 POLY_FT4;
-typedef struct POLY_G4 POLY_G4;
-typedef struct POLY_GT4 POLY_GT4;
 typedef struct PORTALDATA PORTALDATA;
 typedef struct PORTDATA PORTDATA;
 typedef struct POWER POWER;
@@ -567,12 +517,10 @@ typedef struct QUATANIMFRAME QUATANIMFRAME;
 typedef struct RAILEXTRA RAILEXTRA;
 typedef struct RANGE RANGE;
 typedef struct RANGESHDR RANGESHDR;
-typedef struct RECT RECT;
 typedef struct RESOURCE RESOURCE;
 typedef struct RESPAWNDATA RESPAWNDATA;
 typedef struct RGB3 RGB3;
 typedef struct RGBQUAD RGBQUAD;
-typedef struct RVECTOR RVECTOR;
 typedef struct SAVEFILEHDR SAVEFILEHDR;
 typedef struct SCENE SCENE;
 typedef struct SCENE2 SCENE2;
@@ -600,8 +548,6 @@ typedef struct SPAWNDETAILS SPAWNDETAILS;
 typedef struct SPECIALEFFECT SPECIALEFFECT;
 typedef struct SPLURGE SPLURGE;
 typedef struct SPRITEDATA SPRITEDATA;
-typedef struct SPRT SPRT;
-typedef struct SPRT_16 SPRT_16;
 typedef struct STARTPOSITION STARTPOSITION;
 typedef struct STORELIFTDATA STORELIFTDATA;
 typedef struct STORELIFTDATA2 STORELIFTDATA2;
@@ -610,22 +556,10 @@ typedef struct SUBAREA SUBAREA;
 typedef struct SUBMOD SUBMOD;
 typedef struct SUBPACK SUBPACK;
 typedef struct SVECT SVECT;
-typedef struct SVECTOR SVECTOR;
-typedef struct SndVolume2 SndVolume2;
 typedef struct SoundList SoundList;
-typedef struct SpuCommonAttr SpuCommonAttr;
-typedef struct SpuExtAttr SpuExtAttr;
-typedef void (*SpuIRQCallbackProc)();
-typedef void (*SpuStCallbackProc)();
-typedef struct SpuStVoiceAttr SpuStVoiceAttr;
-typedef void (*SpuTransferCallbackProc)();
-typedef struct SpuVoiceAttr SpuVoiceAttr;
-typedef struct SpuVolume SpuVolume;
-typedef void (*SsMarkCallbackProc)();
 typedef struct TEMPBACKUPPOS TEMPBACKUPPOS;
 typedef struct TEMPTYPE TEMPTYPE;
 typedef struct THICKLINE THICKLINE;
-typedef struct TILE TILE;
 typedef long TIME;
 typedef struct TIMEDLIGHT TIMEDLIGHT;
 typedef struct TRIBUTEDATA TRIBUTEDATA;
@@ -640,7 +574,6 @@ typedef struct UVWH UVWH;
 typedef struct VDB VDB;
 typedef struct VECT VECT;
 typedef struct VECTBOX VECTBOX;
-typedef struct VECTOR VECTOR;
 typedef struct VagHdr VagHdr;
 typedef struct WAYPOINT WAYPOINT;
 typedef struct WEAPON_ANIM WEAPON_ANIM;
@@ -653,13 +586,10 @@ typedef struct ai_global_table_t ai_global_table_t;
 typedef struct ai_local_table_t ai_local_table_t;
 typedef struct ai_local_tables_t ai_local_tables_t;
 typedef unsigned char byte;
-typedef char *caddr_t;
 typedef struct client_persistant_t client_persistant_t;
 typedef struct cplane_s cplane_t;
 typedef struct csurface_s csurface_t;
 typedef struct cvar_s cvar_t;
-typedef long daddr_t;
-typedef short dev_t;
 typedef struct edict_s edict_t;
 typedef struct entity_state_s entity_state_t;
 typedef enum fieldtype_t fieldtype_t;
@@ -667,34 +597,18 @@ typedef int fixed16_t;
 typedef int fixed4_t;
 typedef int fixed8_t;
 typedef struct gclient_s gclient_t;
-typedef unsigned short gid_t;
 typedef struct gitem_s gitem_t;
-typedef unsigned long ino_t;
 typedef struct level_locals_t level_locals_t;
 typedef struct link_s link_t;
 typedef struct mframe_t mframe_t;
 typedef struct mmove_t mmove_t;
 typedef struct monsterinfo_t monsterinfo_t;
-typedef long off_t;
 typedef struct pathcorner_s pathcorner_t;
-typedef struct _physadr *physadr;
 typedef struct pmove_state_t pmove_state_t;
 typedef enum pmtype_t pmtype_t;
-typedef long *qaddr_t;
-typedef unsigned int size_t;
-typedef long swblk_t;
-typedef long time_t;
 typedef struct trace_t trace_t;
 typedef struct trail_t trail_t;
-typedef unsigned char u_char;
-typedef unsigned int u_int;
-typedef unsigned long u_long;
-typedef unsigned short u_short;
-typedef unsigned short uid_t;
 typedef struct usercmd_s usercmd_t;
-typedef unsigned short ushort;
-typedef void *va_list;
-typedef unsigned long wchar_t;
 
 /* structs and unions; member offsets in trailing comments */
 struct IDENTITYNAME {  /* size 0xc */
@@ -1072,7 +986,7 @@ struct SORT {  /* size 0x14 */
     short ScreenZ;  /* 0x4 */
     short Flags;  /* 0x6 */
     struct VECTBOX *VectBox;  /* 0x8 */
-    struct POLY_GT4 *FirstLast[2];  /* 0xc */
+    POLY_GT4 *FirstLast[2];  /* 0xc */
 };
 struct MODWIN {  /* size 0x64 */
     unsigned char GotPackets : 2;  /* bit 0 */
@@ -1087,10 +1001,6 @@ struct MODWIN {  /* size 0x64 */
     short OpaquePols[17];  /* 0x2a */
     struct SCRPNT ScreenXY;  /* 0x4c */
     struct SORT Sort;  /* 0x50 */
-};
-struct MATRIX {  /* size 0x20 */
-    short m[3][3];  /* 0x0 */
-    long t[3];  /* 0x14 */
 };
 struct SPECIALEFFECT {  /* size 0x8 */
     unsigned char BurnTime;  /* 0x0 */
@@ -1155,7 +1065,7 @@ struct CREATURE {  /* size 0x300 */
     struct COLOUR ShieldColour;  /* 0x2b4 */
     struct SVECT ShieldAng;  /* 0x2b8 */
     short ShieldTimer;  /* 0x2be */
-    struct MATRIX Matrix;  /* 0x2c0 */
+    MATRIX Matrix;  /* 0x2c0 */
     struct ANIMHDR *SequenceHdr;  /* 0x2e0 */
     int SequenceData;  /* 0x2e4 */
     int SequenceData2;  /* 0x2e8 */
@@ -1219,51 +1129,6 @@ struct CROSSDATA {  /* size 0x14 */
     int Radius;  /* 0xc */
     struct COLOUR Colour;  /* 0x10 */
 };
-struct SVECTOR {  /* size 0x8 */
-    short vx;  /* 0x0 */
-    short vy;  /* 0x2 */
-    short vz;  /* 0x4 */
-    short pad;  /* 0x6 */
-};
-struct CVECTOR {  /* size 0x4 */
-    unsigned char r;  /* 0x0 */
-    unsigned char g;  /* 0x1 */
-    unsigned char b;  /* 0x2 */
-    unsigned char cd;  /* 0x3 */
-};
-struct DVECTOR {  /* size 0x4 */
-    short vx;  /* 0x0 */
-    short vy;  /* 0x2 */
-};
-struct RVECTOR {  /* size 0x18 */
-    struct SVECTOR v;  /* 0x0 */
-    unsigned char uv[2];  /* 0x8 */
-    unsigned short pad;  /* 0xa */
-    struct CVECTOR c;  /* 0xc */
-    struct DVECTOR sxy;  /* 0x10 */
-    unsigned long sz;  /* 0x14 */
-};
-struct CRVECTOR3 {  /* size 0x58 */
-    struct RVECTOR r01;  /* 0x0 */
-    struct RVECTOR r12;  /* 0x18 */
-    struct RVECTOR r20;  /* 0x30 */
-    struct RVECTOR *r0;  /* 0x48 */
-    struct RVECTOR *r1;  /* 0x4c */
-    struct RVECTOR *r2;  /* 0x50 */
-    unsigned long *rtn;  /* 0x54 */
-};
-struct CRVECTOR4 {  /* size 0x8c */
-    struct RVECTOR r01;  /* 0x0 */
-    struct RVECTOR r02;  /* 0x18 */
-    struct RVECTOR r31;  /* 0x30 */
-    struct RVECTOR r32;  /* 0x48 */
-    struct RVECTOR rc;  /* 0x60 */
-    struct RVECTOR *r0;  /* 0x78 */
-    struct RVECTOR *r1;  /* 0x7c */
-    struct RVECTOR *r2;  /* 0x80 */
-    struct RVECTOR *r3;  /* 0x84 */
-    unsigned long *rtn;  /* 0x88 */
-};
 struct CSTBL {  /* size 0x4 */
     short sin;  /* 0x0 */
     short cos;  /* 0x2 */
@@ -1300,28 +1165,6 @@ struct CTRLER {  /* size 0x54 */
 struct CURSOR_MEMORY {  /* size 0x2 */
     char cursorpos;  /* 0x0 */
     char firsttime;  /* 0x1 */
-};
-struct CdlATV {  /* size 0x4 */
-    unsigned char val0;  /* 0x0 */
-    unsigned char val1;  /* 0x1 */
-    unsigned char val2;  /* 0x2 */
-    unsigned char val3;  /* 0x3 */
-};
-struct CdlLOC {  /* size 0x4 */
-    unsigned char minute;  /* 0x0 */
-    unsigned char second;  /* 0x1 */
-    unsigned char sector;  /* 0x2 */
-    unsigned char track;  /* 0x3 */
-};
-struct CdlFILE {  /* size 0x18 */
-    struct CdlLOC pos;  /* 0x0 */
-    unsigned long size;  /* 0x4 */
-    char name[16];  /* 0x8 */
-};
-struct CdlFILTER {  /* size 0x4 */
-    unsigned char file;  /* 0x0 */
-    unsigned char chan;  /* 0x1 */
-    unsigned short pad;  /* 0x2 */
 };
 struct MouseData {  /* size 0x4 */
     unsigned short buttons;  /* 0x0 */
@@ -1365,284 +1208,45 @@ struct ControllerPacket {  /* size 0x22 */
     unsigned char dataFormat;  /* 0x1 */
     union anon_union_3187a5 data;  /* 0x2 */
 };
-struct TILE {  /* size 0x10 */
-    unsigned long tag;  /* 0x0 */
-    unsigned char r0;  /* 0x4 */
-    unsigned char g0;  /* 0x5 */
-    unsigned char b0;  /* 0x6 */
-    unsigned char code;  /* 0x7 */
-    short x0;  /* 0x8 */
-    short y0;  /* 0xa */
-    short w;  /* 0xc */
-    short h;  /* 0xe */
-};
-struct DR_TPAGE {  /* size 0x8 */
-    unsigned long tag;  /* 0x0 */
-    unsigned long code[1];  /* 0x4 */
-};
-struct POLY_FT4 {  /* size 0x28 */
-    unsigned long tag;  /* 0x0 */
-    unsigned char r0;  /* 0x4 */
-    unsigned char g0;  /* 0x5 */
-    unsigned char b0;  /* 0x6 */
-    unsigned char code;  /* 0x7 */
-    short x0;  /* 0x8 */
-    short y0;  /* 0xa */
-    unsigned char u0;  /* 0xc */
-    unsigned char v0;  /* 0xd */
-    unsigned short clut;  /* 0xe */
-    short x1;  /* 0x10 */
-    short y1;  /* 0x12 */
-    unsigned char u1;  /* 0x14 */
-    unsigned char v1;  /* 0x15 */
-    unsigned short tpage;  /* 0x16 */
-    short x2;  /* 0x18 */
-    short y2;  /* 0x1a */
-    unsigned char u2;  /* 0x1c */
-    unsigned char v2;  /* 0x1d */
-    unsigned short pad1;  /* 0x1e */
-    short x3;  /* 0x20 */
-    short y3;  /* 0x22 */
-    unsigned char u3;  /* 0x24 */
-    unsigned char v3;  /* 0x25 */
-    unsigned short pad2;  /* 0x26 */
-};
-struct RECT {  /* size 0x8 */
-    short x;  /* 0x0 */
-    short y;  /* 0x2 */
-    short w;  /* 0x4 */
-    short h;  /* 0x6 */
-};
-struct DR_ENV {  /* size 0x40 */
-    unsigned long tag;  /* 0x0 */
-    unsigned long code[15];  /* 0x4 */
-};
-struct DRAWENV {  /* size 0x5c */
-    struct RECT clip;  /* 0x0 */
-    short ofs[2];  /* 0x8 */
-    struct RECT tw;  /* 0xc */
-    unsigned short tpage;  /* 0x14 */
-    unsigned char dtd;  /* 0x16 */
-    unsigned char dfe;  /* 0x17 */
-    unsigned char isbg;  /* 0x18 */
-    unsigned char r0;  /* 0x19 */
-    unsigned char g0;  /* 0x1a */
-    unsigned char b0;  /* 0x1b */
-    struct DR_ENV dr_env;  /* 0x1c */
-};
 struct DUMMYGPU {  /* size 0x4 */
     unsigned long Tag;  /* 0x0 */
 };
-struct DISPENV {  /* size 0x14 */
-    struct RECT disp;  /* 0x0 */
-    struct RECT screen;  /* 0x8 */
-    unsigned char isinter;  /* 0x10 */
-    unsigned char isrgb24;  /* 0x11 */
-    unsigned char pad0;  /* 0x12 */
-    unsigned char pad1;  /* 0x13 */
-};
-struct DR_MOVE {  /* size 0x18 */
-    unsigned long tag;  /* 0x0 */
-    unsigned long code[5];  /* 0x4 */
-};
-struct LINE_F2 {  /* size 0x10 */
-    unsigned long tag;  /* 0x0 */
-    unsigned char r0;  /* 0x4 */
-    unsigned char g0;  /* 0x5 */
-    unsigned char b0;  /* 0x6 */
-    unsigned char code;  /* 0x7 */
-    short x0;  /* 0x8 */
-    short y0;  /* 0xa */
-    short x1;  /* 0xc */
-    short y1;  /* 0xe */
-};
-struct POLY_FT3 {  /* size 0x20 */
-    unsigned long tag;  /* 0x0 */
-    unsigned char r0;  /* 0x4 */
-    unsigned char g0;  /* 0x5 */
-    unsigned char b0;  /* 0x6 */
-    unsigned char code;  /* 0x7 */
-    short x0;  /* 0x8 */
-    short y0;  /* 0xa */
-    unsigned char u0;  /* 0xc */
-    unsigned char v0;  /* 0xd */
-    unsigned short clut;  /* 0xe */
-    short x1;  /* 0x10 */
-    short y1;  /* 0x12 */
-    unsigned char u1;  /* 0x14 */
-    unsigned char v1;  /* 0x15 */
-    unsigned short tpage;  /* 0x16 */
-    short x2;  /* 0x18 */
-    short y2;  /* 0x1a */
-    unsigned char u2;  /* 0x1c */
-    unsigned char v2;  /* 0x1d */
-    unsigned short pad1;  /* 0x1e */
-};
-struct POLY_GT4 {  /* size 0x34 */
-    unsigned long tag;  /* 0x0 */
-    unsigned char r0;  /* 0x4 */
-    unsigned char g0;  /* 0x5 */
-    unsigned char b0;  /* 0x6 */
-    unsigned char code;  /* 0x7 */
-    short x0;  /* 0x8 */
-    short y0;  /* 0xa */
-    unsigned char u0;  /* 0xc */
-    unsigned char v0;  /* 0xd */
-    unsigned short clut;  /* 0xe */
-    unsigned char r1;  /* 0x10 */
-    unsigned char g1;  /* 0x11 */
-    unsigned char b1;  /* 0x12 */
-    unsigned char p1;  /* 0x13 */
-    short x1;  /* 0x14 */
-    short y1;  /* 0x16 */
-    unsigned char u1;  /* 0x18 */
-    unsigned char v1;  /* 0x19 */
-    unsigned short tpage;  /* 0x1a */
-    unsigned char r2;  /* 0x1c */
-    unsigned char g2;  /* 0x1d */
-    unsigned char b2;  /* 0x1e */
-    unsigned char p2;  /* 0x1f */
-    short x2;  /* 0x20 */
-    short y2;  /* 0x22 */
-    unsigned char u2;  /* 0x24 */
-    unsigned char v2;  /* 0x25 */
-    unsigned short pad2;  /* 0x26 */
-    unsigned char r3;  /* 0x28 */
-    unsigned char g3;  /* 0x29 */
-    unsigned char b3;  /* 0x2a */
-    unsigned char p3;  /* 0x2b */
-    short x3;  /* 0x2c */
-    short y3;  /* 0x2e */
-    unsigned char u3;  /* 0x30 */
-    unsigned char v3;  /* 0x31 */
-    unsigned short pad3;  /* 0x32 */
-};
-struct SPRT {  /* size 0x14 */
-    unsigned long tag;  /* 0x0 */
-    unsigned char r0;  /* 0x4 */
-    unsigned char g0;  /* 0x5 */
-    unsigned char b0;  /* 0x6 */
-    unsigned char code;  /* 0x7 */
-    short x0;  /* 0x8 */
-    short y0;  /* 0xa */
-    unsigned char u0;  /* 0xc */
-    unsigned char v0;  /* 0xd */
-    unsigned short clut;  /* 0xe */
-    short w;  /* 0x10 */
-    short h;  /* 0x12 */
-};
-struct SPRT_16 {  /* size 0x10 */
-    unsigned long tag;  /* 0x0 */
-    unsigned char r0;  /* 0x4 */
-    unsigned char g0;  /* 0x5 */
-    unsigned char b0;  /* 0x6 */
-    unsigned char code;  /* 0x7 */
-    short x0;  /* 0x8 */
-    short y0;  /* 0xa */
-    unsigned char u0;  /* 0xc */
-    unsigned char v0;  /* 0xd */
-    unsigned short clut;  /* 0xe */
-};
-struct LINE_G2 {  /* size 0x14 */
-    unsigned long tag;  /* 0x0 */
-    unsigned char r0;  /* 0x4 */
-    unsigned char g0;  /* 0x5 */
-    unsigned char b0;  /* 0x6 */
-    unsigned char code;  /* 0x7 */
-    short x0;  /* 0x8 */
-    short y0;  /* 0xa */
-    unsigned char r1;  /* 0xc */
-    unsigned char g1;  /* 0xd */
-    unsigned char b1;  /* 0xe */
-    unsigned char p1;  /* 0xf */
-    short x1;  /* 0x10 */
-    short y1;  /* 0x12 */
-};
-struct POLY_G4 {  /* size 0x24 */
-    unsigned long tag;  /* 0x0 */
-    unsigned char r0;  /* 0x4 */
-    unsigned char g0;  /* 0x5 */
-    unsigned char b0;  /* 0x6 */
-    unsigned char code;  /* 0x7 */
-    short x0;  /* 0x8 */
-    short y0;  /* 0xa */
-    unsigned char r1;  /* 0xc */
-    unsigned char g1;  /* 0xd */
-    unsigned char b1;  /* 0xe */
-    unsigned char pad1;  /* 0xf */
-    short x1;  /* 0x10 */
-    short y1;  /* 0x12 */
-    unsigned char r2;  /* 0x14 */
-    unsigned char g2;  /* 0x15 */
-    unsigned char b2;  /* 0x16 */
-    unsigned char pad2;  /* 0x17 */
-    short x2;  /* 0x18 */
-    short y2;  /* 0x1a */
-    unsigned char r3;  /* 0x1c */
-    unsigned char g3;  /* 0x1d */
-    unsigned char b3;  /* 0x1e */
-    unsigned char pad3;  /* 0x1f */
-    short x3;  /* 0x20 */
-    short y3;  /* 0x22 */
-};
 struct DB {  /* size 0x7e98 */
     struct GAMEDB *GameStuff;  /* 0x0 */
-    struct TILE WaterTiles[4];  /* 0x4 */
-    struct TILE PausedTile[2];  /* 0x44 */
-    struct DR_TPAGE PausedDrTPageToSemi;  /* 0x64 */
-    struct DR_TPAGE PausedDrTPageToOpaque;  /* 0x6c */
-    struct POLY_FT4 PausedPolys[8];  /* 0x74 */
-    struct DRAWENV PreClearEnv;  /* 0x1b4 */
-    struct DRAWENV DrawEnv[5];  /* 0x210 */
-    struct DRAWENV WaterEnv[4];  /* 0x3dc */
-    struct DRAWENV PanelEnv[4];  /* 0x54c */
-    struct DRAWENV ChangeDrawEnv[96];  /* 0x6bc */
+    TILE WaterTiles[4];  /* 0x4 */
+    TILE PausedTile[2];  /* 0x44 */
+    DR_TPAGE PausedDrTPageToSemi;  /* 0x64 */
+    DR_TPAGE PausedDrTPageToOpaque;  /* 0x6c */
+    POLY_FT4 PausedPolys[8];  /* 0x74 */
+    DRAWENV PreClearEnv;  /* 0x1b4 */
+    DRAWENV DrawEnv[5];  /* 0x210 */
+    DRAWENV WaterEnv[4];  /* 0x3dc */
+    DRAWENV PanelEnv[4];  /* 0x54c */
+    DRAWENV ChangeDrawEnv[96];  /* 0x6bc */
     struct DUMMYGPU DummyGpu[64];  /* 0x293c */
-    struct TILE PanelBlanks[4];  /* 0x2a3c */
-    struct TILE TileFade[4];  /* 0x2a7c */
-    struct DISPENV DispEnv;  /* 0x2abc */
-    struct DR_MOVE WaterMove;  /* 0x2ad0 */
+    TILE PanelBlanks[4];  /* 0x2a3c */
+    TILE TileFade[4];  /* 0x2a7c */
+    DISPENV DispEnv;  /* 0x2abc */
+    DR_MOVE WaterMove;  /* 0x2ad0 */
     unsigned long InitOt[2];  /* 0x2ae8 */
     unsigned long Ot[4][51];  /* 0x2af0 */
     unsigned long BigOt[11];  /* 0x2e20 */
-    struct POLY_FT4 ShadowPolys[16];  /* 0x2e4c */
-    struct POLY_FT4 GeneralFt4[16];  /* 0x30cc */
-    struct POLY_GT4 *modpolsg4;  /* 0x334c */
-    struct POLY_GT4 *subpolsg4;  /* 0x3350 */
-    struct LINE_F2 LineF2[80];  /* 0x3354 */
-    struct POLY_FT3 TpageDum[8];  /* 0x3854 */
-    struct POLY_FT4 *SmallObj;  /* 0x3954 */
-    struct POLY_FT4 *PartFt4;  /* 0x3958 */
-    struct DR_TPAGE SpriteTpages[5];  /* 0x395c */
-    struct POLY_FT4 MenuPolys[42];  /* 0x3984 */
-    struct POLY_GT4 FMenuPolys[8];  /* 0x4014 */
-    struct SPRT SpriteAnySize[16];  /* 0x41b4 */
-    struct SPRT_16 Sprite816[256];  /* 0x42f4 */
-    struct TILE TimerTiles[8];  /* 0x52f4 */
-    struct LINE_G2 Lines[32];  /* 0x5374 */
-    struct POLY_G4 GeneralG4[289];  /* 0x55f4 */
-};
-struct DIRENTRY {  /* size 0x28 */
-    char name[20];  /* 0x0 */
-    long attr;  /* 0x14 */
-    long size;  /* 0x18 */
-    struct DIRENTRY *next;  /* 0x1c */
-    long head;  /* 0x20 */
-    char system[4];  /* 0x24 */
-};
-struct DIVPOLYGON4 {  /* size 0x334 */
-    unsigned long ndiv;  /* 0x0 */
-    unsigned long pih;  /* 0x4 */
-    unsigned long piv;  /* 0x8 */
-    unsigned short clut;  /* 0xc */
-    unsigned short tpage;  /* 0xe */
-    struct CVECTOR rgbc;  /* 0x10 */
-    unsigned long *ot;  /* 0x14 */
-    struct RVECTOR r0;  /* 0x18 */
-    struct RVECTOR r1;  /* 0x30 */
-    struct RVECTOR r2;  /* 0x48 */
-    struct RVECTOR r3;  /* 0x60 */
-    struct CRVECTOR4 cr[5];  /* 0x78 */
+    POLY_FT4 ShadowPolys[16];  /* 0x2e4c */
+    POLY_FT4 GeneralFt4[16];  /* 0x30cc */
+    POLY_GT4 *modpolsg4;  /* 0x334c */
+    POLY_GT4 *subpolsg4;  /* 0x3350 */
+    LINE_F2 LineF2[80];  /* 0x3354 */
+    POLY_FT3 TpageDum[8];  /* 0x3854 */
+    POLY_FT4 *SmallObj;  /* 0x3954 */
+    POLY_FT4 *PartFt4;  /* 0x3958 */
+    DR_TPAGE SpriteTpages[5];  /* 0x395c */
+    POLY_FT4 MenuPolys[42];  /* 0x3984 */
+    POLY_GT4 FMenuPolys[8];  /* 0x4014 */
+    SPRT SpriteAnySize[16];  /* 0x41b4 */
+    SPRT_16 Sprite816[256];  /* 0x42f4 */
+    TILE TimerTiles[8];  /* 0x52f4 */
+    LINE_G2 Lines[32];  /* 0x5374 */
+    POLY_G4 GeneralG4[289];  /* 0x55f4 */
 };
 struct EVENTTIMER {  /* size 0x14 */
     int currtime;  /* 0x0 */
@@ -1651,23 +1255,6 @@ struct EVENTTIMER {  /* size 0x14 */
     short repeat;  /* 0x8 */
     struct PSXSUBEVENT *timersubevent;  /* 0xc */
     struct PSXSUBEVENT *timernextsubevent;  /* 0x10 */
-};
-struct EXEC {  /* size 0x3c */
-    unsigned long pc0;  /* 0x0 */
-    unsigned long gp0;  /* 0x4 */
-    unsigned long t_addr;  /* 0x8 */
-    unsigned long t_size;  /* 0xc */
-    unsigned long d_addr;  /* 0x10 */
-    unsigned long d_size;  /* 0x14 */
-    unsigned long b_addr;  /* 0x18 */
-    unsigned long b_size;  /* 0x1c */
-    unsigned long s_addr;  /* 0x20 */
-    unsigned long s_size;  /* 0x24 */
-    unsigned long sp;  /* 0x28 */
-    unsigned long fp;  /* 0x2c */
-    unsigned long gp;  /* 0x30 */
-    unsigned long ret;  /* 0x34 */
-    unsigned long base;  /* 0x38 */
 };
 struct EXTRASORTDIRTABLE {  /* size 0x10 */
     unsigned short wOffset[8];  /* 0x0 */
@@ -1711,7 +1298,7 @@ struct FRACTION {  /* size 0x8 */
     int Denominator;  /* 0x4 */
 };
 struct GAMEDB {  /* size 0x40 */
-    struct LINE_F2 QuakeLines[4];  /* 0x0 */
+    LINE_F2 QuakeLines[4];  /* 0x0 */
 };
 struct GLOBMODHDR {  /* size 0x40 */
     unsigned char Id;  /* 0x0 */
@@ -2180,21 +1767,6 @@ struct PLAYERCONTROLS {  /* size 0xc */
     unsigned int DigLookUpPressed : 1;  /* bit 93 */
     unsigned int DigLookDownPressed : 1;  /* bit 94 */
     unsigned int AutoCentreAdd : 1;  /* bit 95 */
-};
-struct POLY_F4 {  /* size 0x18 */
-    unsigned long tag;  /* 0x0 */
-    unsigned char r0;  /* 0x4 */
-    unsigned char g0;  /* 0x5 */
-    unsigned char b0;  /* 0x6 */
-    unsigned char code;  /* 0x7 */
-    short x0;  /* 0x8 */
-    short y0;  /* 0xa */
-    short x1;  /* 0xc */
-    short y1;  /* 0xe */
-    short x2;  /* 0x10 */
-    short y2;  /* 0x12 */
-    short x3;  /* 0x14 */
-    short y3;  /* 0x16 */
 };
 struct PORTALDATA {  /* size 0x6 */
     short WibbleScale;  /* 0x0 */
@@ -2677,8 +2249,8 @@ struct QENGINELEVINTERFACE {  /* size 0x4f4 */
     int SizeOf;  /* 0x0 */
     int (*PrintF)();  /* 0x4 */
     struct IDENTITYNAME *ThisLevelName;  /* 0x8 */
-    struct POLY_FT4 *PolyStack0;  /* 0xc */
-    struct POLY_FT4 *PolyStack1;  /* 0x10 */
+    POLY_FT4 *PolyStack0;  /* 0xc */
+    POLY_FT4 *PolyStack1;  /* 0x10 */
     void *MissionData;  /* 0x14 */
     unsigned int *usp;  /* 0x18 */
     struct CREATURE *(*InitialiseQuakePlayer)();  /* 0x1c */
@@ -2743,7 +2315,7 @@ struct QENGINELEVINTERFACE {  /* size 0x4f4 */
     void ***OnZoneLoadTable;  /* 0x108 */
     int (*rand)();  /* 0x10c */
     int (*sprintf)();  /* 0x110 */
-    struct MATRIX *(*RotMatrixYXZ)();  /* 0x114 */
+    MATRIX *(*RotMatrixYXZ)();  /* 0x114 */
     char *(*PrintIdentityName)();  /* 0x118 */
     void (*centreprintf)();  /* 0x11c */
     void (*dprintf)();  /* 0x120 */
@@ -2897,10 +2469,10 @@ struct QENGINELEVINTERFACE {  /* size 0x4f4 */
     void (*StSetRing)();  /* 0x414 */
     void (*StSetStream)();  /* 0x418 */
     void (*SetDispMask)();  /* 0x41c */
-    struct DISPENV *(*SetDefDispEnv)();  /* 0x420 */
-    struct DRAWENV *(*SetDefDrawEnv)();  /* 0x424 */
-    struct DISPENV *(*PutDispEnv)();  /* 0x428 */
-    struct DRAWENV *(*PutDrawEnv)();  /* 0x42c */
+    DISPENV *(*SetDefDispEnv)();  /* 0x420 */
+    DRAWENV *(*SetDefDrawEnv)();  /* 0x424 */
+    DISPENV *(*PutDispEnv)();  /* 0x428 */
+    DRAWENV *(*PutDrawEnv)();  /* 0x42c */
     void (*SetDrawMode)();  /* 0x430 */
     void (*SetTile)();  /* 0x434 */
     unsigned long *(*ClearOTag)();  /* 0x438 */
@@ -2913,7 +2485,7 @@ struct QENGINELEVINTERFACE {  /* size 0x4f4 */
     void *(*CdDataCallback)();  /* 0x454 */
     void (*(*CdReadyCallback)())();  /* 0x458 */
     int (*CdRead2)();  /* 0x45c */
-    struct CdlFILE *(*CdSearchFile)();  /* 0x460 */
+    CdlFILE *(*CdSearchFile)();  /* 0x460 */
     void (*SetCDVolume)();  /* 0x464 */
     void (*NewPadRead)();  /* 0x468 */
     int (*ResetCallback)();  /* 0x46c */
@@ -3216,15 +2788,11 @@ struct SUBMOD {  /* size 0x8 */
     unsigned long NoNClipBits;  /* 0x4 */
 };
 struct SUBPACK {  /* size 0xd4 */
-    struct SVECTOR Points[22];  /* 0x0 */
-    struct POLY_GT4 *Polys[2];  /* 0xb0 */
-    struct POLY_GT4 *Source[2];  /* 0xb8 */
+    SVECTOR Points[22];  /* 0x0 */
+    POLY_GT4 *Polys[2];  /* 0xb0 */
+    POLY_GT4 *Source[2];  /* 0xb8 */
     short *rotpnt[4];  /* 0xc0 */
     int ScreenZ;  /* 0xd0 */
-};
-struct SndVolume2 {  /* size 0x4 */
-    short left;  /* 0x0 */
-    short right;  /* 0x2 */
 };
 struct SoundList {  /* size 0xc */
     unsigned char SampleNumber;  /* 0x0 */
@@ -3236,61 +2804,6 @@ struct SoundList {  /* size 0xc */
     unsigned char MaxVol;  /* 0x6 */
     unsigned char MinVol;  /* 0x7 */
     unsigned long Flags;  /* 0x8 */
-};
-struct SpuVolume {  /* size 0x4 */
-    short left;  /* 0x0 */
-    short right;  /* 0x2 */
-};
-struct SpuExtAttr {  /* size 0xc */
-    struct SpuVolume volume;  /* 0x0 */
-    long reverb;  /* 0x4 */
-    long mix;  /* 0x8 */
-};
-struct SpuCommonAttr {  /* size 0x28 */
-    unsigned long mask;  /* 0x0 */
-    struct SpuVolume mvol;  /* 0x4 */
-    struct SpuVolume mvolmode;  /* 0x8 */
-    struct SpuVolume mvolx;  /* 0xc */
-    struct SpuExtAttr cd;  /* 0x10 */
-    struct SpuExtAttr ext;  /* 0x1c */
-};
-struct SpuStVoiceAttr {  /* size 0x10 */
-    char status;  /* 0x0 */
-    char pad1;  /* 0x1 */
-    char pad2;  /* 0x2 */
-    char pad3;  /* 0x3 */
-    long last_size;  /* 0x4 */
-    unsigned long buf_addr;  /* 0x8 */
-    unsigned long data_addr;  /* 0xc */
-};
-struct SpuVoiceAttr {  /* size 0x40 */
-    unsigned long voice;  /* 0x0 */
-    unsigned long mask;  /* 0x4 */
-    struct SpuVolume volume;  /* 0x8 */
-    struct SpuVolume volmode;  /* 0xc */
-    struct SpuVolume volumex;  /* 0x10 */
-    unsigned short pitch;  /* 0x14 */
-    unsigned short note;  /* 0x16 */
-    unsigned short sample_note;  /* 0x18 */
-    short envx;  /* 0x1a */
-    unsigned long addr;  /* 0x1c */
-    unsigned long loop_addr;  /* 0x20 */
-    long a_mode;  /* 0x24 */
-    long s_mode;  /* 0x28 */
-    long r_mode;  /* 0x2c */
-    unsigned short ar;  /* 0x30 */
-    unsigned short dr;  /* 0x32 */
-    unsigned short sr;  /* 0x34 */
-    unsigned short rr;  /* 0x36 */
-    unsigned short sl;  /* 0x38 */
-    unsigned short adsr1;  /* 0x3a */
-    unsigned short adsr2;  /* 0x3c */
-};
-struct TCB {  /* size 0xc0 */
-    long status;  /* 0x0 */
-    long mode;  /* 0x4 */
-    unsigned long reg[40];  /* 0x8 */
-    long system[6];  /* 0xa8 */
 };
 struct TEMPBACKUPPOS {  /* size 0x14 */
     struct CREATURE *Cre;  /* 0x0 */
@@ -3355,16 +2868,10 @@ struct UVWH {  /* size 0x4 */
 };
 struct VDB {  /* size 0xc8 */
     unsigned long Ot[3];  /* 0x0 */
-    struct DRAWENV DrawEnv;  /* 0xc */
-    struct DISPENV DispEnv;  /* 0x68 */
-    struct SPRT BackSprites[3];  /* 0x7c */
-    struct TILE Test;  /* 0xb8 */
-};
-struct VECTOR {  /* size 0x10 */
-    long vx;  /* 0x0 */
-    long vy;  /* 0x4 */
-    long vz;  /* 0x8 */
-    long pad;  /* 0xc */
+    DRAWENV DrawEnv;  /* 0xc */
+    DISPENV DispEnv;  /* 0x68 */
+    SPRT BackSprites[3];  /* 0x7c */
+    TILE Test;  /* 0xb8 */
 };
 struct VagHdr {  /* size 0x30 */
     char id[4];  /* 0x0 */
@@ -3409,9 +2916,9 @@ struct WINDOW {  /* size 0x310 */
     short CamChangeTimer;  /* 0x9a */
     short ModelFt4Dist;  /* 0x9c */
     short Area;  /* 0x9e */
-    struct MATRIX CamMat;  /* 0xa0 */
-    struct MATRIX CamMatNorm;  /* 0xc0 */
-    struct MATRIX CamMatNormFlip;  /* 0xe0 */
+    MATRIX CamMat;  /* 0xa0 */
+    MATRIX CamMatNorm;  /* 0xc0 */
+    MATRIX CamMatNormFlip;  /* 0xe0 */
     struct COLOUR SkyColour;  /* 0x100 */
     short SkyClear;  /* 0x104 */
     short Focal;  /* 0x106 */

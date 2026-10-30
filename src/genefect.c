@@ -1,21 +1,24 @@
 #include "types.h"
 #include "bss.h"
+#include <abs.h>
+#include <memory.h>
+#include <rand.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 int AddThickLine(struct VECT *Start, struct VECT *Stop, short Width, short Space, struct SIMPOL *ModelData, struct SIMPOL *EndModelDataA, struct SIMPOL *EndModelDataB);
 void InitThickLines(void);
 void ProcessThickLines(void);
 void PreInitDebris(struct GLOBMODHDR *Hdr);
-void GeneralG4Sort(struct POLY_G4 *OldPoly, struct VECT *Centre, struct SHORTPAIR AreaWin, int ScreenZ);
-void GenShieldMatrix(struct CREATURE *Cre, struct SVECT *ShieldAng, struct SVECT *Radius, struct MATRIX *S);
-void CopyFromGlobalTexture(struct POLY_GT4 *Poly0, struct POLY_GT4 *Poly1, struct GLOBTEXTDATA *GlobText);
+void GeneralG4Sort(POLY_G4 *OldPoly, struct VECT *Centre, struct SHORTPAIR AreaWin, int ScreenZ);
+void GenShieldMatrix(struct CREATURE *Cre, struct SVECT *ShieldAng, struct SVECT *Radius, MATRIX *S);
+void CopyFromGlobalTexture(POLY_GT4 *Poly0, POLY_GT4 *Poly1, struct GLOBTEXTDATA *GlobText);
 void LoadShieldData(void *Addr);
-void GenerateCrossSection(struct SVECTOR *HxPnts, struct VECT *Rel, struct SHORTPAIR WidthSect);
+void GenerateCrossSection(SVECTOR *HxPnts, struct VECT *Rel, struct SHORTPAIR WidthSect);
 void Draw3dLine(struct THICKLINE *ThickLine);
 void PrimaryMovingFragment(struct CREATURE *Cre);
-int rand(void); void GenerateSceneFrag(struct SCENE2 *Scene2, struct VECT *Location, struct SVECT *Vel, struct GLOBMODHDR *Hdr);
+void GenerateSceneFrag(struct SCENE2 *Scene2, struct VECT *Location, struct SVECT *Vel, struct GLOBMODHDR *Hdr);
 void SceneObjFragments(int ObjIndx, int NumBits, struct VECT *Loc);
-void DrawGlint(struct CREATURE *Cre, struct MATRIX *Matrix, struct COLOUR Colour, int Trigger, int Light, int Range);
+void DrawGlint(struct CREATURE *Cre, MATRIX *Matrix, struct COLOUR Colour, int Trigger, int Light, int Range);
 void NewShieldEffect(struct CREATURE *Cre);
 /* The original's .sdata has these constants ahead of genefect's data, and nothing refers to
    them: four colours, a black one and two pairs ({256,0} and {-1,-1}), compound literals of code the game never
@@ -35,18 +38,16 @@ static __inline__ void UnusedGenEfectConstants(struct COLOUR *Colours, struct SH
 int DebrisModelsActive SBSS;
 struct THICKLINE *ThickLinePntr SBSS;
 struct THICKLINE *LastThickLine SBSS;
-struct SVECTOR *ShieldEffPoints SBSS;
+SVECTOR *ShieldEffPoints SBSS;
 char *ShieldEffPolys SBSS;
 struct SHIELDGLINT ReactorShieldGlints[7] BSS;
 struct GLOBMODHDR *DebrisModelList[32] BSS;
 struct THICKLINE ThickLines[32] BSS;
 
 
-struct MATRIX *RotMatrixYXZ(struct SVECT *r, struct MATRIX *m);
-void ElipseMatrix(struct MATRIX *Source, struct MATRIX *Dest, struct SVECT *R);
-void MulMatrix0(struct MATRIX *m0, struct MATRIX *m1, struct MATRIX *m2);
+void ElipseMatrix(MATRIX *Source, MATRIX *Dest, struct SVECT *R);
 
-extern struct POLY_G4 *NextGeneralG4;
+extern POLY_G4 *NextGeneralG4;
 extern struct AREA AreaData[96];
 char *GetNextGlobalMemory(int Size);
 void OrderedSort(struct SORT *Self, struct SORT **SortLink);
@@ -58,25 +59,19 @@ extern int MaxWindows;
 extern struct WINDOW GameWindows[];
 extern struct WINDOW *CurrWin;
 extern struct VECT *CurrCamPos;
-extern struct MATRIX *CurrCamMat;
+extern MATRIX *CurrCamMat;
 extern int CurrWinIndx;
 extern struct SCRPNT CurrScreenSize;
 extern struct SCRPNT CurrScreenMin;
 extern unsigned long *CurrOt;
 extern struct DB *currdb;
-extern struct POLY_G4 *LastGeneralG4;
+extern POLY_G4 *LastGeneralG4;
 extern struct COLLHEADER CollMap;
-void *memset(void *s, int c, unsigned int n);
-void SetGeomOffset(long ofx, long ofy);
-void SetGeomScreen(long h);
-void SetRotMatrix(struct MATRIX *m);
 int Visable3d(struct COLLHEADER *Map, struct VECT *Old, struct VECT *New, int Space);
-int VectorNormal(struct VECT *v0, struct VECT *v1);
-void GenerateCrossSection(struct SVECTOR *HxPnts, struct VECT *Rel, struct SHORTPAIR WidthSect);
+void GenerateCrossSection(SVECTOR *HxPnts, struct VECT *Rel, struct SHORTPAIR WidthSect);
 int AreaValid(int Win, int Area);
 void SetupScreenGivenArea(int Win, int Area);
-int SquareRoot0(int a);
-struct POLY_G4 *HH_SimpleModel_(struct SIMPOL *Model, struct SIMPOL *ModelEnd, struct SCRPNT *ScrPnts, struct POLY_G4 *Poly);
+POLY_G4 *HH_SimpleModel_(struct SIMPOL *Model, struct SIMPOL *ModelEnd, struct SCRPNT *ScrPnts, POLY_G4 *Poly);
 
 #define gte_mvr_d(reg, r0) __asm__ volatile("move $" #reg ",%0" : : "r"(r0) : "$" #reg)
 #define gte_op_d(s) __asm__ volatile(s)
@@ -93,7 +88,6 @@ struct POLY_G4 *HH_SimpleModel_(struct SIMPOL *Model, struct SIMPOL *ModelEnd, s
 #define gte_stsz_d(r0) { gte_mvr_d(12, r0); gte_st_d("swc2 $19,0($12)"); }
 
 extern short rcossin_tbl[][2];
-int VectorNormal(struct VECT *v0, struct VECT *v1);
 void GenTangentialAxis(struct VECT *R, struct VECT *A, struct VECT *B);
 
 extern struct COLLHEADER CollMap;
@@ -115,10 +109,8 @@ void UpdateBoxStuff(struct COLLBOX3D *Box, int AreaSource);
 void KillModel(struct CREATURE *Cre);
 
 extern struct WINDOW *CurrWin;
-extern struct MATRIX *CurrCamMat;
-void MulMatrix2(struct MATRIX *m0, struct MATRIX *m1);
-void SetRotMatrix(struct MATRIX *m);
-void DrawGlint(struct CREATURE *Cre, struct MATRIX *Matrix, struct COLOUR Colour, int Trigger, int Light, int Range);
+extern MATRIX *CurrCamMat;
+void DrawGlint(struct CREATURE *Cre, MATRIX *Matrix, struct COLOUR Colour, int Trigger, int Light, int Range);
 
 /* PSY-Q inline_c.h style GTE macros */
 #define gte_ldv0(r0) { \
@@ -128,8 +120,7 @@ void DrawGlint(struct CREATURE *Cre, struct MATRIX *Matrix, struct COLOUR Colour
 #define gte_mvlvtr() __asm__ volatile("mfc2 $12,$25\nmfc2 $13,$26\nmfc2 $14,$27\nctc2 $12,$5\nctc2 $13,$6\nctc2 $14,$7" : : : "$12", "$13", "$14")
 
 extern long *DummyMemory;
-extern struct POLY_G4 *LastGeneralG4;
-int abs(int);
+extern POLY_G4 *LastGeneralG4;
 #define setlen(p, _len) (*(((unsigned char *)(p)) + 3) = (unsigned char)(_len))
 #define setcode(p, _code) (*(((unsigned char *)(p)) + 7) = (unsigned char)(_code))
 
@@ -182,7 +173,7 @@ void ProcessThickLines(void)
     LastThickLine = ThickLines + 32;
 }
 
-void GenerateCrossSection(struct SVECTOR *HxPnts, struct VECT *Rel, struct SHORTPAIR WidthSect)
+void GenerateCrossSection(SVECTOR *HxPnts, struct VECT *Rel, struct SHORTPAIR WidthSect)
 {
     int a;
     int Angle;
@@ -208,10 +199,10 @@ void GenerateCrossSection(struct SVECTOR *HxPnts, struct VECT *Rel, struct SHORT
     }
 }
 
-void GeneralG4Sort(struct POLY_G4 *OldPoly, struct VECT *Centre, struct SHORTPAIR AreaWin, int ScreenZ)
+void GeneralG4Sort(POLY_G4 *OldPoly, struct VECT *Centre, struct SHORTPAIR AreaWin, int ScreenZ)
 {
     struct SORT *Sort;
-    struct POLY_G4 *Poly;
+    POLY_G4 *Poly;
     struct VECT *Pos;
 
     Pos = (struct VECT *)GetNextGlobalMemory(sizeof(struct VECT));
@@ -227,7 +218,7 @@ void GeneralG4Sort(struct POLY_G4 *OldPoly, struct VECT *Centre, struct SHORTPAI
     if (OldPoly != NextGeneralG4) {
         for (Poly = OldPoly; Poly < NextGeneralG4; Poly++)
             AddPrim_(&Sort->FirstLast[0], Poly);
-        Sort->FirstLast[1] = (struct POLY_GT4 *)OldPoly;
+        Sort->FirstLast[1] = (POLY_GT4 *)OldPoly;
         *Pos = *Centre;
         Sort->Flags = 1;
         Sort->VectBox = (struct VECTBOX *)Pos;
@@ -240,9 +231,9 @@ void GeneralG4Sort(struct POLY_G4 *OldPoly, struct VECT *Centre, struct SHORTPAI
 void Draw3dLine(struct THICKLINE *ThickLine)
 {
     struct AREAINTERSECT *AreaIntersect;
-    struct SVECTOR HxPnts[6];
+    SVECTOR HxPnts[6];
     struct SCRPNT ScrPnts[12];
-    struct POLY_G4 *OldPoly;
+    POLY_G4 *OldPoly;
     struct VECT Rel;
     struct SVECT Base;
     struct VECT Direction;
@@ -372,7 +363,7 @@ void Draw3dLine(struct THICKLINE *ThickLine)
     }
 }
 
-void CopyFromGlobalTexture(struct POLY_GT4 *Poly0, struct POLY_GT4 *Poly1, struct GLOBTEXTDATA *GlobText)
+void CopyFromGlobalTexture(POLY_GT4 *Poly0, POLY_GT4 *Poly1, struct GLOBTEXTDATA *GlobText)
 {
     *(long *)&Poly0->r0 = *(long *)&Poly1->r0 = *(long *)&GlobText->Colour;
     *(long *)&Poly0->r1 = *(long *)&Poly1->r1 = *(long *)&GlobText->Colour;
@@ -427,7 +418,6 @@ void PrimaryMovingFragment(struct CREATURE *Cre)
     UpdateBoxStuff(&Cre->Box, 2);
 }
 
-int rand(void);
 
 void GenerateSceneFrag(struct SCENE2 *Scene2, struct VECT *Location, struct SVECT *Vel, struct GLOBMODHDR *Hdr)
 {
@@ -496,7 +486,7 @@ void PreInitDebris(struct GLOBMODHDR *Hdr)
 
 /* B1: the original copies Trigger into B1 (same $s2) and uses it for Bright and the brightness scale;
    the depth tested against Bright is SVECTOR.pad (lh 6) */
-void DrawGlint(struct CREATURE *Cre, struct MATRIX *Matrix, struct COLOUR Colour, int Trigger, int Light, int Range)
+void DrawGlint(struct CREATURE *Cre, MATRIX *Matrix, struct COLOUR Colour, int Trigger, int Light, int Range)
 {
     int Bright;
     int R;
@@ -513,7 +503,7 @@ void DrawGlint(struct CREATURE *Cre, struct MATRIX *Matrix, struct COLOUR Colour
     int p0;
     struct TEMPTYPE *TTrr;
     struct TEMPTYPE *TTr;
-    struct SVECTOR *S;
+    SVECTOR *S;
     unsigned char *P;
 
     TTrr = (struct TEMPTYPE *)DummyMemory;
@@ -576,10 +566,10 @@ void DrawGlint(struct CREATURE *Cre, struct MATRIX *Matrix, struct COLOUR Colour
     }
 }
 
-void GenShieldMatrix(struct CREATURE *Cre, struct SVECT *ShieldAng, struct SVECT *Radius, struct MATRIX *S)
+void GenShieldMatrix(struct CREATURE *Cre, struct SVECT *ShieldAng, struct SVECT *Radius, MATRIX *S)
 {
-    struct MATRIX P;
-    struct MATRIX R;
+    MATRIX P;
+    MATRIX R;
 
     RotMatrixYXZ(ShieldAng, &P);
     ElipseMatrix(&Cre->Matrix, &R, Radius);
@@ -590,9 +580,9 @@ void NewShieldEffect(struct CREATURE *Cre)
 {
     struct COLOUR Colour;
     struct SVECT Radius;
-    struct MATRIX S;
+    MATRIX S;
     struct VECT Relative;
-    struct SVECTOR Rel;
+    SVECTOR Rel;
     int a;
 
     if (!ShieldEffPolys)
@@ -625,5 +615,5 @@ void LoadShieldData(void *Addr)
 {
     ShieldEffPolys = Addr;
     if (Addr)
-        ShieldEffPoints = (struct SVECTOR *)((char *)Addr + 0x360);
+        ShieldEffPoints = (SVECTOR *)((char *)Addr + 0x360);
 }

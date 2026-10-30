@@ -1,5 +1,8 @@
 #include "types.h"
 #include "bss.h"
+#include <abs.h>
+#include <stdio.h>
+#include <strings.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void FrontEndAddText(struct STRING_TABLE *fetString, char *message, short x, short y, short fontSize, unsigned short window);
@@ -41,17 +44,17 @@ void MapPadInputToCommands(int Player, struct PLAYERCONTROLS *OutControls);
 void DoFrontEndStuff(void);
 void InGameInitScreen(short screen);
 void FrontEndCreateMenu(struct FET_MESSAGE *fetMenu, short fontSize);
-void FrontEndDrawMenu(struct POLY_FT4 **poly);
-void FrontEndDrawCursor(struct STRING_TABLE *fetString, struct POLY_FT4 **poly);
-void FrontEndDrawText(struct STRING_TABLE *fetString, struct POLY_FT4 **poly);
+void FrontEndDrawMenu(POLY_FT4 **poly);
+void FrontEndDrawCursor(struct STRING_TABLE *fetString, POLY_FT4 **poly);
+void FrontEndDrawText(struct STRING_TABLE *fetString, POLY_FT4 **poly);
 void FrontEndGetTextCoords(char letter, short *u, short *v, short fontSize);
 void CHECK_FOR_BOOLEAN(void);
-void FrontEndDrawSlider(struct STRING_TABLE *fetString, struct POLY_FT4 **poly, short isCursor);
+void FrontEndDrawSlider(struct STRING_TABLE *fetString, POLY_FT4 **poly, short isCursor);
 void FrontEndResetPlayerDefaults(void);
 void FrontEndResetMultiplayerDefaults(void);
 void CHECK_FOR_SLIDER(void);
 void Config_InstallVideo(void);
-void DrawBottomPoly(struct POLY_FT4 **poly);
+void DrawBottomPoly(POLY_FT4 **poly);
 void PatchEngineVariables(int IsMultiPlayer);
 void InGame_CHECK_FOR_CONTROLLER(void);
 void InGame_CHECK_FOR_SCREENPOSITION(void);
@@ -306,11 +309,11 @@ char sOldScreenHorizSplit SBSS;
 int gScrollPixelIndex SBSS;
 char gViolatingPlayer SBSS;
 struct STRING_TABLE MyStringTable[28] BSS;
-struct POLY_FT4 actualStack0[130] BSS;
-struct POLY_FT4 actualStack1[130] BSS;
+POLY_FT4 actualStack0[130] BSS;
+POLY_FT4 actualStack1[130] BSS;
 struct CURSOR_MEMORY CursorMemory[47] BSS;
-struct DRAWENV LoadDoClipDrawEnvs[2] BSS;
-struct DRAWENV LoadUnClipDrawEnvs[2] BSS;
+DRAWENV LoadDoClipDrawEnvs[2] BSS;
+DRAWENV LoadUnClipDrawEnvs[2] BSS;
 
 
 #define setlen(p, _len) (*(((unsigned char *)(p)) + 3) = (unsigned char)(_len))
@@ -383,7 +386,6 @@ void InGame_GOTO_RESUPPLY_CONFIRM(void);
 void InGame_GOTO_QUIT_CONFIRM(void);
 void PatchEngineVariables(int IsMultiPlayer);
 void CHECK_FOR_SCREEN_SPLIT(void);
-int sprintf(char *, const char *, ...);
 
 struct LOADSAVEBITS { unsigned int pad : 24; unsigned int slot : 7; unsigned int top : 1; };
 
@@ -394,9 +396,8 @@ extern struct SCRPNT ScreenSize;
 void AddPrim_(void *ot, void *p);
 short FrontEndGetMessageLength(char *pMessage);
 
-extern struct RECT gDarkBoxRect;
-extern struct RECT gDarkBoxRect;  /* splat labels .w (gDarkBoxRect+4) D_800B2C4C */
-int strcmp(const char *a, const char *b);
+extern RECT gDarkBoxRect;
+extern RECT gDarkBoxRect;  /* splat labels .w (gDarkBoxRect+4) D_800B2C4C */
 
 extern unsigned char CharUVs8[];
 extern short alltpages[];
@@ -428,7 +429,6 @@ extern struct FET_MESSAGE FET_INMULTI_VIDEO[];
 extern struct FET_MESSAGE FET_INGAME_VIDEO[];
 
 /* Same code; only the jump table's name differs (splat's jtbl_ label vs gcc's anonymous rodata). */
-int abs(int);
 
 #define DPAD_FWD(fwd, back) \
     if (Input->Padd & (fwd)) { \
@@ -490,13 +490,12 @@ long MemoryCardGetStatus(void);
 long MemoryCardGetNumFreeBlocks(void);
 
 extern struct QENGINELEVINTERFACE Engine;
-void FrontEndDrawText(struct STRING_TABLE *fetString, struct POLY_FT4 **poly);
-void FrontEndDrawSlider(struct STRING_TABLE *fetString, struct POLY_FT4 **poly, short isCursor);
-void FrontEndDrawCursor(struct STRING_TABLE *fetString, struct POLY_FT4 **poly);
-int sprintf(char *buf, const char *fmt, ...);
+void FrontEndDrawText(struct STRING_TABLE *fetString, POLY_FT4 **poly);
+void FrontEndDrawSlider(struct STRING_TABLE *fetString, POLY_FT4 **poly, short isCursor);
+void FrontEndDrawCursor(struct STRING_TABLE *fetString, POLY_FT4 **poly);
 void CHECK_FOR_BOOLEAN(void);
-void FrontEndDrawMenu(struct POLY_FT4 **poly);
-void DrawBottomPoly(struct POLY_FT4 **poly);
+void FrontEndDrawMenu(POLY_FT4 **poly);
+void DrawBottomPoly(POLY_FT4 **poly);
 int GetSoundNum(struct IDENTITYNAME Name);
 void SoundAtLocation(int Sound, struct VECT *Location);
 extern struct CREATURE Creatures[];
@@ -523,12 +522,12 @@ int IsPlayerPadShockable(int Player);
 
 
 
-static void FrontEndDrawBox(struct POLY_FT4 **poly, short x, short y, short w, short h, short r, short g, short b, short window)
+static void FrontEndDrawBox(POLY_FT4 **poly, short x, short y, short w, short h, short r, short g, short b, short window)
 {
     int NumWins;
     long *Ot;
-    struct POLY_FT4 *pActualPoly;
-    struct LINE_F2 *l;
+    POLY_FT4 *pActualPoly;
+    LINE_F2 *l;
 
     pActualPoly = *poly;
     NumWins = 1;
@@ -538,28 +537,28 @@ static void FrontEndDrawBox(struct POLY_FT4 **poly, short x, short y, short w, s
         Ot = (long *)&currdb->Ot[window][50];
     else
         Ot = (long *)&currdb->BigOt[7];
-    l = (struct LINE_F2 *)pActualPoly;
+    l = (LINE_F2 *)pActualPoly;
     setLineF2(l);
     setXY2(l, x, y, x + w - 1, y);
     setRGB0(l, r, g, b);
     AddPrim_(Ot, l);
     pActualPoly++;
     *poly += 1;
-    l = (struct LINE_F2 *)pActualPoly;
+    l = (LINE_F2 *)pActualPoly;
     setLineF2(l);
     setXY2(l, x, y + h - 1, x + w - 1, y + h - 1);
     setRGB0(l, r, g, b);
     AddPrim_(Ot, l);
     pActualPoly++;
     *poly += 1;
-    l = (struct LINE_F2 *)pActualPoly;
+    l = (LINE_F2 *)pActualPoly;
     setLineF2(l);
     setXY2(l, x, y, x, y + h - 1);
     setRGB0(l, r, g, b);
     AddPrim_(Ot, l);
     pActualPoly++;
     *poly += 1;
-    l = (struct LINE_F2 *)pActualPoly;
+    l = (LINE_F2 *)pActualPoly;
     setLineF2(l);
     setXY2(l, x + w - 1, y, x + w - 1, y + h - 1);
     setRGB0(l, r, g, b);
@@ -568,9 +567,7 @@ static void FrontEndDrawBox(struct POLY_FT4 **poly, short x, short y, short w, s
     *poly += 1;
 }
 extern unsigned char DbFrame[];
-struct DRAWENV *SetDefDrawEnv(struct DRAWENV *env, int x, int y, int w, int h);
-void SetDrawEnv(struct DR_ENV *dr_env, struct DRAWENV *env);
-void DrawBorder(struct RECT Rect, long *Ot, int OffsetY);
+void DrawBorder(RECT Rect, long *Ot, int OffsetY);
 
 extern struct FET_MESSAGE FET_LOADSAVE_CHOOSEFILE[];
 char *MemoryCardGetFilename(long index);
@@ -799,7 +796,7 @@ void DoFrontEndStuff(void)
     signed char firstup;
     signed char firstdown;
     void (*func)();
-    struct POLY_FT4 *pActualPoly;
+    POLY_FT4 *pActualPoly;
     void (*func_ppPolyFT4)();
     short disabledSelection;
 
@@ -966,7 +963,7 @@ void FrontEndCreateMenu(struct FET_MESSAGE *fetMenu, short fontSize)
     Engine.cursorupper = index;
 }
 
-void FrontEndDrawMenu(struct POLY_FT4 **poly)
+void FrontEndDrawMenu(POLY_FT4 **poly)
 {
     short i;
     short isCursor;
@@ -1036,10 +1033,10 @@ void FrontEndModifyText(struct STRING_TABLE *fetString, char *message)
     sprintf(fetString->message, "%s", message);
 }
 
-void FrontEndDrawCursor(struct STRING_TABLE *fetString, struct POLY_FT4 **poly)
+void FrontEndDrawCursor(struct STRING_TABLE *fetString, POLY_FT4 **poly)
 {
-    struct POLY_FT4 *pActualPoly;
-    struct POLY_G4 *pCastPolyG4;
+    POLY_FT4 *pActualPoly;
+    POLY_G4 *pCastPolyG4;
     short BannerWidth;
     short BannerXPos;
     short y;
@@ -1094,31 +1091,31 @@ void FrontEndDrawCursor(struct STRING_TABLE *fetString, struct POLY_FT4 **poly)
     }
     setPolyG4(pActualPoly);
     setXY4(pActualPoly, BannerXPos, y - 2, BannerXPos + (BannerWidth >> 1), y - 2, BannerXPos, y + 1 + fontSizeY, BannerXPos + (BannerWidth >> 1), y + 1 + fontSizeY);
-    pCastPolyG4 = (struct POLY_G4 *)pActualPoly;
+    pCastPolyG4 = (POLY_G4 *)pActualPoly;
     switch (fetString->bannerColour) {
     case 1:
-        setRGB0((struct POLY_G4 *)pActualPoly, 0x20, 0, 0);
-        setRGB1((struct POLY_G4 *)pActualPoly, 0xff, 0, 0);
-        setRGB2((struct POLY_G4 *)pActualPoly, 0x20, 0, 0);
-        setRGB3((struct POLY_G4 *)pActualPoly, 0xff, 0, 0);
+        setRGB0((POLY_G4 *)pActualPoly, 0x20, 0, 0);
+        setRGB1((POLY_G4 *)pActualPoly, 0xff, 0, 0);
+        setRGB2((POLY_G4 *)pActualPoly, 0x20, 0, 0);
+        setRGB3((POLY_G4 *)pActualPoly, 0xff, 0, 0);
         break;
     case 0:
-        setRGB0((struct POLY_G4 *)pActualPoly, 0, 0, 0x20);
-        setRGB1((struct POLY_G4 *)pActualPoly, 0, 0, 0xff);
-        setRGB2((struct POLY_G4 *)pActualPoly, 0, 0, 0x20);
-        setRGB3((struct POLY_G4 *)pActualPoly, 0, 0, 0xff);
+        setRGB0((POLY_G4 *)pActualPoly, 0, 0, 0x20);
+        setRGB1((POLY_G4 *)pActualPoly, 0, 0, 0xff);
+        setRGB2((POLY_G4 *)pActualPoly, 0, 0, 0x20);
+        setRGB3((POLY_G4 *)pActualPoly, 0, 0, 0xff);
         break;
     case 2:
-        setRGB0((struct POLY_G4 *)pActualPoly, 0x10, 0, 0x20);
-        setRGB1((struct POLY_G4 *)pActualPoly, 0x7f, 0, 0xff);
-        setRGB2((struct POLY_G4 *)pActualPoly, 0x10, 0, 0x20);
-        setRGB3((struct POLY_G4 *)pActualPoly, 0x7f, 0, 0xff);
+        setRGB0((POLY_G4 *)pActualPoly, 0x10, 0, 0x20);
+        setRGB1((POLY_G4 *)pActualPoly, 0x7f, 0, 0xff);
+        setRGB2((POLY_G4 *)pActualPoly, 0x10, 0, 0x20);
+        setRGB3((POLY_G4 *)pActualPoly, 0x7f, 0, 0xff);
         break;
     case 3:
-        setRGB0((struct POLY_G4 *)pActualPoly, 0, 0x20, 0);
-        setRGB1((struct POLY_G4 *)pActualPoly, 0, 0xff, 0);
-        setRGB2((struct POLY_G4 *)pActualPoly, 0, 0x20, 0);
-        setRGB3((struct POLY_G4 *)pActualPoly, 0, 0xff, 0);
+        setRGB0((POLY_G4 *)pActualPoly, 0, 0x20, 0);
+        setRGB1((POLY_G4 *)pActualPoly, 0, 0xff, 0);
+        setRGB2((POLY_G4 *)pActualPoly, 0, 0x20, 0);
+        setRGB3((POLY_G4 *)pActualPoly, 0, 0xff, 0);
         break;
     }
     AddPrim_(OtBanner, pCastPolyG4);
@@ -1126,31 +1123,31 @@ void FrontEndDrawCursor(struct STRING_TABLE *fetString, struct POLY_FT4 **poly)
     *poly += 1;
     setPolyG4(pActualPoly);
     setXY4(pActualPoly, BannerXPos + (BannerWidth >> 1), y - 2, BannerXPos + (BannerWidth >> 1) + (BannerWidth >> 1), y - 2, BannerXPos + (BannerWidth >> 1), y + 1 + fontSizeY, BannerXPos + (BannerWidth >> 1) + (BannerWidth >> 1), y + 1 + fontSizeY);
-    pCastPolyG4 = (struct POLY_G4 *)pActualPoly;
+    pCastPolyG4 = (POLY_G4 *)pActualPoly;
     switch (fetString->bannerColour) {
     case 1:
-        setRGB0((struct POLY_G4 *)pActualPoly, 0xff, 0, 0);
-        setRGB1((struct POLY_G4 *)pActualPoly, 0x20, 0, 0);
-        setRGB2((struct POLY_G4 *)pActualPoly, 0xff, 0, 0);
-        setRGB3((struct POLY_G4 *)pActualPoly, 0x20, 0, 0);
+        setRGB0((POLY_G4 *)pActualPoly, 0xff, 0, 0);
+        setRGB1((POLY_G4 *)pActualPoly, 0x20, 0, 0);
+        setRGB2((POLY_G4 *)pActualPoly, 0xff, 0, 0);
+        setRGB3((POLY_G4 *)pActualPoly, 0x20, 0, 0);
         break;
     case 0:
-        setRGB0((struct POLY_G4 *)pActualPoly, 0, 0, 0xff);
-        setRGB1((struct POLY_G4 *)pActualPoly, 0, 0, 0x20);
-        setRGB2((struct POLY_G4 *)pActualPoly, 0, 0, 0xff);
-        setRGB3((struct POLY_G4 *)pActualPoly, 0, 0, 0x20);
+        setRGB0((POLY_G4 *)pActualPoly, 0, 0, 0xff);
+        setRGB1((POLY_G4 *)pActualPoly, 0, 0, 0x20);
+        setRGB2((POLY_G4 *)pActualPoly, 0, 0, 0xff);
+        setRGB3((POLY_G4 *)pActualPoly, 0, 0, 0x20);
         break;
     case 2:
-        setRGB0((struct POLY_G4 *)pActualPoly, 0x7f, 0, 0xff);
-        setRGB1((struct POLY_G4 *)pActualPoly, 0x10, 0, 0x20);
-        setRGB2((struct POLY_G4 *)pActualPoly, 0x7f, 0, 0xff);
-        setRGB3((struct POLY_G4 *)pActualPoly, 0x10, 0, 0x20);
+        setRGB0((POLY_G4 *)pActualPoly, 0x7f, 0, 0xff);
+        setRGB1((POLY_G4 *)pActualPoly, 0x10, 0, 0x20);
+        setRGB2((POLY_G4 *)pActualPoly, 0x7f, 0, 0xff);
+        setRGB3((POLY_G4 *)pActualPoly, 0x10, 0, 0x20);
         break;
     case 3:
-        setRGB0((struct POLY_G4 *)pActualPoly, 0, 0xff, 0);
-        setRGB1((struct POLY_G4 *)pActualPoly, 0, 0x20, 0);
-        setRGB2((struct POLY_G4 *)pActualPoly, 0, 0xff, 0);
-        setRGB3((struct POLY_G4 *)pActualPoly, 0, 0x20, 0);
+        setRGB0((POLY_G4 *)pActualPoly, 0, 0xff, 0);
+        setRGB1((POLY_G4 *)pActualPoly, 0, 0x20, 0);
+        setRGB2((POLY_G4 *)pActualPoly, 0, 0xff, 0);
+        setRGB3((POLY_G4 *)pActualPoly, 0, 0x20, 0);
         break;
     }
     AddPrim_(OtBanner, pCastPolyG4);
@@ -1158,9 +1155,9 @@ void FrontEndDrawCursor(struct STRING_TABLE *fetString, struct POLY_FT4 **poly)
     *poly += 1;
 }
 
-void FrontEndDrawText(struct STRING_TABLE *fetString, struct POLY_FT4 **poly)
+void FrontEndDrawText(struct STRING_TABLE *fetString, POLY_FT4 **poly)
 {
-    struct POLY_FT4 *pActualPoly;
+    POLY_FT4 *pActualPoly;
     char *pChar;
     short x;
     short y;
@@ -1434,7 +1431,7 @@ void CHECK_FOR_BOOLEAN(void)
     }
 }
 
-void FrontEndDrawSlider(struct STRING_TABLE *fetString, struct POLY_FT4 **poly, short isCursor)
+void FrontEndDrawSlider(struct STRING_TABLE *fetString, POLY_FT4 **poly, short isCursor)
 {
     short x;
     short y;
@@ -1443,7 +1440,7 @@ void FrontEndDrawSlider(struct STRING_TABLE *fetString, struct POLY_FT4 **poly, 
     short r;
     short g;
     short b;
-    struct POLY_F4 *f4;
+    POLY_F4 *f4;
     int greyed;
 
     NumWins = 1;
@@ -1468,7 +1465,7 @@ void FrontEndDrawSlider(struct STRING_TABLE *fetString, struct POLY_FT4 **poly, 
     x = fetString->sliderX;
     y = fetString->y - 4;
     FrontEndDrawBox(poly, x, y, 0x85, 8, r, g, b, fetString->window);
-    f4 = (struct POLY_F4 *)*poly;
+    f4 = (POLY_F4 *)*poly;
     setPolyF4(f4);
     setXY4(f4, x + 3, y + 2, x + 3 + *fetString->pSliderVar, y + 2, x + 3, y + 6, x + 3 + *fetString->pSliderVar, y + 6);
     setRGB0(f4, r, g, b);
@@ -1632,11 +1629,11 @@ void MoveBottomPoly(short polyNum, short y)
     bottomPoly[polyNum].idealY = y - 8;
 }
 
-void DrawBottomPoly(struct POLY_FT4 **poly)
+void DrawBottomPoly(POLY_FT4 **poly)
 {
     long *Ot;
     short i;
-    struct POLY_FT4 *p;
+    POLY_FT4 *p;
 
     Ot = (long *)&currdb->BigOt[10];
     p = *poly;
@@ -2255,8 +2252,8 @@ void CHECK_FOR_MCFILEWINDOW(void)
     static short TopFileId = 0;
     static short ScrollPos = 0;
     struct SCRPNT Pos;
-    struct DRAWENV *ThisDrawEnv;
-    struct DRAWENV *ThisDrawEnv2;
+    DRAWENV *ThisDrawEnv;
+    DRAWENV *ThisDrawEnv2;
 
     OffsetY = 0;
     if (Engine.currentscreen == 6)
@@ -2322,7 +2319,7 @@ void CHECK_FOR_MCFILEWINDOW(void)
     AddPrim_(&currdb->BigOt[6], &ThisDrawEnv->dr_env);
     AddPrim_(&currdb->BigOt[8], &ThisDrawEnv2->dr_env);
     if (!Paused && Engine.currentscreen != 6)
-        DrawBorder((struct RECT){((0x200 - MaxWidth) >> 1), 0x60, MaxWidth, 0x31}, (long *)&currdb->BigOt[10], OffsetY);
+        DrawBorder((RECT){((0x200 - MaxWidth) >> 1), 0x60, MaxWidth, 0x31}, (long *)&currdb->BigOt[10], OffsetY);
 }
 
 void ResetAllCameras(void);

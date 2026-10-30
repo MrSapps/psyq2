@@ -7,10 +7,6 @@ long LoadFile(char *name, char *buffer);
 extern int MusicCheck;
 extern int ReadError;
 
-struct CdlFILE *CdSearchFile(struct CdlFILE *fp, char *name);
-int CdControlB(unsigned char com, unsigned char *param, unsigned char *result);
-int CdRead(int sectors, unsigned long *buf, int mode);
-int CdReadSync(int mode, unsigned char *result);
 
 long GetFLen(char *name)
 {
@@ -18,7 +14,7 @@ long GetFLen(char *name)
 
     for (;;) {
         {
-            struct CdlFILE fp;
+            CdlFILE fp;
 
             if (CdSearchFile(&fp, name))
                 retval = fp.size;
@@ -39,7 +35,7 @@ long LoadFile(char *name, char *buffer)
         ReadError = 0;
         {
             int fileLength;
-            struct CdlFILE fp;
+            CdlFILE fp;
 
             if (CdSearchFile(&fp, name)) {
                 fileLength = fp.size;

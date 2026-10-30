@@ -1,5 +1,6 @@
 #include "types.h"
 #include "bss.h"
+#include <strings.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 int MYPCopen(char *name);
@@ -22,7 +23,7 @@ extern short tpscreeny[];
 extern short tppalx[];
 extern short tppaly[];
 extern short *screen256pal;
-extern struct RECT desrect;
+extern RECT desrect;
 char *LoadIffToRam_ConCat_NewMode(char *loadname, struct HEADERTYPE *Header, short *PSXColours);
 int Read_File_Alloc2(char *path, char *name2, void **Pntr, int hiflag);
 int LoadTpageInternal(char *name, int tpx, int tpy, int palx, int paly, int palflag, int skipheight);
@@ -52,7 +53,6 @@ struct IFFPBMHEADER {
     char xAspect, yAspect;
     short PageWidth, PageHeight;
 };
-char *strcpy();
 static int SavePBM(char *Pixels)
 {
     char *tempbuf = MY_malloc_name(320 * 200, "IFF tempbuf2 A");
@@ -71,8 +71,6 @@ static int SavePBM(char *Pixels)
     MY_malloc_name(320 * 200, "IFF p");
     return tempbuf != Pixels;
 }
-char *strcpy();
-char *strcat();
 char *strupr(char *s);
 long GetFLen(char *name);
 long LoadFile(char *name, char *buffer);
@@ -85,8 +83,6 @@ int MYPClseek(int h, int offset, int mode);
 extern short *Global16colourpals;
 extern short NumMapPals;
 extern short NumModelPals;
-int strcmp(char *, char *);
-int strlen(char *);
 
 /* inline helper (params only, so no SYM block): converting Type for the call emits its
    zero-extension before EndOfLine - 257, as in the original */
@@ -344,7 +340,7 @@ void ReReadToc(void)
 {
     unsigned char result[8];
     unsigned char com;
-    struct CdlLOC pos;
+    CdlLOC pos;
     CdControlB(0xe, &com, result);
     while (MyGetCDStatus() != 2)
         ;

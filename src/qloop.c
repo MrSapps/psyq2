@@ -1,5 +1,6 @@
 #include "types.h"
 #include "bss.h"
+#include <libapi.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void OnLeavingLevel(void); void QuakeLoop(void);
@@ -25,8 +26,6 @@ extern int SortTime;
 extern int DebugInfo;
 extern short LevelComplete;
 
-unsigned int SetSp(unsigned int sp);
-long GetRCnt();
 void ChrisInitEveryFrame(void);
 int GameCheckPaused(void);
 void GameDisplayPausedMenu(void);

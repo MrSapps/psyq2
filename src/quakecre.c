@@ -1,5 +1,7 @@
 #include "types.h"
 #include "bss.h"
+#include <memory.h>
+#include <rand.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void QuakeBlowMeUpMetal(struct CREATURE *Cre, int NumBits, struct SVECT *Force, struct IDENTITYNAME *BigBitName, int iNumberIndex, int iStart, int iEnd);
@@ -145,7 +147,6 @@ void PrimaryKillPlasmaFade(struct CREATURE *Cre);
 void PrimaryKillBurnFade(struct CREATURE *Cre);
 void FreeEdictT(struct edict_s *EdictT);
 
-int rand(void);
 void GetFireLocSpace(struct CREATURE *Cre, struct VECT *FirePosition, short *FireSpace);
 void GenerateQuakeBodyPart(struct CREATURE *Parent, int Angle, struct SVECT *Force, struct VECT *Location, short Space, short Life, struct IDENTITYNAME Name);
 void GenerateQuakeBodyPart2(struct CREATURE *Parent, int Angle, struct SVECT *Force, struct VECT *Location, short Space, short Life, struct IDENTITYNAME Name);
@@ -161,9 +162,6 @@ extern struct PARTCOLOURS ParticleColours_Blue;
 extern struct WINDOW GameWindows[];
 extern struct QENGINELEVINTERFACE Engine;
 extern struct PLAYER Players[];
-int rand(void);
-void *memset(void *s, int c, unsigned int n);
-struct MATRIX *RotMatrixYXZ(struct SVECTOR *r, struct MATRIX *m);
 int GetSoundNum(struct IDENTITYNAME Name);
 int SoundTestIfRunning(short SoundID, short Channel);
 int SoundByCreature(int SFXNumber, struct CREATURE *Cre);
@@ -210,7 +208,6 @@ extern int ChrisCount;
 int GetNumberVertices(struct GLOBMODHDR *Hdr);
 void GetAbsoluteModelVert(struct CREATURE *Cre, short VertexNum, struct VECT *Pos);
 struct PARTICLE *AddParticles(struct VECT *Pos, struct SVECT *Vel, struct PARTCOLOURS *PColour0, struct PARTCOLOURS *PColour1, int NumToDraw, int Timer, int Size, int Area);
-void *memset(void *s, int c, unsigned int n);
 
 /* Inlined into the four Cre_* callers (SYM shows only its locals as nested blocks).
    The loop is a guarded do/while: a plain while() gives the wrong delay-slot fill
@@ -271,8 +268,6 @@ extern struct VECT NullVec;
 extern struct PLAYER Players[];
 extern struct WINDOW GameWindows[];
 extern struct QENGINELEVINTERFACE Engine;
-void *memset(void *s, int c, unsigned int n);
-void VectorNormal(struct VECT *v0, struct VECT *v1);
 void PlayerLavaSound(struct CREATURE *Cre);
 void PlayerToxicSound(struct CREATURE *Cre);
 void T_Damage(struct edict_s *targ, struct edict_s *inflictor, struct edict_s *attacker, struct VECT *dir, struct VECT *point, struct VECT *normal, int damage, int knockback, int dflags, int mod);
@@ -292,7 +287,6 @@ struct GLOBMODHDR *GetModelHdr(struct IDENTITYNAME Name);
 int GetFloorOffset(struct CREATURE *Cre);
 int SetupBoxDrop(struct COLLBOX3D *Box, struct VECT *Location, struct SCRPNT CollSize, struct SHORTPAIR MainSpaceDrop, struct SHORTPAIR HitSize);
 void KillModel(struct CREATURE *Cre);
-struct MATRIX *RotMatrixYXZ(struct SVECTOR *r, struct MATRIX *m);
 
 char *PrintIdentityName(struct IDENTITYNAME Name);
 char *PrintBool(int Bool);
@@ -306,8 +300,6 @@ static int IsDebugType(struct CREATURE *Cre)
 
 extern struct PARTCOLOURS ParticleColours_BloodRed;
 extern struct PARTCOLOURS ParticleColours_DarkBloodRed;
-int rand(void);
-void *memset(void *s, int c, unsigned int n);
 int Move3d_SpinBounceAbout(struct CREATURE *Cre, struct CREATURE *Thrower, struct CREATURE **pHitCre, struct SHORTPAIR BounceDamage);
 void UpdateBoxStuff(struct COLLBOX3D *Box, int AreaSource);
 struct PARTICLE *AddParticlesSL0(struct VECT *Pos, struct SVECT *Off, struct SVECT *Vel, struct PARTCOLOURS *PColour0, struct PARTCOLOURS *PColour1, int NumToDraw, int Timer, int Size, int Area);
@@ -317,8 +309,7 @@ extern struct COLLHEADER CollMap;
 void SetupCollBoxMinMax(struct COLLBOX3D *Box, struct SVECT RadiusXYZ);
 void PrimaryQuakeBodyPartMoving(struct CREATURE *Cre);
 
-void *memset(void *s, int c, unsigned int n);
-void MyScaleMatrix(struct MATRIX *MatrixOut, struct MATRIX *MatrixIn, int Scale);
+void MyScaleMatrix(MATRIX *MatrixOut, MATRIX *MatrixIn, int Scale);
 void SetShockData(int InputWin, int Ident, int InputScale, struct VECT *Location, struct POWER Power);
 int SoundByCreature(int SFXNumber, struct CREATURE *Cre);
 
@@ -705,7 +696,7 @@ struct CREATURE *InitSimpleModel(struct SIMSTART *SimStart, struct IDENTITYNAME 
         Cre->Ang.vy = SimStart->AngY;
         Cre->Ambience = *&(struct COLOUR){0x30, 0x30, 0x30, 0};
         Cre->DefaultAmbience = *&(struct COLOUR){0x30, 0x30, 0x30, 0};
-        RotMatrixYXZ((struct SVECTOR *)&Cre->Ang, &Cre->Matrix);
+        RotMatrixYXZ((SVECTOR *)&Cre->Ang, &Cre->Matrix);
     }
     return Cre;
 }
@@ -820,7 +811,7 @@ int PrimaryQuakePickup(struct CREATURE *Cre)
         }
         if (Flags & 1) {
             Cre->Ang.vy -= NewVcounts * 3;
-            RotMatrixYXZ((struct SVECTOR *)&Cre->Ang, &Cre->Matrix);
+            RotMatrixYXZ((SVECTOR *)&Cre->Ang, &Cre->Matrix);
         }
         if (Flags & 2) {
             if (Cre->ModelOpaque != 0x1000) {
@@ -1086,7 +1077,7 @@ void GenerateQuakeBodyPart(struct CREATURE *Parent, int Angle, struct SVECT *For
         Cre->Vel.vz = Force->vz + rcossin_tbl[Angle & 0xfff][0] * Speed / 4096;
         Cre->Ang = (struct SVECT){rand(), rand(), rand()};
         Cre->Params[0] = (rand() - 0x4000) >> 6;
-        RotMatrixYXZ((struct SVECTOR *)&Cre->Ang, &Cre->Matrix);
+        RotMatrixYXZ((SVECTOR *)&Cre->Ang, &Cre->Matrix);
         Cre->Ambience = Parent->Ambience;
         Cre->DefaultAmbience = Parent->DefaultAmbience;
         Cre->Box.MoveSpace = -1;
@@ -1176,7 +1167,7 @@ void QuakeGenExplosion(struct VECT *Location, int Area, int Scale, int Type)
             Cre->Ambience = *&(struct COLOUR){0x40, 0x40, 0x40, 0};
             Cre->Ang = (struct SVECT){0, rand() & 0xfff, 0};
             memset(&Cre->Ang, 0, sizeof(struct SVECT));
-            RotMatrixYXZ((struct SVECTOR *)&Cre->Ang, &Cre->Matrix);
+            RotMatrixYXZ((SVECTOR *)&Cre->Ang, &Cre->Matrix);
             MyScaleMatrix(&Cre->Matrix, &Cre->Matrix, Scale);
             Cre->Box.Min = (struct SVECT){-0x100, Cre->HeightOffset - 0x200, -0x100};
             Cre->Box.Max = (struct SVECT){0x100, Cre->HeightOffset, 0x100};
@@ -1280,7 +1271,7 @@ void GenerateQuakeBodyPart2(struct CREATURE *Parent, int Angle, struct SVECT *Fo
         Cre->Vel.vz = rcossin_tbl[Angle & 0xfff][0] * Speed / 4096;
         Cre->Ang = (struct SVECT){rand(), rand(), rand()};
         Cre->Params[0] = (rand() - 0x4000) >> 6;
-        RotMatrixYXZ((struct SVECTOR *)&Cre->Ang, &Cre->Matrix);
+        RotMatrixYXZ((SVECTOR *)&Cre->Ang, &Cre->Matrix);
         Cre->Ambience = Parent->Ambience;
         Cre->DefaultAmbience = Parent->DefaultAmbience;
         Cre->Life = Life + rand() / 32;

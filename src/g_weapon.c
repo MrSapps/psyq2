@@ -1,4 +1,5 @@
 #include "types.h"
+#include <memory.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 int fire_hit(struct edict_s *self, struct VECT aim, int damage, int kick);
@@ -16,7 +17,6 @@ int getmaxsvy(struct edict_s *ent);
 int getminsvz(struct edict_s *ent);
 int getmaxsvz(struct edict_s *ent);
 void DoDamage(void *Victim, void *Attacker, int Damage, int Type, struct VECT *Point);
-void *memset(void *, int, int);
 
 int fire_hit(struct edict_s *self, struct VECT aim, int damage, int kick)
 {

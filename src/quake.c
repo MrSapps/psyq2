@@ -1,5 +1,6 @@
 #include "types.h"
 #include "bss.h"
+#include <memory.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 int QuakeEndSelfPlay(int Win, int Manual);
@@ -28,8 +29,8 @@ void GameReRunMPLevel(void);
 void GameQuitGame(void);
 void InitialiseSingleGame(void);
 int GameCheckPaused(void);
-void DrawBorder(struct RECT Rect, long *Ot, int OffsetY);
-void DrawDarkenedBox(struct RECT Rect);
+void DrawBorder(RECT Rect, long *Ot, int OffsetY);
+void DrawDarkenedBox(RECT Rect);
 void InitMissionNull(void);
 void InitMissionNull(void); void GameNewMission(void);
 void GameInitStuff(void);
@@ -302,13 +303,13 @@ int Pauser = 0;
 static int StillDataDualShock SBSS;
 int GlobalKey SBSS;
 int VBLevelTicks SBSS;
-struct RECT gDarkBoxRect SBSS;
+RECT gDarkBoxRect SBSS;
 unsigned int QuakeLevelFrame SBSS;
 int GlobalKillsCount SBSS;
 int GlobalKills SBSS;
 short Console_Flags SBSS;
-struct LINE_F2 *LastQuakeLine SBSS;
-struct LINE_F2 *NextQuakeLine SBSS;
+LINE_F2 *LastQuakeLine SBSS;
+LINE_F2 *NextQuakeLine SBSS;
 int GlobalSecretsCount SBSS;
 int GlobalSecretsFound SBSS;
 unsigned int QuakeLevelTime SBSS;
@@ -344,7 +345,7 @@ extern int LevelChange;
 extern short LevelComplete;
 void dprintf();
 void DoFrontEndStuff(void);
-void DrawDarkenedBox(struct RECT Rect);
+void DrawDarkenedBox(RECT Rect);
 
 #define IDNAME(s) ((struct IDENTITYNAME){s})
 
@@ -369,8 +370,7 @@ extern void (*GameHubLoadSaveData)();
 char *PrintIdentityName(struct IDENTITYNAME Name);
 
 extern struct DB *currdb;
-void DrawBorder(struct RECT Rect, long *Ot, int OffsetY);
-void SetTile(struct TILE *Tile);
+void DrawBorder(RECT Rect, long *Ot, int OffsetY);
 void AddPrim_(void *Ot, void *Prim);
 
 int ModNameCmp(struct IDENTITYNAME *Name1, struct IDENTITYNAME *Name2);
@@ -402,7 +402,6 @@ static struct SHOCKDATA *FindShockData(int Ident)
 }
 
 extern int PalNtscRate;
-void *memset(void *s, int c, unsigned int n);
 
 static int GetShockPoint(struct SHOCKPOINT *Pntr, int Time)
 {
@@ -458,7 +457,6 @@ extern struct STARTPOSITION ReloadStartPosition;
 extern short tpscreenx[];
 extern short tpscreeny[];
 extern short palette[];
-unsigned short GetTPage(int tp, int abr, int x, int y);
 extern int ClearingNecessary;
 extern short SceneValid;
 extern int LastLevelComplete;
@@ -672,9 +670,9 @@ int GameCheckPaused(void)
     return Paused;
 }
 
-void DrawBorder(struct RECT Rect, long *Ot, int OffsetY)
+void DrawBorder(RECT Rect, long *Ot, int OffsetY)
 {
-    struct POLY_FT4 *polft4;
+    POLY_FT4 *polft4;
     short tpage;
     short clut;
 
@@ -701,11 +699,11 @@ void DrawBorder(struct RECT Rect, long *Ot, int OffsetY)
     BORDERPOLY(81, 241, 11, 14, Rect.x + Rect.w - 1, Rect.y + 22 + OffsetY, 11, Rect.h - 44);
 }
 
-void DrawDarkenedBox(struct RECT Rect)
+void DrawDarkenedBox(RECT Rect)
 {
-    struct TILE *Tile;
-    struct DR_TPAGE *DrTPageS;
-    struct DR_TPAGE *DrTPageO;
+    TILE *Tile;
+    DR_TPAGE *DrTPageS;
+    DR_TPAGE *DrTPageO;
     long *Ot;
     short a;
 
@@ -738,7 +736,7 @@ void DrawDarkenedBox(struct RECT Rect)
 
 void GameDisplayPausedMenu(void)
 {
-    struct RECT Rect = { 0x2e, 0x10, 0x1a4, 0xd0 };
+    RECT Rect = { 0x2e, 0x10, 0x1a4, 0xd0 };
 
     DoFrontEndStuff();
     DrawDarkenedBox(Rect);

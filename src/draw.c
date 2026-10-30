@@ -1,5 +1,8 @@
 #include "types.h"
 #include "bss.h"
+#include <libapi.h>
+#include <libetc.h>
+#include <memory.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void InitHeaps(void);
@@ -57,8 +60,8 @@ char SkyClear SBSS;
 int DrawModTime SBSS;
 int LightsTime SBSS;
 int SpecificTime SBSS;
-struct DIVPOLYGON4 divp BSS;
-struct DIVPOLYGON4 divp2 BSS;
+DIVPOLYGON4 divp BSS;
+DIVPOLYGON4 divp2 BSS;
 
 
 extern int *AllIffPics;
@@ -71,28 +74,19 @@ extern unsigned char TbFrame[];
 extern struct DB *currdb;
 extern struct SCRPNT ScreenSize;
 extern struct DB db[];
-void SetVideoMode(long mode);
-void InitGeom(void);
-void SetGeomOffset(long ofx, long ofy);
-void SetGeomScreen(long h);
 void SetupDrawDisplay3D(void);
 void SetUpSemiTrans(void);
-void SetDispMask(int mask);
-int VSync(int mode);
-struct DRAWENV *PutDrawEnv(struct DRAWENV *env);
-struct DISPENV *PutDispEnv(struct DISPENV *env);
 int loadtp16b_ConCat(char *name, int tpnum, int skipheight);
 
 extern int ObjSortIndx;
 extern short SceneValid;
 extern int ChrisCount;
 extern void (*VBlankSpecific)();
-extern struct MATRIX *CurrCamMat;
+extern MATRIX *CurrCamMat;
 extern struct WINDOW *CurrWin;
 extern struct VECT *CurrCamPos;
 extern unsigned long *CurrOt;
 extern int CurrWinSizeX;
-long GetRCnt();
 void DrawModels(int Win);
 void DrawHeavens(void);
 void InitialiseScreenIndxStuff(void);
@@ -116,21 +110,9 @@ extern unsigned char DbFrame[];
 extern struct DB *currdb;
 extern struct SCRPNT ScreenSize;
 extern struct DB db[];
-unsigned short GetTPage(int tp, int abr, int x, int y);
-struct DRAWENV *SetDefDrawEnv(struct DRAWENV *env, int x, int y, int w, int h);
-void SetDrawEnv(struct DR_ENV *dr_env, struct DRAWENV *env);
 void AddPrim_(void *ot, void *p);
-struct DISPENV *SetDefDispEnv(struct DISPENV *env, int x, int y, int w, int h);
 void Config_InstallVideo(void);
-int ClearImage(struct RECT *rect, unsigned char r, unsigned char g, unsigned char b);
-int DrawSync(int mode);
-int VSync(int mode);
-struct DISPENV *PutDispEnv(struct DISPENV *env);
 
-void *memset();
-void SetGeomOffset(long ofx, long ofy);
-void SetGeomScreen(long h);
-void SetRotMatrix(struct MATRIX *m);
 
 /* inline_c.h */
 #define gte_SetTransMatrix(r0) __asm__ volatile (	\
@@ -152,18 +134,12 @@ extern struct SCRPNT CurrScreenSize;
 extern int SubdivideDistance;
 extern struct SCRPNT ScreenSize;
 extern unsigned char DbFrame[];
-void *memset();
-void MYRotMatrixYXZ2(struct SVECT *ang, struct MATRIX *m);
-void ReverseMatrix(struct MATRIX *MatrixOut, struct MATRIX *MatrixIn);
-void ScaleCameraMatrix(struct MATRIX *MatrixOut, struct MATRIX *MatrixIn, short x, short y);
+void MYRotMatrixYXZ2(struct SVECT *ang, MATRIX *m);
+void ReverseMatrix(MATRIX *MatrixOut, MATRIX *MatrixIn);
+void ScaleCameraMatrix(MATRIX *MatrixOut, MATRIX *MatrixIn, short x, short y);
 void DrawHeavenlyModels(void);
-void SetGeomOffset(long ofx, long ofy);
-void SetGeomScreen(long h);
-struct DRAWENV *SetDefDrawEnv(struct DRAWENV *env, int x, int y, int w, int h);
-void SetDrawEnv(struct DR_ENV *dr_env, struct DRAWENV *env);
 void AddPrim_(void *ot, void *p);
 
-void SetTile(struct TILE *p);
 
 extern struct SCRPNT CurrOffset;
 extern int ProtectedSubdivideDistance;
@@ -172,7 +148,6 @@ void DrawScene(int Win);
 void DrawCrossesCurrWin(void);
 void DrawWinTile(int Win);
 
-void SetTile(struct TILE *p);
 
 void InitLevPals(void);
 
@@ -275,7 +250,7 @@ void SetWinFade(int Win, struct COLOUR Colour, short FadeType, int Time, int Ini
 
 void DrawWinTile(int Win)
 {
-    struct TILE *Tile;
+    TILE *Tile;
     int t;
 
     Tile = &currdb->TileFade[Win];
@@ -376,7 +351,7 @@ void DrawAllModels(void)
 /* the colour word is copied as a long, as in the original lw/sw */
 void DrawTimeBar(void)
 {
-    struct TILE *TTile;
+    TILE *TTile;
 
     TTile = currdb->TimerTiles;
     TTile->x0 = 20;
@@ -686,11 +661,11 @@ void SetupScreenHeavens(void)
 
 void SetGeomStuffWin(int Win)
 {
-    struct SVECTOR NullVec;
+    SVECTOR NullVec;
 
     memset(&NullVec, 0, sizeof(NullVec));
     SetGeomOffset(GameWindows[Win].Geom.sx, GameWindows[Win].Geom.sy);
     SetGeomScreen(GameWindows[Win].Focal);
     SetRotMatrix(&GameWindows[Win].CamMat);
-    gte_SetTransMatrix((struct MATRIX *)((char *)&NullVec - 20));
+    gte_SetTransMatrix((MATRIX *)((char *)&NullVec - 20));
 }

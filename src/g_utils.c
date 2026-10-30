@@ -1,4 +1,5 @@
 #include "types.h"
+#include <memory.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void G_ProjectSourceNM(struct VECT *point, struct SVECT *distance, struct VECT *forward, struct VECT *right, struct VECT *result);
@@ -18,10 +19,8 @@ extern struct pathcorner_s *PathTList;
 extern struct edict_s *EdictTList;
 extern short MaxPathT;
 
-void *memset(void *s, int c, unsigned int n);
 struct edict_s *FindFreePathT(void);
 struct edict_s *FindFreeEdictT(void);
-long ratan2(long y, long x);
 
 extern struct CREATURE Creatures[];
 extern struct CREATURE *CreFreeList[];

@@ -6,8 +6,8 @@ void ProcessGunSight(struct PLAYER *Player);
 extern struct QENGINELEVINTERFACE Engine;
 extern struct WINDOW GameWindows[];
 extern struct DB *currdb;
-extern struct SPRT_16 *Sprite816;
-extern struct SPRT_16 *LastSprite816;
+extern SPRT_16 *Sprite816;
+extern SPRT_16 *LastSprite816;
 extern short palette[];
 void AddPrim_(void *ot, void *p);
 /* data */

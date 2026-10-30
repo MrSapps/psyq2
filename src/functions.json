@@ -2565,7 +2565,7 @@
    },
    {
     "name": "pActualPoly",
-    "decl": "struct POLY_FT4 *pActualPoly",
+    "decl": "POLY_FT4 *pActualPoly",
     "where": "fp-0x10",
     "block": [
      1
@@ -3331,7 +3331,7 @@
   "args": [
    {
     "name": "poly",
-    "decl": "struct POLY_FT4 **poly",
+    "decl": "POLY_FT4 **poly",
     "where": "$s2"
    }
   ],
@@ -3462,7 +3462,7 @@
     1272
    ]
   ],
-  "signature": "void FrontEndDrawMenu(struct POLY_FT4 **poly)"
+  "signature": "void FrontEndDrawMenu(POLY_FT4 **poly)"
  },
  {
   "name": "FrontEndDrawCursor",
@@ -3484,14 +3484,14 @@
    },
    {
     "name": "poly",
-    "decl": "struct POLY_FT4 **poly",
+    "decl": "POLY_FT4 **poly",
     "where": "$s7"
    }
   ],
   "locals": [
    {
     "name": "pActualPoly",
-    "decl": "struct POLY_FT4 *pActualPoly",
+    "decl": "POLY_FT4 *pActualPoly",
     "where": "$s0",
     "block": [
      1
@@ -3499,7 +3499,7 @@
    },
    {
     "name": "pCastPolyG4",
-    "decl": "struct POLY_G4 *pCastPolyG4",
+    "decl": "POLY_G4 *pCastPolyG4",
     "where": "$a2",
     "block": [
      1
@@ -3991,7 +3991,7 @@
     1472
    ]
   ],
-  "signature": "void FrontEndDrawCursor(struct STRING_TABLE *fetString, struct POLY_FT4 **poly)"
+  "signature": "void FrontEndDrawCursor(struct STRING_TABLE *fetString, POLY_FT4 **poly)"
  },
  {
   "name": "FrontEndDrawText",
@@ -4013,14 +4013,14 @@
    },
    {
     "name": "poly",
-    "decl": "struct POLY_FT4 **poly",
+    "decl": "POLY_FT4 **poly",
     "where": "arg+0x4"
    }
   ],
   "locals": [
    {
     "name": "pActualPoly",
-    "decl": "struct POLY_FT4 *pActualPoly",
+    "decl": "POLY_FT4 *pActualPoly",
     "where": "fp-0x64",
     "block": [
      1
@@ -4708,7 +4708,7 @@
     1635
    ]
   ],
-  "signature": "void FrontEndDrawText(struct STRING_TABLE *fetString, struct POLY_FT4 **poly)"
+  "signature": "void FrontEndDrawText(struct STRING_TABLE *fetString, POLY_FT4 **poly)"
  },
  {
   "name": "FrontEndGetTextCoords",
@@ -5131,7 +5131,7 @@
    },
    {
     "name": "poly",
-    "decl": "struct POLY_FT4 **poly",
+    "decl": "POLY_FT4 **poly",
     "where": "arg+0x4"
    },
    {
@@ -5199,7 +5199,7 @@
    },
    {
     "name": "poly",
-    "decl": "struct POLY_FT4 **poly",
+    "decl": "POLY_FT4 **poly",
     "where": "fp+0x4",
     "block": [
      1,
@@ -5273,7 +5273,7 @@
    },
    {
     "name": "pActualPoly",
-    "decl": "struct POLY_FT4 *pActualPoly",
+    "decl": "POLY_FT4 *pActualPoly",
     "where": "$s4",
     "block": [
      1,
@@ -5419,7 +5419,7 @@
     1871
    ]
   ],
-  "signature": "void FrontEndDrawSlider(struct STRING_TABLE *fetString, struct POLY_FT4 **poly, short isCursor)"
+  "signature": "void FrontEndDrawSlider(struct STRING_TABLE *fetString, POLY_FT4 **poly, short isCursor)"
  },
  {
   "name": "FrontEndResetPlayerDefaults",
@@ -5992,7 +5992,7 @@
   "args": [
    {
     "name": "poly",
-    "decl": "struct POLY_FT4 **poly",
+    "decl": "POLY_FT4 **poly",
     "where": "$s4"
    }
   ],
@@ -6187,7 +6187,7 @@
     2143
    ]
   ],
-  "signature": "void DrawBottomPoly(struct POLY_FT4 **poly)"
+  "signature": "void DrawBottomPoly(POLY_FT4 **poly)"
  },
  {
   "name": "PatchEngineVariables",
@@ -8245,7 +8245,7 @@
    },
    {
     "name": "ThisDrawEnv",
-    "decl": "struct DRAWENV *ThisDrawEnv",
+    "decl": "DRAWENV *ThisDrawEnv",
     "where": "$s0",
     "block": [
      1
@@ -8253,7 +8253,7 @@
    },
    {
     "name": "ThisDrawEnv2",
-    "decl": "struct DRAWENV *ThisDrawEnv2",
+    "decl": "DRAWENV *ThisDrawEnv2",
     "where": "$s2",
     "block": [
      1
@@ -13635,7 +13635,7 @@
    },
    {
     "name": "Rect",
-    "decl": "struct RECT Rect",
+    "decl": "RECT Rect",
     "where": "static, section offset 0x14",
     "block": [
      1
@@ -37002,7 +37002,7 @@
   "locals": [
    {
     "name": "PartFt4",
-    "decl": "struct POLY_FT4 *PartFt4",
+    "decl": "POLY_FT4 *PartFt4",
     "where": "fp-0x60",
     "block": [
      1
@@ -37042,7 +37042,7 @@
    },
    {
     "name": "rel",
-    "decl": "struct SVECTOR rel[15]",
+    "decl": "SVECTOR rel[15]",
     "where": "fp-0x178",
     "block": [
      1
@@ -37050,7 +37050,7 @@
    },
    {
     "name": "TempCoord",
-    "decl": "struct SVECTOR TempCoord[15]",
+    "decl": "SVECTOR TempCoord[15]",
     "where": "fp-0x100",
     "block": [
      1
@@ -37754,7 +37754,7 @@
   "locals": [
    {
     "name": "Ft40",
-    "decl": "struct POLY_FT4 *Ft40",
+    "decl": "POLY_FT4 *Ft40",
     "where": "$t1",
     "block": [
      1
@@ -37762,7 +37762,7 @@
    },
    {
     "name": "Ft41",
-    "decl": "struct POLY_FT4 *Ft41",
+    "decl": "POLY_FT4 *Ft41",
     "where": "$t0",
     "block": [
      1
@@ -38178,7 +38178,7 @@
    },
    {
     "name": "RelList",
-    "decl": "struct SVECTOR RelList[4]",
+    "decl": "SVECTOR RelList[4]",
     "where": "fp-0x78",
     "block": [
      1
@@ -41246,7 +41246,7 @@
    },
    {
     "name": "Pos",
-    "decl": "struct RECT *Pos",
+    "decl": "RECT *Pos",
     "where": "$a1"
    },
    {
@@ -41451,7 +41451,7 @@
     303
    ]
   ],
-  "signature": "void FadePolyGT4(struct UVWH *GraphicUVWH, struct RECT *Pos, long *Ot, struct SHORTPAIR PalFlip)"
+  "signature": "void FadePolyGT4(struct UVWH *GraphicUVWH, RECT *Pos, long *Ot, struct SHORTPAIR PalFlip)"
  },
  {
   "name": "ProcessQuakePanel1by1",
@@ -43645,7 +43645,7 @@
    },
    {
     "name": "Weapon_Pos",
-    "decl": "struct RECT Weapon_Pos",
+    "decl": "RECT Weapon_Pos",
     "where": "fp-0x38",
     "block": [
      1
@@ -47559,7 +47559,7 @@
   "locals": [
    {
     "name": "DrMoves",
-    "decl": "struct DR_MOVE DrMoves[2]",
+    "decl": "DR_MOVE DrMoves[2]",
     "where": "static, section offset 0x0",
     "block": [
      1
@@ -47567,7 +47567,7 @@
    },
    {
     "name": "DrMove",
-    "decl": "struct DR_MOVE *DrMove",
+    "decl": "DR_MOVE *DrMove",
     "where": "static, section offset 0x0",
     "block": [
      1
@@ -47575,7 +47575,7 @@
    },
    {
     "name": "Sprites",
-    "decl": "struct SPRT Sprites[2]",
+    "decl": "SPRT Sprites[2]",
     "where": "static, section offset 0x30",
     "block": [
      1
@@ -47583,7 +47583,7 @@
    },
    {
     "name": "Sprt",
-    "decl": "struct SPRT *Sprt",
+    "decl": "SPRT *Sprt",
     "where": "static, section offset 0x4",
     "block": [
      1
@@ -47591,7 +47591,7 @@
    },
    {
     "name": "TPages",
-    "decl": "struct DR_TPAGE TPages[2]",
+    "decl": "DR_TPAGE TPages[2]",
     "where": "static, section offset 0x60",
     "block": [
      1
@@ -47599,7 +47599,7 @@
    },
    {
     "name": "SetTPage",
-    "decl": "struct DR_TPAGE *SetTPage",
+    "decl": "DR_TPAGE *SetTPage",
     "where": "static, section offset 0x8",
     "block": [
      1
@@ -48244,7 +48244,7 @@
   "locals": [
    {
     "name": "Rect",
-    "decl": "struct RECT Rect",
+    "decl": "RECT Rect",
     "where": "fp-0x10",
     "block": [
      1
@@ -55178,7 +55178,7 @@
   "args": [
    {
     "name": "Rect",
-    "decl": "struct RECT Rect",
+    "decl": "RECT Rect",
     "where": "arg+0x0"
    },
    {
@@ -55195,7 +55195,7 @@
   "locals": [
    {
     "name": "polft4",
-    "decl": "struct POLY_FT4 *polft4",
+    "decl": "POLY_FT4 *polft4",
     "where": "$fp",
     "block": [
      1
@@ -55691,7 +55691,7 @@
     508
    ]
   ],
-  "signature": "void DrawBorder(struct RECT Rect, long *Ot, int OffsetY)"
+  "signature": "void DrawBorder(RECT Rect, long *Ot, int OffsetY)"
  },
  {
   "name": "DrawDarkenedBox",
@@ -55708,14 +55708,14 @@
   "args": [
    {
     "name": "Rect",
-    "decl": "struct RECT Rect",
+    "decl": "RECT Rect",
     "where": "arg+0x0"
    }
   ],
   "locals": [
    {
     "name": "Tile",
-    "decl": "struct TILE *Tile",
+    "decl": "TILE *Tile",
     "where": "$s2",
     "block": [
      1
@@ -55723,7 +55723,7 @@
    },
    {
     "name": "DrTPageS",
-    "decl": "struct DR_TPAGE *DrTPageS",
+    "decl": "DR_TPAGE *DrTPageS",
     "where": "$s4",
     "block": [
      1
@@ -55731,7 +55731,7 @@
    },
    {
     "name": "DrTPageO",
-    "decl": "struct DR_TPAGE *DrTPageO",
+    "decl": "DR_TPAGE *DrTPageO",
     "where": "$s0",
     "block": [
      1
@@ -55915,7 +55915,7 @@
     551
    ]
   ],
-  "signature": "void DrawDarkenedBox(struct RECT Rect)"
+  "signature": "void DrawDarkenedBox(RECT Rect)"
  },
  {
   "name": "InitMissionNull",
@@ -58219,7 +58219,7 @@
   "locals": [
    {
     "name": "Rect",
-    "decl": "struct RECT Rect",
+    "decl": "RECT Rect",
     "where": "fp-0x10",
     "block": [
      1
@@ -70177,7 +70177,7 @@
    },
    {
     "name": "OldPoly",
-    "decl": "struct POLY_G4 *OldPoly",
+    "decl": "POLY_G4 *OldPoly",
     "where": "$s0",
     "block": [
      1
@@ -74052,7 +74052,7 @@
    },
    {
     "name": "Matrix",
-    "decl": "struct MATRIX Matrix",
+    "decl": "MATRIX Matrix",
     "where": "fp-0x60",
     "block": [
      1,
@@ -78650,7 +78650,7 @@
    },
    {
     "name": "m",
-    "decl": "struct MATRIX m",
+    "decl": "MATRIX m",
     "where": "fp-0x50",
     "block": [
      1
@@ -80338,7 +80338,7 @@
    },
    {
     "name": "Mat",
-    "decl": "struct MATRIX Mat",
+    "decl": "MATRIX Mat",
     "where": "fp-0x50",
     "block": [
      1
@@ -89617,7 +89617,7 @@
    },
    {
     "name": "m",
-    "decl": "struct MATRIX *m",
+    "decl": "MATRIX *m",
     "where": "$t3"
    }
   ],
@@ -89804,7 +89804,7 @@
     148
    ]
   ],
-  "signature": "void MYRotMatrixANIM(struct SVECT *ang, struct MATRIX *m)"
+  "signature": "void MYRotMatrixANIM(struct SVECT *ang, MATRIX *m)"
  },
  {
   "name": "MYRotMatrixYXZ2",
@@ -89826,7 +89826,7 @@
    },
    {
     "name": "m",
-    "decl": "struct MATRIX *m",
+    "decl": "MATRIX *m",
     "where": "$t2"
    }
   ],
@@ -90021,7 +90021,7 @@
     187
    ]
   ],
-  "signature": "void MYRotMatrixYXZ2(struct SVECT *ang, struct MATRIX *m)"
+  "signature": "void MYRotMatrixYXZ2(struct SVECT *ang, MATRIX *m)"
  },
  {
   "name": "ElipseMatrix",
@@ -90038,12 +90038,12 @@
   "args": [
    {
     "name": "Source",
-    "decl": "struct MATRIX *Source",
+    "decl": "MATRIX *Source",
     "where": "$a0"
    },
    {
     "name": "Dest",
-    "decl": "struct MATRIX *Dest",
+    "decl": "MATRIX *Dest",
     "where": "$a1"
    },
    {
@@ -90098,7 +90098,7 @@
     298
    ]
   ],
-  "signature": "void ElipseMatrix(struct MATRIX *Source, struct MATRIX *Dest, struct SVECT *R)"
+  "signature": "void ElipseMatrix(MATRIX *Source, MATRIX *Dest, struct SVECT *R)"
  },
  {
   "name": "GenRotMatrixY",
@@ -90120,7 +90120,7 @@
    },
    {
     "name": "mat",
-    "decl": "struct MATRIX *mat",
+    "decl": "MATRIX *mat",
     "where": "$v0"
    }
   ],
@@ -90198,7 +90198,7 @@
     162
    ]
   ],
-  "signature": "struct MATRIX *GenRotMatrixY(int yang, struct MATRIX *mat)"
+  "signature": "MATRIX *GenRotMatrixY(int yang, MATRIX *mat)"
  },
  {
   "name": "SquareRootNR",
@@ -90283,12 +90283,12 @@
   "args": [
    {
     "name": "MatrixOut",
-    "decl": "struct MATRIX *MatrixOut",
+    "decl": "MATRIX *MatrixOut",
     "where": "$a0"
    },
    {
     "name": "MatrixIn",
-    "decl": "struct MATRIX *MatrixIn",
+    "decl": "MATRIX *MatrixIn",
     "where": "$a1"
    }
   ],
@@ -90338,7 +90338,7 @@
     228
    ]
   ],
-  "signature": "void ReverseMatrix(struct MATRIX *MatrixOut, struct MATRIX *MatrixIn)"
+  "signature": "void ReverseMatrix(MATRIX *MatrixOut, MATRIX *MatrixIn)"
  },
  {
   "name": "ScaleCameraMatrix",
@@ -90355,12 +90355,12 @@
   "args": [
    {
     "name": "MatrixOut",
-    "decl": "struct MATRIX *MatrixOut",
+    "decl": "MATRIX *MatrixOut",
     "where": "$a0"
    },
    {
     "name": "MatrixIn",
-    "decl": "struct MATRIX *MatrixIn",
+    "decl": "MATRIX *MatrixIn",
     "where": "$a1"
    },
    {
@@ -90428,7 +90428,7 @@
     200
    ]
   ],
-  "signature": "void ScaleCameraMatrix(struct MATRIX *MatrixOut, struct MATRIX *MatrixIn, short x, short y)"
+  "signature": "void ScaleCameraMatrix(MATRIX *MatrixOut, MATRIX *MatrixIn, short x, short y)"
  },
  {
   "name": "MyScaleMatrix",
@@ -90445,12 +90445,12 @@
   "args": [
    {
     "name": "MatrixOut",
-    "decl": "struct MATRIX *MatrixOut",
+    "decl": "MATRIX *MatrixOut",
     "where": "$a0"
    },
    {
     "name": "MatrixIn",
-    "decl": "struct MATRIX *MatrixIn",
+    "decl": "MATRIX *MatrixIn",
     "where": "$a1"
    },
    {
@@ -90505,7 +90505,7 @@
     214
    ]
   ],
-  "signature": "void MyScaleMatrix(struct MATRIX *MatrixOut, struct MATRIX *MatrixIn, int Scale)"
+  "signature": "void MyScaleMatrix(MATRIX *MatrixOut, MATRIX *MatrixIn, int Scale)"
  },
  {
   "name": "QuadraticSolutionsR12",
@@ -93013,7 +93013,7 @@
    },
    {
     "name": "Dir",
-    "decl": "struct VECTOR Dir",
+    "decl": "VECTOR Dir",
     "where": "fp-0x38",
     "block": [
      1,
@@ -110957,7 +110957,7 @@
    },
    {
     "name": "Tile",
-    "decl": "struct TILE *Tile",
+    "decl": "TILE *Tile",
     "where": "$s0",
     "block": [
      1
@@ -111778,7 +111778,7 @@
   "args": [
    {
     "name": "HxPnts",
-    "decl": "struct SVECTOR *HxPnts",
+    "decl": "SVECTOR *HxPnts",
     "where": "$s1"
    },
    {
@@ -111991,7 +111991,7 @@
     114
    ]
   ],
-  "signature": "void GenerateCrossSection(struct SVECTOR *HxPnts, struct VECT *Rel, struct SHORTPAIR WidthSect)"
+  "signature": "void GenerateCrossSection(SVECTOR *HxPnts, struct VECT *Rel, struct SHORTPAIR WidthSect)"
  },
  {
   "name": "Draw3dLine",
@@ -112023,7 +112023,7 @@
    },
    {
     "name": "HxPnts",
-    "decl": "struct SVECTOR HxPnts[6]",
+    "decl": "SVECTOR HxPnts[6]",
     "where": "fp-0x110",
     "block": [
      1
@@ -112039,7 +112039,7 @@
    },
    {
     "name": "OldPoly",
-    "decl": "struct POLY_G4 *OldPoly",
+    "decl": "POLY_G4 *OldPoly",
     "where": "$s3",
     "block": [
      1
@@ -112180,7 +112180,7 @@
    },
    {
     "name": "OldPoly",
-    "decl": "struct POLY_G4 *OldPoly",
+    "decl": "POLY_G4 *OldPoly",
     "where": "$s3",
     "block": [
      1,
@@ -112236,7 +112236,7 @@
    },
    {
     "name": "Poly",
-    "decl": "struct POLY_G4 *Poly",
+    "decl": "POLY_G4 *Poly",
     "where": "$s0",
     "block": [
      1,
@@ -112260,7 +112260,7 @@
    },
    {
     "name": "OldPoly",
-    "decl": "struct POLY_G4 *OldPoly",
+    "decl": "POLY_G4 *OldPoly",
     "where": "$s3",
     "block": [
      1,
@@ -112305,7 +112305,7 @@
    },
    {
     "name": "Poly",
-    "decl": "struct POLY_G4 *Poly",
+    "decl": "POLY_G4 *Poly",
     "where": "$s0",
     "block": [
      1,
@@ -112329,7 +112329,7 @@
    },
    {
     "name": "OldPoly",
-    "decl": "struct POLY_G4 *OldPoly",
+    "decl": "POLY_G4 *OldPoly",
     "where": "$s3",
     "block": [
      1,
@@ -112370,7 +112370,7 @@
    },
    {
     "name": "Poly",
-    "decl": "struct POLY_G4 *Poly",
+    "decl": "POLY_G4 *Poly",
     "where": "$s0",
     "block": [
      1,
@@ -113590,7 +113590,7 @@
    },
    {
     "name": "Matrix",
-    "decl": "struct MATRIX *Matrix",
+    "decl": "MATRIX *Matrix",
     "where": "$s3"
    },
    {
@@ -113749,7 +113749,7 @@
    },
    {
     "name": "S",
-    "decl": "struct SVECTOR *S",
+    "decl": "SVECTOR *S",
     "where": "$t0",
     "block": [
      1
@@ -114097,7 +114097,7 @@
     650
    ]
   ],
-  "signature": "void DrawGlint(struct CREATURE *Cre, struct MATRIX *Matrix, struct COLOUR Colour, int Trigger, int Light, int Range)"
+  "signature": "void DrawGlint(struct CREATURE *Cre, MATRIX *Matrix, struct COLOUR Colour, int Trigger, int Light, int Range)"
  },
  {
   "name": "NewShieldEffect",
@@ -114137,7 +114137,7 @@
    },
    {
     "name": "S",
-    "decl": "struct MATRIX S",
+    "decl": "MATRIX S",
     "where": "fp-0x90",
     "block": [
      1
@@ -114153,7 +114153,7 @@
    },
    {
     "name": "Rel",
-    "decl": "struct SVECTOR Rel",
+    "decl": "SVECTOR Rel",
     "where": "fp-0x60",
     "block": [
      1
@@ -114170,7 +114170,7 @@
    },
    {
     "name": "R",
-    "decl": "struct MATRIX R",
+    "decl": "MATRIX R",
     "where": "fp-0x38",
     "block": [
      1,
@@ -114180,7 +114180,7 @@
    },
    {
     "name": "P",
-    "decl": "struct MATRIX P",
+    "decl": "MATRIX P",
     "where": "fp-0x58",
     "block": [
      1,
@@ -114209,7 +114209,7 @@
    },
    {
     "name": "R",
-    "decl": "struct MATRIX R",
+    "decl": "MATRIX R",
     "where": "fp-0x38",
     "block": [
      1,
@@ -114220,7 +114220,7 @@
    },
    {
     "name": "P",
-    "decl": "struct MATRIX P",
+    "decl": "MATRIX P",
     "where": "fp-0x58",
     "block": [
      1,
@@ -114646,7 +114646,7 @@
   "args": [
    {
     "name": "OldPoly",
-    "decl": "struct POLY_G4 *OldPoly",
+    "decl": "POLY_G4 *OldPoly",
     "where": "$s3"
    },
    {
@@ -114676,7 +114676,7 @@
    },
    {
     "name": "Poly",
-    "decl": "struct POLY_G4 *Poly",
+    "decl": "POLY_G4 *Poly",
     "where": "$s0",
     "block": [
      1
@@ -114780,7 +114780,7 @@
     145
    ]
   ],
-  "signature": "void GeneralG4Sort(struct POLY_G4 *OldPoly, struct VECT *Centre, struct SHORTPAIR AreaWin, int ScreenZ)"
+  "signature": "void GeneralG4Sort(POLY_G4 *OldPoly, struct VECT *Centre, struct SHORTPAIR AreaWin, int ScreenZ)"
  },
  {
   "name": "GenShieldMatrix",
@@ -114812,14 +114812,14 @@
    },
    {
     "name": "S",
-    "decl": "struct MATRIX *S",
+    "decl": "MATRIX *S",
     "where": "$s2"
    }
   ],
   "locals": [
    {
     "name": "P",
-    "decl": "struct MATRIX P",
+    "decl": "MATRIX P",
     "where": "fp-0x50",
     "block": [
      1
@@ -114827,7 +114827,7 @@
    },
    {
     "name": "R",
-    "decl": "struct MATRIX R",
+    "decl": "MATRIX R",
     "where": "fp-0x30",
     "block": [
      1
@@ -114867,7 +114867,7 @@
     661
    ]
   ],
-  "signature": "void GenShieldMatrix(struct CREATURE *Cre, struct SVECT *ShieldAng, struct SVECT *Radius, struct MATRIX *S)"
+  "signature": "void GenShieldMatrix(struct CREATURE *Cre, struct SVECT *ShieldAng, struct SVECT *Radius, MATRIX *S)"
  },
  {
   "name": "CopyFromGlobalTexture",
@@ -114884,12 +114884,12 @@
   "args": [
    {
     "name": "Poly0",
-    "decl": "struct POLY_GT4 *Poly0",
+    "decl": "POLY_GT4 *Poly0",
     "where": "$a0"
    },
    {
     "name": "Poly1",
-    "decl": "struct POLY_GT4 *Poly1",
+    "decl": "POLY_GT4 *Poly1",
     "where": "$a1"
    },
    {
@@ -114940,7 +114940,7 @@
     322
    ]
   ],
-  "signature": "void CopyFromGlobalTexture(struct POLY_GT4 *Poly0, struct POLY_GT4 *Poly1, struct GLOBTEXTDATA *GlobText)"
+  "signature": "void CopyFromGlobalTexture(POLY_GT4 *Poly0, POLY_GT4 *Poly1, struct GLOBTEXTDATA *GlobText)"
  },
  {
   "name": "LoadShieldData",
@@ -115370,7 +115370,7 @@
    },
    {
     "name": "Spr0",
-    "decl": "struct POLY_GT4 *Spr0",
+    "decl": "POLY_GT4 *Spr0",
     "where": "$s0",
     "block": [
      1
@@ -116062,7 +116062,7 @@
    },
    {
     "name": "Rel",
-    "decl": "struct SVECTOR Rel",
+    "decl": "SVECTOR Rel",
     "where": "fp-0x58",
     "block": [
      1
@@ -116481,7 +116481,7 @@
    },
    {
     "name": "Poly",
-    "decl": "struct POLY_GT4 *Poly",
+    "decl": "POLY_GT4 *Poly",
     "where": "$a1",
     "block": [
      1
@@ -116513,7 +116513,7 @@
    },
    {
     "name": "NullSVector",
-    "decl": "struct SVECTOR NullSVector",
+    "decl": "SVECTOR NullSVector",
     "where": "fp-0x38",
     "block": [
      1,
@@ -116826,7 +116826,7 @@
    },
    {
     "name": "Spr0",
-    "decl": "struct POLY_GT4 *Spr0",
+    "decl": "POLY_GT4 *Spr0",
     "where": "$s0",
     "block": [
      1
@@ -116954,7 +116954,7 @@
    },
    {
     "name": "Mat",
-    "decl": "struct MATRIX Mat",
+    "decl": "MATRIX Mat",
     "where": "fp-0xd8",
     "block": [
      1
@@ -118432,7 +118432,7 @@
   "locals": [
    {
     "name": "pol1g4",
-    "decl": "struct POLY_GT4 *pol1g4",
+    "decl": "POLY_GT4 *pol1g4",
     "where": "$s0",
     "block": [
      1
@@ -118440,7 +118440,7 @@
    },
    {
     "name": "pol2g4",
-    "decl": "struct POLY_GT4 *pol2g4",
+    "decl": "POLY_GT4 *pol2g4",
     "where": "$s1",
     "block": [
      1
@@ -121306,7 +121306,7 @@
    },
    {
     "name": "pos",
-    "decl": "struct CdlLOC pos",
+    "decl": "CdlLOC pos",
     "where": "fp-0x20",
     "block": [
      1
@@ -121848,7 +121848,7 @@
    },
    {
     "name": "Gt40",
-    "decl": "struct POLY_GT4 *Gt40",
+    "decl": "POLY_GT4 *Gt40",
     "where": "$s3",
     "block": [
      1
@@ -121856,7 +121856,7 @@
    },
    {
     "name": "Gt41",
-    "decl": "struct POLY_GT4 *Gt41",
+    "decl": "POLY_GT4 *Gt41",
     "where": "$s2",
     "block": [
      1
@@ -122090,7 +122090,7 @@
    },
    {
     "name": "Poly",
-    "decl": "struct POLY_GT4 *Poly",
+    "decl": "POLY_GT4 *Poly",
     "where": "$a3",
     "block": [
      1
@@ -122098,7 +122098,7 @@
    },
    {
     "name": "Dest",
-    "decl": "struct POLY_GT4 *Dest",
+    "decl": "POLY_GT4 *Dest",
     "where": "$a0",
     "block": [
      1
@@ -122303,7 +122303,7 @@
   "args": [
    {
     "name": "Poly",
-    "decl": "struct POLY_GT4 *Poly",
+    "decl": "POLY_GT4 *Poly",
     "where": "$a0"
    }
   ],
@@ -122354,7 +122354,7 @@
     47
    ]
   ],
-  "signature": "void FreeSubDivFromPoly(struct POLY_GT4 *Poly)"
+  "signature": "void FreeSubDivFromPoly(POLY_GT4 *Poly)"
  },
  {
   "name": "NewSubGt4",
@@ -122376,7 +122376,7 @@
    },
    {
     "name": "Poly",
-    "decl": "struct POLY_GT4 *Poly",
+    "decl": "POLY_GT4 *Poly",
     "where": "$s1"
    },
    {
@@ -122396,7 +122396,7 @@
    },
    {
     "name": "PolyA",
-    "decl": "struct POLY_GT4 *PolyA",
+    "decl": "POLY_GT4 *PolyA",
     "where": "$t0",
     "block": [
      1
@@ -122404,7 +122404,7 @@
    },
    {
     "name": "PolyB",
-    "decl": "struct POLY_GT4 *PolyB",
+    "decl": "POLY_GT4 *PolyB",
     "where": "$t1",
     "block": [
      1
@@ -122516,7 +122516,7 @@
     241
    ]
   ],
-  "signature": "struct SUBPACK *NewSubGt4(struct GLOBSMODGT4 *Mod, struct POLY_GT4 *Poly, unsigned long *ot)"
+  "signature": "struct SUBPACK *NewSubGt4(struct GLOBSMODGT4 *Mod, POLY_GT4 *Poly, unsigned long *ot)"
  },
  {
   "name": "T2GlobSubdivideGt4",
@@ -122538,7 +122538,7 @@
    },
    {
     "name": "Poly",
-    "decl": "struct POLY_GT4 *Poly",
+    "decl": "POLY_GT4 *Poly",
     "where": "$s1"
    },
    {
@@ -122695,7 +122695,7 @@
     84
    ]
   ],
-  "signature": "int T2GlobSubdivideGt4(struct GLOBSMODGT4 *Mod, struct POLY_GT4 *Poly, unsigned long *ot, int ScreenZ)"
+  "signature": "int T2GlobSubdivideGt4(struct GLOBSMODGT4 *Mod, POLY_GT4 *Poly, unsigned long *ot, int ScreenZ)"
  },
  {
   "name": "PackedEulerToCamQuat",
@@ -122986,7 +122986,7 @@
    },
    {
     "name": "Mat",
-    "decl": "struct MATRIX *Mat",
+    "decl": "MATRIX *Mat",
     "where": "$a1"
    }
   ],
@@ -123253,7 +123253,7 @@
     804
    ]
   ],
-  "signature": "void QuatToMat(struct QUAT *Quat, struct MATRIX *Mat)"
+  "signature": "void QuatToMat(struct QUAT *Quat, MATRIX *Mat)"
  },
  {
   "name": "QuatSlerp",
@@ -123598,7 +123598,7 @@
    },
    {
     "name": "Matrix",
-    "decl": "struct MATRIX Matrix",
+    "decl": "MATRIX Matrix",
     "where": "fp-0x58",
     "block": [
      1
@@ -123606,7 +123606,7 @@
    },
    {
     "name": "StaticMatrix",
-    "decl": "struct MATRIX StaticMatrix",
+    "decl": "MATRIX StaticMatrix",
     "where": "fp-0x38",
     "block": [
      1
@@ -123937,7 +123937,7 @@
    },
    {
     "name": "pol1g4",
-    "decl": "struct POLY_GT4 *pol1g4",
+    "decl": "POLY_GT4 *pol1g4",
     "where": "$a3",
     "block": [
      1
@@ -123945,7 +123945,7 @@
    },
    {
     "name": "pol2g4",
-    "decl": "struct POLY_GT4 *pol2g4",
+    "decl": "POLY_GT4 *pol2g4",
     "where": "$t2",
     "block": [
      1
@@ -124314,7 +124314,7 @@
   "locals": [
    {
     "name": "ShadowTable",
-    "decl": "struct POLY_GT4 *ShadowTable[2][16]",
+    "decl": "POLY_GT4 *ShadowTable[2][16]",
     "where": "fp-0x88",
     "block": [
      1
@@ -125205,7 +125205,7 @@
    },
    {
     "name": "LightVec",
-    "decl": "struct SVECTOR *LightVec",
+    "decl": "SVECTOR *LightVec",
     "where": "$s4"
    }
   ],
@@ -125713,7 +125713,7 @@
     954
    ]
   ],
-  "signature": "void CreLights(struct CREATURE *Cre, struct SVECTOR *LightVec)"
+  "signature": "void CreLights(struct CREATURE *Cre, SVECTOR *LightVec)"
  },
  {
   "name": "GetAnimFramesForAnim",
@@ -126425,7 +126425,7 @@
    },
    {
     "name": "MainMat",
-    "decl": "struct MATRIX *MainMat",
+    "decl": "MATRIX *MainMat",
     "where": "$s1",
     "block": [
      1
@@ -126433,7 +126433,7 @@
    },
    {
     "name": "CreMat",
-    "decl": "struct MATRIX *CreMat",
+    "decl": "MATRIX *CreMat",
     "where": "$v1",
     "block": [
      1
@@ -126971,7 +126971,7 @@
    },
    {
     "name": "CentreOffset",
-    "decl": "struct SVECTOR CentreOffset",
+    "decl": "SVECTOR CentreOffset",
     "where": "fp-0x28",
     "block": [
      1
@@ -127769,7 +127769,7 @@
    },
    {
     "name": "QuatMatrix",
-    "decl": "struct MATRIX QuatMatrix",
+    "decl": "MATRIX QuatMatrix",
     "where": "fp-0x48",
     "block": [
      1
@@ -128209,7 +128209,7 @@
    },
    {
     "name": "Matrix",
-    "decl": "struct MATRIX Matrix",
+    "decl": "MATRIX Matrix",
     "where": "fp-0x48",
     "block": [
      1
@@ -128886,7 +128886,7 @@
    },
    {
     "name": "PolyA",
-    "decl": "struct POLY_GT4 *PolyA",
+    "decl": "POLY_GT4 *PolyA",
     "where": "$s3",
     "block": [
      1
@@ -128894,7 +128894,7 @@
    },
    {
     "name": "PolyB",
-    "decl": "struct POLY_GT4 *PolyB",
+    "decl": "POLY_GT4 *PolyB",
     "where": "$s2",
     "block": [
      1
@@ -128902,7 +128902,7 @@
    },
    {
     "name": "PolyC",
-    "decl": "struct POLY_GT4 *PolyC",
+    "decl": "POLY_GT4 *PolyC",
     "where": "$s1",
     "block": [
      1
@@ -128910,7 +128910,7 @@
    },
    {
     "name": "PolyD",
-    "decl": "struct POLY_GT4 *PolyD",
+    "decl": "POLY_GT4 *PolyD",
     "where": "$s0",
     "block": [
      1
@@ -130635,7 +130635,7 @@
    },
    {
     "name": "PolyA",
-    "decl": "struct POLY_GT4 *PolyA",
+    "decl": "POLY_GT4 *PolyA",
     "where": "$s1",
     "block": [
      1
@@ -130643,7 +130643,7 @@
    },
    {
     "name": "PolyB",
-    "decl": "struct POLY_GT4 *PolyB",
+    "decl": "POLY_GT4 *PolyB",
     "where": "$s0",
     "block": [
      1
@@ -130817,7 +130817,7 @@
    },
    {
     "name": "PolyA",
-    "decl": "struct POLY_GT4 *PolyA",
+    "decl": "POLY_GT4 *PolyA",
     "where": "$s1",
     "block": [
      1
@@ -130825,7 +130825,7 @@
    },
    {
     "name": "PolyB",
-    "decl": "struct POLY_GT4 *PolyB",
+    "decl": "POLY_GT4 *PolyB",
     "where": "$s0",
     "block": [
      1
@@ -131612,22 +131612,22 @@
   "args": [
    {
     "name": "PolyA",
-    "decl": "struct POLY_GT4 *PolyA",
+    "decl": "POLY_GT4 *PolyA",
     "where": "$a0"
    },
    {
     "name": "PolyB",
-    "decl": "struct POLY_GT4 *PolyB",
+    "decl": "POLY_GT4 *PolyB",
     "where": "$a1"
    },
    {
     "name": "PC",
-    "decl": "struct POLY_GT4 *PC",
+    "decl": "POLY_GT4 *PC",
     "where": "$a2"
    },
    {
     "name": "PD",
-    "decl": "struct POLY_GT4 *PD",
+    "decl": "POLY_GT4 *PD",
     "where": "$a3"
    }
   ],
@@ -131689,7 +131689,7 @@
     2525
    ]
   ],
-  "signature": "void PolyOpaqueSetup(struct POLY_GT4 *PolyA, struct POLY_GT4 *PolyB, struct POLY_GT4 *PC, struct POLY_GT4 *PD)"
+  "signature": "void PolyOpaqueSetup(POLY_GT4 *PolyA, POLY_GT4 *PolyB, POLY_GT4 *PC, POLY_GT4 *PD)"
  },
  {
   "name": "PolyOpaqueSetupSecondary",
@@ -131706,22 +131706,22 @@
   "args": [
    {
     "name": "PolyA",
-    "decl": "struct POLY_GT4 *PolyA",
+    "decl": "POLY_GT4 *PolyA",
     "where": "$a0"
    },
    {
     "name": "PolyB",
-    "decl": "struct POLY_GT4 *PolyB",
+    "decl": "POLY_GT4 *PolyB",
     "where": "$a1"
    },
    {
     "name": "PC",
-    "decl": "struct POLY_GT4 *PC",
+    "decl": "POLY_GT4 *PC",
     "where": "$a2"
    },
    {
     "name": "PD",
-    "decl": "struct POLY_GT4 *PD",
+    "decl": "POLY_GT4 *PD",
     "where": "$a3"
    }
   ],
@@ -131747,7 +131747,7 @@
     2529
    ]
   ],
-  "signature": "void PolyOpaqueSetupSecondary(struct POLY_GT4 *PolyA, struct POLY_GT4 *PolyB, struct POLY_GT4 *PC, struct POLY_GT4 *PD)"
+  "signature": "void PolyOpaqueSetupSecondary(POLY_GT4 *PolyA, POLY_GT4 *PolyB, POLY_GT4 *PC, POLY_GT4 *PD)"
  },
  {
   "name": "ResetPolyTpageCode",
@@ -131774,12 +131774,12 @@
    },
    {
     "name": "PolyA",
-    "decl": "struct POLY_GT4 *PolyA",
+    "decl": "POLY_GT4 *PolyA",
     "where": "$a2"
    },
    {
     "name": "PolyB",
-    "decl": "struct POLY_GT4 *PolyB",
+    "decl": "POLY_GT4 *PolyB",
     "where": "$a3"
    }
   ],
@@ -131813,7 +131813,7 @@
     2537
    ]
   ],
-  "signature": "void ResetPolyTpageCode(struct GLOBMODHDR *Hdr, struct GLOBPOL *GlobPol, struct POLY_GT4 *PolyA, struct POLY_GT4 *PolyB)"
+  "signature": "void ResetPolyTpageCode(struct GLOBMODHDR *Hdr, struct GLOBPOL *GlobPol, POLY_GT4 *PolyA, POLY_GT4 *PolyB)"
  },
  {
   "name": "GetCeilingOffset",
@@ -134272,7 +134272,7 @@
    },
    {
     "name": "Points",
-    "decl": "struct SVECTOR Points[6]",
+    "decl": "SVECTOR Points[6]",
     "where": "fp-0x60",
     "block": [
      1
@@ -134288,7 +134288,7 @@
    },
    {
     "name": "Rel",
-    "decl": "struct SVECTOR Rel",
+    "decl": "SVECTOR Rel",
     "where": "fp-0x30",
     "block": [
      1
@@ -134541,7 +134541,7 @@
   "args": [
    {
     "name": "M",
-    "decl": "struct MATRIX *M",
+    "decl": "MATRIX *M",
     "where": "$a0"
    },
    {
@@ -134574,7 +134574,7 @@
    },
    {
     "name": "v2",
-    "decl": "struct VECTOR v2",
+    "decl": "VECTOR v2",
     "where": "fp-0x28",
     "block": [
      1
@@ -134686,7 +134686,7 @@
     797
    ]
   ],
-  "signature": "void RotateRelSpeedsLadder(struct MATRIX *M, struct SVECT *Rel, struct SVECT *Vel, struct SVECT *Norm, struct SVECT *OutPut)"
+  "signature": "void RotateRelSpeedsLadder(MATRIX *M, struct SVECT *Rel, struct SVECT *Vel, struct SVECT *Norm, struct SVECT *OutPut)"
  },
  {
   "name": "RotateRelSpeedsFly",
@@ -134703,7 +134703,7 @@
   "args": [
    {
     "name": "M",
-    "decl": "struct MATRIX *M",
+    "decl": "MATRIX *M",
     "where": "$a0"
    },
    {
@@ -134720,7 +134720,7 @@
   "locals": [
    {
     "name": "v2",
-    "decl": "struct VECTOR v2",
+    "decl": "VECTOR v2",
     "where": "fp-0x10",
     "block": [
      1
@@ -134796,7 +134796,7 @@
     873
    ]
   ],
-  "signature": "void RotateRelSpeedsFly(struct MATRIX *M, struct SVECT *Rel, struct SVECT *Vel)"
+  "signature": "void RotateRelSpeedsFly(MATRIX *M, struct SVECT *Rel, struct SVECT *Vel)"
  },
  {
   "name": "PrintDebugInfoScene",
@@ -134941,7 +134941,7 @@
    },
    {
     "name": "Points",
-    "decl": "struct SVECTOR Points[12]",
+    "decl": "SVECTOR Points[12]",
     "where": "fp-0xb8",
     "block": [
      1
@@ -134965,7 +134965,7 @@
    },
    {
     "name": "OldPoly",
-    "decl": "struct POLY_G4 *OldPoly",
+    "decl": "POLY_G4 *OldPoly",
     "where": "$s0",
     "block": [
      1
@@ -134973,7 +134973,7 @@
    },
    {
     "name": "Poly",
-    "decl": "struct POLY_G4 *Poly",
+    "decl": "POLY_G4 *Poly",
     "where": "$s0",
     "block": [
      1
@@ -135334,7 +135334,7 @@
    },
    {
     "name": "Points",
-    "decl": "struct SVECTOR Points[9]",
+    "decl": "SVECTOR Points[9]",
     "where": "fp-0x90",
     "block": [
      1
@@ -135382,7 +135382,7 @@
    },
    {
     "name": "OldPoly",
-    "decl": "struct POLY_G4 *OldPoly",
+    "decl": "POLY_G4 *OldPoly",
     "where": "$s0",
     "block": [
      1
@@ -135390,7 +135390,7 @@
    },
    {
     "name": "Poly",
-    "decl": "struct POLY_G4 *Poly",
+    "decl": "POLY_G4 *Poly",
     "where": "$s0",
     "block": [
      1
@@ -136108,7 +136108,7 @@
   "args": [
    {
     "name": "m",
-    "decl": "struct MATRIX *m",
+    "decl": "MATRIX *m",
     "where": "$a0"
    },
    {
@@ -136176,7 +136176,7 @@
     713
    ]
   ],
-  "signature": "void Rotate(struct MATRIX *m, struct SVECT *v1, struct VECT *v2)"
+  "signature": "void Rotate(MATRIX *m, struct SVECT *v1, struct VECT *v2)"
  },
  {
   "name": "RotateS",
@@ -136193,7 +136193,7 @@
   "args": [
    {
     "name": "m",
-    "decl": "struct MATRIX *m",
+    "decl": "MATRIX *m",
     "where": "$a0"
    },
    {
@@ -136210,7 +136210,7 @@
   "locals": [
    {
     "name": "v2",
-    "decl": "struct VECTOR v2",
+    "decl": "VECTOR v2",
     "where": "fp-0x10",
     "block": [
      1
@@ -136286,7 +136286,7 @@
     739
    ]
   ],
-  "signature": "void RotateS(struct MATRIX *m, struct SVECT *v1, struct SVECT *o2)"
+  "signature": "void RotateS(MATRIX *m, struct SVECT *v1, struct SVECT *o2)"
  },
  {
   "name": "RotateL",
@@ -136303,7 +136303,7 @@
   "args": [
    {
     "name": "m",
-    "decl": "struct MATRIX *m",
+    "decl": "MATRIX *m",
     "where": "$a0"
    },
    {
@@ -136371,7 +136371,7 @@
     920
    ]
   ],
-  "signature": "void RotateL(struct MATRIX *m, struct VECT *v1, struct VECT *v2)"
+  "signature": "void RotateL(MATRIX *m, struct VECT *v1, struct VECT *v2)"
  },
  {
   "name": "Seek",
@@ -136625,7 +136625,7 @@
   "args": [
    {
     "name": "m",
-    "decl": "struct MATRIX *m",
+    "decl": "MATRIX *m",
     "where": "$a0"
    },
    {
@@ -136693,7 +136693,7 @@
     669
    ]
   ],
-  "signature": "void CalcVectorL(struct MATRIX *m, struct VECT *v1, struct VECT *v2)"
+  "signature": "void CalcVectorL(MATRIX *m, struct VECT *v1, struct VECT *v2)"
  },
  {
   "name": "FindMaxMin",
@@ -137081,12 +137081,12 @@
   "args": [
    {
     "name": "R",
-    "decl": "struct SVECTOR *R",
+    "decl": "SVECTOR *R",
     "where": "$a0"
    },
    {
     "name": "P",
-    "decl": "struct SVECTOR *P",
+    "decl": "SVECTOR *P",
     "where": "$a1"
    }
   ],
@@ -137116,7 +137116,7 @@
     1932
    ]
   ],
-  "signature": "void RemoveMeRoutine(struct SVECTOR *R, struct SVECTOR *P)"
+  "signature": "void RemoveMeRoutine(SVECTOR *R, SVECTOR *P)"
  },
  {
   "name": "DisplayBuildInfo",
@@ -137552,7 +137552,7 @@
   "locals": [
    {
     "name": "Poly",
-    "decl": "struct POLY_FT3 *Poly",
+    "decl": "POLY_FT3 *Poly",
     "where": "$v0",
     "block": [
      1,
@@ -137756,7 +137756,7 @@
   "locals": [
    {
     "name": "Gt40",
-    "decl": "struct POLY_GT4 *Gt40",
+    "decl": "POLY_GT4 *Gt40",
     "where": "$s4",
     "block": [
      1
@@ -137764,7 +137764,7 @@
    },
    {
     "name": "Gt41",
-    "decl": "struct POLY_GT4 *Gt41",
+    "decl": "POLY_GT4 *Gt41",
     "where": "$s3",
     "block": [
      1
@@ -137973,7 +137973,7 @@
   "locals": [
    {
     "name": "Buffer",
-    "decl": "struct POLY_GT4 *Buffer",
+    "decl": "POLY_GT4 *Buffer",
     "where": "$v0",
     "block": [
      1
@@ -139115,7 +139115,7 @@
    },
    {
     "name": "file",
-    "decl": "struct CdlFILE file",
+    "decl": "CdlFILE file",
     "where": "fp-0x78",
     "block": [
      1
@@ -139131,7 +139131,7 @@
    },
    {
     "name": "Vol",
-    "decl": "struct CdlATV Vol",
+    "decl": "CdlATV Vol",
     "where": "fp-0x20",
     "block": [
      1
@@ -139337,7 +139337,7 @@
    },
    {
     "name": "filt",
-    "decl": "struct CdlFILTER filt",
+    "decl": "CdlFILTER filt",
     "where": "fp-0x18",
     "block": [
      1
@@ -139564,7 +139564,7 @@
    },
    {
     "name": "cdVol",
-    "decl": "struct CdlATV cdVol",
+    "decl": "CdlATV cdVol",
     "where": "fp-0x10",
     "block": [
      1,
@@ -139756,7 +139756,7 @@
   "locals": [
    {
     "name": "commonAttr",
-    "decl": "struct SpuCommonAttr commonAttr",
+    "decl": "SpuCommonAttr commonAttr",
     "where": "fp-0x38",
     "block": [
      1
@@ -140044,7 +140044,7 @@
   "locals": [
    {
     "name": "cdVol",
-    "decl": "struct CdlATV cdVol",
+    "decl": "CdlATV cdVol",
     "where": "fp-0x10",
     "block": [
      1
@@ -140250,7 +140250,7 @@
   "locals": [
    {
     "name": "voiceAttr",
-    "decl": "struct SpuVoiceAttr voiceAttr",
+    "decl": "SpuVoiceAttr voiceAttr",
     "where": "fp-0x50",
     "block": [
      1
@@ -140390,7 +140390,7 @@
   "locals": [
    {
     "name": "s",
-    "decl": "struct SVECTOR s",
+    "decl": "SVECTOR s",
     "where": "fp-0x28",
     "block": [
      1
@@ -140575,7 +140575,7 @@
   "locals": [
    {
     "name": "voiceAttr",
-    "decl": "struct SpuVoiceAttr voiceAttr",
+    "decl": "SpuVoiceAttr voiceAttr",
     "where": "fp-0x58",
     "block": [
      1
@@ -140967,7 +140967,7 @@
   "locals": [
    {
     "name": "commonAttr",
-    "decl": "struct SpuCommonAttr commonAttr",
+    "decl": "SpuCommonAttr commonAttr",
     "where": "fp-0x30",
     "block": [
      1
@@ -142105,7 +142105,7 @@
   "locals": [
    {
     "name": "voiceAttr",
-    "decl": "struct SpuVoiceAttr voiceAttr",
+    "decl": "SpuVoiceAttr voiceAttr",
     "where": "fp-0x70",
     "block": [
      1
@@ -142361,7 +142361,7 @@
    },
    {
     "name": "voiceAttr",
-    "decl": "struct SpuVoiceAttr voiceAttr",
+    "decl": "SpuVoiceAttr voiceAttr",
     "where": "static, section offset 0x0",
     "block": [
      1,
@@ -142372,7 +142372,7 @@
    },
    {
     "name": "voiceAttr",
-    "decl": "struct SpuVoiceAttr voiceAttr",
+    "decl": "SpuVoiceAttr voiceAttr",
     "where": "static, section offset 0x0",
     "block": [
      1,
@@ -144138,7 +144138,7 @@
   "locals": [
    {
     "name": "voiceAttr",
-    "decl": "struct SpuVoiceAttr voiceAttr",
+    "decl": "SpuVoiceAttr voiceAttr",
     "where": "static, section offset 0x0",
     "block": [
      1
@@ -145004,7 +145004,7 @@
    },
    {
     "name": "SprM",
-    "decl": "struct POLY_GT4 *SprM[4]",
+    "decl": "POLY_GT4 *SprM[4]",
     "where": "fp-0x18",
     "block": [
      1
@@ -146611,7 +146611,7 @@
    },
    {
     "name": "Line",
-    "decl": "struct LINE_G2 *Line",
+    "decl": "LINE_G2 *Line",
     "where": "$s0",
     "block": [
      1
@@ -146954,7 +146954,7 @@
    },
    {
     "name": "Poly",
-    "decl": "struct POLY_G4 *Poly",
+    "decl": "POLY_G4 *Poly",
     "where": "$s1",
     "block": [
      1,
@@ -147001,7 +147001,7 @@
    },
    {
     "name": "Poly",
-    "decl": "struct POLY_F4 *Poly",
+    "decl": "POLY_F4 *Poly",
     "where": "$s0",
     "block": [
      1,
@@ -148345,7 +148345,7 @@
    },
    {
     "name": "desrect",
-    "decl": "struct RECT desrect",
+    "decl": "RECT desrect",
     "where": "fp-0x48",
     "block": [
      1
@@ -148631,7 +148631,7 @@
    },
    {
     "name": "Rect",
-    "decl": "struct RECT Rect",
+    "decl": "RECT Rect",
     "where": "fp-0x10",
     "block": [
      1
@@ -148820,7 +148820,7 @@
    },
    {
     "name": "fp",
-    "decl": "struct CdlFILE fp",
+    "decl": "CdlFILE fp",
     "where": "fp-0x20",
     "block": [
      1,
@@ -148923,7 +148923,7 @@
    },
    {
     "name": "fp",
-    "decl": "struct CdlFILE fp",
+    "decl": "CdlFILE fp",
     "where": "fp-0x28",
     "block": [
      1,
@@ -149215,7 +149215,7 @@
   "locals": [
    {
     "name": "Tile",
-    "decl": "struct TILE *Tile",
+    "decl": "TILE *Tile",
     "where": "$s0",
     "block": [
      1
@@ -149819,7 +149819,7 @@
   "locals": [
    {
     "name": "TTile",
-    "decl": "struct TILE *TTile",
+    "decl": "TILE *TTile",
     "where": "$s0",
     "block": [
      1
@@ -151641,7 +151641,7 @@
   "locals": [
    {
     "name": "NullVec",
-    "decl": "struct SVECTOR NullVec",
+    "decl": "SVECTOR NullVec",
     "where": "fp-0x18",
     "block": [
      1
@@ -151863,7 +151863,7 @@
   "locals": [
    {
     "name": "Poly",
-    "decl": "struct POLY_FT4 *Poly",
+    "decl": "POLY_FT4 *Poly",
     "where": "$s0",
     "block": [
      1
@@ -152032,7 +152032,7 @@
   "locals": [
    {
     "name": "Rel",
-    "decl": "struct SVECTOR Rel",
+    "decl": "SVECTOR Rel",
     "where": "fp-0x90",
     "block": [
      1
@@ -152064,7 +152064,7 @@
    },
    {
     "name": "Points",
-    "decl": "struct SVECTOR Points[4]",
+    "decl": "SVECTOR Points[4]",
     "where": "fp-0x70",
     "block": [
      1
@@ -152112,7 +152112,7 @@
    },
    {
     "name": "TempMat",
-    "decl": "struct MATRIX TempMat",
+    "decl": "MATRIX TempMat",
     "where": "fp-0x50",
     "block": [
      1

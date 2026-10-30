@@ -28,8 +28,6 @@ void DrawAllSortedObjs(void);
 void DrawSortedObjectsHeavens(void);
 void FreeSubDivs(void);
 void ReallyFreePolyPackets(void);
-int DrawSync(int mode);
-int MoveImage(struct RECT *rect, int x, int y);
 
 
 extern int NewVcounts;
@@ -37,10 +35,7 @@ extern int PalNtscRate;
 extern short palette[];
 extern unsigned char DbFrame[];
 extern struct SCRPNT ScreenSize;
-void SetSprt(struct SPRT *p);
 void AddPrim_(void *ot, void *p);
-unsigned short GetTPage(int tp, int abr, int x, int y);
-void SetDrawTPage(struct DR_TPAGE *p, int dfe, int dtd, int tpage);
 
 void VBlankMainLoop(void)
 {
@@ -71,7 +66,7 @@ void VBlankMainLoop(void)
 
 void InitLoadingAnim(void)
 {
-    struct RECT Rect;
+    RECT Rect;
 
     DrawSync(0);
     Rect.x = currdb->DispEnv.disp.x + 460;
@@ -84,14 +79,14 @@ void InitLoadingAnim(void)
 
 void SpriteAnim(int Mode)
 {
-    static struct DR_MOVE DrMoves[2] BSS;
-    static struct DR_MOVE *DrMove SBSS;
-    static struct SPRT Sprites[2] BSS;
-    static struct SPRT *Sprt SBSS;
+    static DR_MOVE DrMoves[2] BSS;
+    static DR_MOVE *DrMove SBSS;
+    static SPRT Sprites[2] BSS;
+    static SPRT *Sprt SBSS;
     /* the original has 8 unnamed bytes here, between Sprites (0x800c7e90) and TPages (0x800c7ec0) */
-    static struct DR_TPAGE UnusedTPage BSS;
-    static struct DR_TPAGE TPages[2] BSS;
-    static struct DR_TPAGE *SetTPage SBSS;
+    static DR_TPAGE UnusedTPage BSS;
+    static DR_TPAGE TPages[2] BSS;
+    static DR_TPAGE *SetTPage SBSS;
     int TPage;
     static short Frame = 0;
     static short DemoFrame = 0;

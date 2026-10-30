@@ -1,5 +1,6 @@
 #include "types.h"
 #include "bss.h"
+#include <stdio.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void InitialiseMenuEveryFrame(void);
@@ -9,7 +10,7 @@ void Display_FragCount(struct WINDOW *Window, int Score, struct SPRITEDATA *Hund
 short Pickup_Value(short Max_Value, short Current_Value, short AddOn_Value);
 int Pickup_Weapon(struct PLAYER *Player, int WeaponBit, short WeaponNo);
 void Pickup_Ammo(struct PLAYER *Player);
-void FadePolyGT4(struct UVWH *GraphicUVWH, struct RECT *Pos, long *Ot, struct SHORTPAIR PalFlip);
+void FadePolyGT4(struct UVWH *GraphicUVWH, RECT *Pos, long *Ot, struct SHORTPAIR PalFlip);
 void ProcessQuakePanel1by1(struct WINDOW *GameWin);
 void ProcessQuakePanel1by2(struct WINDOW *GameWin);
 void ProcessQuakePanel2by1(struct WINDOW *GameWin);
@@ -49,10 +50,10 @@ int Sound_Invulnerability SBSS;
 int Sound_QuadDamage SBSS;
 
 
-extern struct POLY_GT4 *LastFMenuPoly;
-extern struct POLY_FT4 *MenuPoly;
-extern struct POLY_GT4 *FMenuPoly;
-extern struct POLY_FT4 *LastMenuPoly;
+extern POLY_GT4 *LastFMenuPoly;
+extern POLY_FT4 *MenuPoly;
+extern POLY_GT4 *FMenuPoly;
+extern POLY_FT4 *LastMenuPoly;
 extern struct DB *currdb;
 extern unsigned int LevelTicks;
 extern int LevelIsMultiPlayer;
@@ -128,7 +129,6 @@ void Assign_NoSprite(int Num, struct SPRITEDATA *Hundred, struct SPRITEDATA *Ten
 
 extern struct ARMOUR_TYPE Armour_Types[];
 
-int sprintf();
 void SpriText();
 
 extern unsigned char QuakeGunNumbers[];
@@ -141,7 +141,7 @@ extern short QPanel_PrevNext[];
 extern short alltpages[];
 extern short palette[];
 void AddPrim_(void *ot, void *p);
-void FadePolyGT4(struct UVWH *GraphicUVWH, struct RECT *Pos, long *Ot, struct SHORTPAIR PalFlip);
+void FadePolyGT4(struct UVWH *GraphicUVWH, RECT *Pos, long *Ot, struct SHORTPAIR PalFlip);
 
 #define setlen(p, _len) (*(((unsigned char *)(p)) + 3) = (unsigned char)(_len))
 #define setcode(p, _code) (*(((unsigned char *)(p)) + 7) = (unsigned char)(_code))
@@ -159,8 +159,7 @@ void FadePolyGT4(struct UVWH *GraphicUVWH, struct RECT *Pos, long *Ot, struct SH
 
 #define setRGB0(p, _r0, _g0, _b0) (p)->r0 = _r0, (p)->g0 = _g0, (p)->b0 = _b0
 
-extern struct POLY_GT4 *LastFMenuPoly;
-void SetSemiTrans(void *p, int abe);
+extern POLY_GT4 *LastFMenuPoly;
 #define setPolyGT4(p) setlen(p, 12), setcode(p, 0x3c)
 #define setRGB1(p, _r1, _g1, _b1) (p)->r1 = _r1, (p)->g1 = _g1, (p)->b1 = _b1
 #define setRGB2(p, _r2, _g2, _b2) (p)->r2 = _r2, (p)->g2 = _g2, (p)->b2 = _b2
@@ -169,13 +168,13 @@ int GetSoundNum(struct IDENTITYNAME Name);
 
 void InitialiseMenuEveryFrame(void)
 {
-    MenuPoly = (struct POLY_FT4 *)((char *)currdb + 0x3984);
-    FMenuPoly = (struct POLY_GT4 *)((char *)currdb + 0x4014);
-    LastMenuPoly = (struct POLY_FT4 *)((char *)currdb + 0x4014);
-    LastFMenuPoly = (struct POLY_GT4 *)((char *)currdb + 0x41b4);
+    MenuPoly = (POLY_FT4 *)((char *)currdb + 0x3984);
+    FMenuPoly = (POLY_GT4 *)((char *)currdb + 0x4014);
+    LastMenuPoly = (POLY_FT4 *)((char *)currdb + 0x4014);
+    LastFMenuPoly = (POLY_GT4 *)((char *)currdb + 0x41b4);
 }
 
-void FadePolyGT4(struct UVWH *GraphicUVWH, struct RECT *Pos, long *Ot, struct SHORTPAIR PalFlip)
+void FadePolyGT4(struct UVWH *GraphicUVWH, RECT *Pos, long *Ot, struct SHORTPAIR PalFlip)
 {
     int PaletteIdent;
     int Flip;
@@ -725,7 +724,7 @@ void Draw_Panel(struct WINDOW *GameWin, struct SPRITEDATA *PanelData, struct SHO
     struct PLAYER *Player;
     struct SPRITEDATA *Panel;
     struct UVWH Weapon_GT4;
-    struct RECT Weapon_Pos;
+    RECT Weapon_Pos;
     long *Ot;
     short Count;
     short MaxPanelItems;

@@ -1,28 +1,29 @@
 #include "types.h"
 #include "bss.h"
+#include <memory.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 int MaxSizeSVect(struct SVECT SVect);
 void InitCrossEveryFrame(void);
 int BytesBetween(void *Pntr0, void *Pntr1);
 int SeekAng(int Start, int Stop, int Speed);
-void Rotate(struct MATRIX *m, struct SVECT *v1, struct VECT *v2);
-void RotateS(struct MATRIX *m, struct SVECT *v1, struct SVECT *v2);
-void RotateL(struct MATRIX *m, struct VECT *v1, struct VECT *v2);
+void Rotate(MATRIX *m, struct SVECT *v1, struct VECT *v2);
+void RotateS(MATRIX *m, struct SVECT *v1, struct SVECT *v2);
+void RotateL(MATRIX *m, struct VECT *v1, struct VECT *v2);
 int Seek(short *a, short b, short c);
 void SeekL(long *a, short b, short c);
 void RotateRelSpeeds(short Ang, short x, short z, struct SVECT *OutPut);
-void CalcVectorL(struct MATRIX *m, struct VECT *v1, struct VECT *v2);
+void CalcVectorL(MATRIX *m, struct VECT *v1, struct VECT *v2);
 void FindMaxMin(struct VECT *Start, struct VECT *Stop, struct VECTBOX *VectBox);
 void AddCross(struct VECT *Pos, int Radius, struct COLOUR Colour);
 void Relocate(void *Pntr, void *Base);
 char *PrintBool(int Bool);
 int mystrlen(char *String);
-void RemoveMeRoutine(struct SVECTOR *R, struct SVECTOR *P);
+void RemoveMeRoutine(SVECTOR *R, SVECTOR *P);
 void DisplayBuildInfo(int Flags);
 void ScaleSVect(struct SVECT *Vec, int Scale);
 void DrawCrossesCurrWin(void);
-void RotateRelSpeedsFly(struct MATRIX *M, struct SVECT *Rel, struct SVECT *Vel);
+void RotateRelSpeedsFly(MATRIX *M, struct SVECT *Rel, struct SVECT *Vel);
 void PrintDebugInfoScene(int *DebugScreen);
 void DrawCylinder(struct VECT *Location, short Radius, short MinY, short MaxY);
 void DrawVectBox(struct VECTBOX *VectBox);
@@ -113,19 +114,17 @@ static char *FindStringInTable(struct IDENTITYNAME Name)
 #define gte_mac2tr_s() __asm__ volatile("mfc2 $12,$25\nmfc2 $13,$26\nmfc2 $14,$27\nctc2 $12,$5\nctc2 $13,$6\nctc2 $14,$7" : : : "$12", "$13", "$14")
 #define gte_SetTransMatrix_s(r0) __asm__ volatile("move $12,%0\nlw $13,20($12)\nlw $14,24($12)\nctc2 $13,$5\nlw $15,28($12)\nctc2 $14,$6\nctc2 $15,$7" : : "r"(r0) : "$12", "$13", "$14", "$15")
 
-extern struct POLY_G4 *LastGeneralG4;
-extern struct POLY_G4 *NextGeneralG4;
-extern struct LINE_F2 *NextLineF2;
-extern struct LINE_F2 *LastLineF2;
+extern POLY_G4 *LastGeneralG4;
+extern POLY_G4 *NextGeneralG4;
+extern LINE_F2 *NextLineF2;
+extern LINE_F2 *LastLineF2;
 extern struct VECT *CurrCamPos;
-extern struct MATRIX *CurrCamMat;
+extern MATRIX *CurrCamMat;
 extern unsigned long *CurrOt;
 extern struct DB *currdb;
 void AddPrim_(void *ot, void *p);
 void dprintf();
-void *memset();
-void SetRotMatrix(struct MATRIX *m);
-struct POLY_G4 *HH_SimpleModel_(struct SIMPOL *Model, struct SIMPOL *ModelEnd, struct SCRPNT *ScrPnts, struct POLY_G4 *Poly);
+POLY_G4 *HH_SimpleModel_(struct SIMPOL *Model, struct SIMPOL *ModelEnd, struct SCRPNT *ScrPnts, POLY_G4 *Poly);
 
 int BytesBetween(void *Pntr0, void *Pntr1)
 {
@@ -167,9 +166,9 @@ void DrawCrossesCurrWin(void)
     struct CROSSDATA *Cross;
     struct VECT Tran;
     struct VECT Temp;
-    struct SVECTOR Points[6];
+    SVECTOR Points[6];
     int Rad;
-    struct SVECTOR Rel;
+    SVECTOR Rel;
 
     SetRotMatrix(CurrCamMat);
     for (Cross = CrossList; Cross < CrossPntr; Cross++) {
@@ -184,20 +183,20 @@ void DrawCrossesCurrWin(void)
             continue;
         if (Temp.vz < -32000 || Temp.vz > 32000)
             continue;
-        Rel = (struct SVECTOR){Temp.vx, Temp.vy, Temp.vz};
+        Rel = (SVECTOR){Temp.vx, Temp.vy, Temp.vz};
         gte_ldv0_s(&Rel);
         gte_rtv0_s();
         gte_stlvnl_s(&Tran);
         if (Tran.vz < 0x80)
             continue;
-        gte_SetTransMatrix_s((struct MATRIX *)((char *)&Tran - 20));
+        gte_SetTransMatrix_s((MATRIX *)((char *)&Tran - 20));
         Rad = Cross->Radius;
-        Points[0] = (struct SVECTOR){Rad, 0, 0};
-        Points[1] = (struct SVECTOR){-Rad, 0, 0};
-        Points[2] = (struct SVECTOR){0, Rad, 0};
-        Points[3] = (struct SVECTOR){0, -Rad, 0};
-        Points[4] = (struct SVECTOR){0, 0, Rad};
-        Points[5] = (struct SVECTOR){0, 0, -Rad};
+        Points[0] = (SVECTOR){Rad, 0, 0};
+        Points[1] = (SVECTOR){-Rad, 0, 0};
+        Points[2] = (SVECTOR){0, Rad, 0};
+        Points[3] = (SVECTOR){0, -Rad, 0};
+        Points[4] = (SVECTOR){0, 0, Rad};
+        Points[5] = (SVECTOR){0, 0, -Rad};
         gte_ldv3_s(&Points[0], &Points[1], &Points[2]);
         gte_rtpt_s();
         gte_stsxy3_s(&NextLineF2[0].x0, &NextLineF2[0].x1, &NextLineF2[1].x0);
@@ -313,7 +312,7 @@ void SeekL(long *a, short b, short c)
     }
 }
 
-void CalcVectorL(struct MATRIX *m, struct VECT *v1, struct VECT *v2)
+void CalcVectorL(MATRIX *m, struct VECT *v1, struct VECT *v2)
 {
     v2->vx = v1->vx * m->m[0][0] + v1->vy * m->m[1][0] + v1->vz * m->m[2][0];
     v2->vy = v1->vx * m->m[0][1] + v1->vy * m->m[1][1] + v1->vz * m->m[2][1];
@@ -323,7 +322,7 @@ void CalcVectorL(struct MATRIX *m, struct VECT *v1, struct VECT *v2)
     v2->vz >>= 12;
 }
 
-void Rotate(struct MATRIX *m, struct SVECT *v1, struct VECT *v2)
+void Rotate(MATRIX *m, struct SVECT *v1, struct VECT *v2)
 {
     v2->vx = v1->vx * m->m[0][0] + v1->vy * m->m[0][1] + v1->vz * m->m[0][2];
     v2->vy = v1->vx * m->m[1][0] + v1->vy * m->m[1][1] + v1->vz * m->m[1][2];
@@ -333,7 +332,7 @@ void Rotate(struct MATRIX *m, struct SVECT *v1, struct VECT *v2)
     v2->vz >>= 12;
 }
 
-void RotateS(struct MATRIX *m, struct SVECT *v1, struct SVECT *v2)
+void RotateS(MATRIX *m, struct SVECT *v1, struct SVECT *v2)
 {
     struct VECT v;
 
@@ -348,9 +347,9 @@ void RotateS(struct MATRIX *m, struct SVECT *v1, struct SVECT *v2)
     v2->vz = v.vz;
 }
 
-void RotateRelSpeedsLadder(struct MATRIX *M, struct SVECT *Rel, struct SVECT *Vel, struct SVECT *Norm, struct SVECT *OutPut)
+void RotateRelSpeedsLadder(MATRIX *M, struct SVECT *Rel, struct SVECT *Vel, struct SVECT *Norm, struct SVECT *OutPut)
 {
-    struct VECTOR v2;
+    VECTOR v2;
     struct SVECT Vel2;
     struct SVECT AVel;
     struct SVECT BVel;
@@ -372,9 +371,9 @@ void RotateRelSpeedsLadder(struct MATRIX *M, struct SVECT *Rel, struct SVECT *Ve
     OutPut->vz = v2.vz + (Norm->vz >> 5);
 }
 
-void RotateRelSpeedsFly(struct MATRIX *M, struct SVECT *Rel, struct SVECT *Vel)
+void RotateRelSpeedsFly(MATRIX *M, struct SVECT *Rel, struct SVECT *Vel)
 {
-    struct VECTOR v2;
+    VECTOR v2;
 
     v2.vx = Rel->vx * M->m[0][0] + Rel->vy * M->m[0][1] + Rel->vz * M->m[0][2];
     v2.vy = Rel->vx * M->m[1][0] + Rel->vy * M->m[1][1] + Rel->vz * M->m[1][2];
@@ -396,7 +395,7 @@ void RotateRelSpeeds(short Ang, short x, short z, struct SVECT *OutPut)
     OutPut->vz = (Cos * z + -Sin * x) >> 12;
 }
 
-void RotateL(struct MATRIX *m, struct VECT *v1, struct VECT *v2)
+void RotateL(MATRIX *m, struct VECT *v1, struct VECT *v2)
 {
     v2->vx = v1->vx * m->m[0][0] + v1->vy * m->m[0][1] + v1->vz * m->m[0][2];
     v2->vy = v1->vx * m->m[1][0] + v1->vy * m->m[1][1] + v1->vz * m->m[1][2];
@@ -487,11 +486,11 @@ void DrawCylinder(struct VECT *Location, short Radius, short MinY, short MaxY)
     {{9, 10, 6, 11}, {{0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}, {0x7f, 0x0, 0x0, 0x3a}}},
     };
     struct SCRPNT ScrPnts[12];
-    struct SVECTOR Points[12];
+    SVECTOR Points[12];
     struct SVECT Rel;
     struct VECT Tran;
-    struct POLY_G4 *OldPoly;
-    struct POLY_G4 *Poly;
+    POLY_G4 *OldPoly;
+    POLY_G4 *Poly;
 
     if (NextGeneralG4 <= LastGeneralG4 - 10) {
         Rel.vx = Location->vx - GameWindows[0].CamPos.vx;
@@ -507,12 +506,12 @@ void DrawCylinder(struct VECT *Location, short Radius, short MinY, short MaxY)
             ValA = Radius / 2;
             ValB = Radius * 3547 / 4096;
             for (a = 0; a < 12; a += 6) {
-                Points[a + 0] = (struct SVECTOR){ValA, y, -ValB};
-                Points[a + 1] = (struct SVECTOR){Radius, y, 0};
-                Points[a + 2] = (struct SVECTOR){ValA, y, ValB};
-                Points[a + 3] = (struct SVECTOR){-ValA, y, ValB};
-                Points[a + 4] = (struct SVECTOR){-Radius, y, 0};
-                Points[a + 5] = (struct SVECTOR){-ValA, y, -ValB};
+                Points[a + 0] = (SVECTOR){ValA, y, -ValB};
+                Points[a + 1] = (SVECTOR){Radius, y, 0};
+                Points[a + 2] = (SVECTOR){ValA, y, ValB};
+                Points[a + 3] = (SVECTOR){-ValA, y, ValB};
+                Points[a + 4] = (SVECTOR){-Radius, y, 0};
+                Points[a + 5] = (SVECTOR){-ValA, y, -ValB};
                 y = MaxY;
             }
         }
@@ -549,14 +548,14 @@ void DrawVectBox(struct VECTBOX *VectBox)
     {{0, 0, 0, 0}, {{0x0, 0x0, 0x0, 0x0}, {0x0, 0x0, 0x0, 0x0}, {0x0, 0x0, 0x0, 0x0}, {0x0, 0x0, 0x0, 0x0}}},
     };
     struct SCRPNT ScrPnts[9];
-    struct SVECTOR Points[9];
+    SVECTOR Points[9];
     struct SVECT Rel;
     struct VECT Tran;
     int X;
     int Y;
     int Z;
-    struct POLY_G4 *OldPoly;
-    struct POLY_G4 *Poly;
+    POLY_G4 *OldPoly;
+    POLY_G4 *Poly;
 
     if (NextGeneralG4 <= LastGeneralG4 - 6) {
         X = VectBox->Max.vx - VectBox->Min.vx;
@@ -565,14 +564,14 @@ void DrawVectBox(struct VECTBOX *VectBox)
         Rel.vx = VectBox->Min.vx - GameWindows[0].CamPos.vx;
         Rel.vy = VectBox->Min.vy - GameWindows[0].CamPos.vy;
         Rel.vz = VectBox->Min.vz - GameWindows[0].CamPos.vz;
-        Points[0] = (struct SVECTOR){0, 0, 0};
-        Points[1] = (struct SVECTOR){X, 0, 0};
-        Points[2] = (struct SVECTOR){0, 0, Z};
-        Points[3] = (struct SVECTOR){X, 0, Z};
-        Points[4] = (struct SVECTOR){0, Y, 0};
-        Points[5] = (struct SVECTOR){X, Y, 0};
-        Points[6] = (struct SVECTOR){0, Y, Z};
-        Points[7] = (struct SVECTOR){X, Y, Z};
+        Points[0] = (SVECTOR){0, 0, 0};
+        Points[1] = (SVECTOR){X, 0, 0};
+        Points[2] = (SVECTOR){0, 0, Z};
+        Points[3] = (SVECTOR){X, 0, Z};
+        Points[4] = (SVECTOR){0, Y, 0};
+        Points[5] = (SVECTOR){X, Y, 0};
+        Points[6] = (SVECTOR){0, Y, Z};
+        Points[7] = (SVECTOR){X, Y, Z};
         gte_ldv0_s(&Rel);
         gte_rtv0_s();
         gte_mac2tr_s();
@@ -630,7 +629,7 @@ int mystrlen(char *String)
     return tc - String - 1;
 }
 
-void RemoveMeRoutine(struct SVECTOR *R, struct SVECTOR *P)
+void RemoveMeRoutine(SVECTOR *R, SVECTOR *P)
 {
     gte_ldv3(R, R + 1, R + 2);
     gte_rtpt();

@@ -1,5 +1,6 @@
 #include "types.h"
 #include "bss.h"
+#include <memory.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void InitMissionState(void);
@@ -27,7 +28,6 @@ void DeleteSaveMemory(struct IDENTITYNAME Name);
 struct SAVEFILEHDR *OpenSaveMemory(struct IDENTITYNAME Name, int Writeable);
 void CloseWritableSaveMemoryFile(struct IDENTITYNAME Name, short Flags);
 void *MY_malloc_namehb(int s, char *name);
-void *memset(void *s, int c, unsigned int n);
 
 static const struct IDENTITYNAME MissionName = {"Mission 6"};
 

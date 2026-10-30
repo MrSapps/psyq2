@@ -1,10 +1,11 @@
 #include "types.h"
 #include "bss.h"
+#include <rand.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void SetMyAiTable(int classname, struct ai_local_table_t *table);
 void monster_fire_bullet(struct edict_s *self, struct VECT *start, struct VECT *dir, int damage, int kick, int hspread, int vspread, int flashtype);
-int rand(void); void monster_fire_shotgun(struct edict_s *self, struct VECT *start, struct VECT *aimdir, int damage, int kick, int hspread, int vspread, int count, int flashtype);
+void monster_fire_shotgun(struct edict_s *self, struct VECT *start, struct VECT *aimdir, int damage, int kick, int hspread, int vspread, int count, int flashtype);
 void monster_fire_blaster(struct edict_s *self, struct VECT *Start, struct VECT *dir, int damage, int speed, int flashtype, int effect);
 void monster_fire_rocket(struct edict_s *self, struct VECT *start, struct VECT *dir, int damage, int speed, int flashtype);
 void monster_fire_railgun(struct edict_s *self, struct VECT *start, struct VECT *aimdir, int damage, int kick, int flashtype);
@@ -110,7 +111,6 @@ void monster_fire_bullet(struct edict_s *self, struct VECT *start, struct VECT *
     SoundByCreature(SoundMachinegunFire, SelfCre);
 }
 
-int rand(void);
 
 void monster_fire_shotgun(struct edict_s *self, struct VECT *start, struct VECT *aimdir, int damage, int kick, int hspread, int vspread, int count, int flashtype)
 {

@@ -372,7 +372,7 @@ extern int StartZone;  /* 0x800aee24, size 0x0 */
 extern unsigned short freepol;  /* 0x800aee28, size 0x0 */
 extern unsigned char *WORKSPACEpcMONOConvertBuffer;  /* 0x800aee30, size 0x0 */
 extern unsigned char *WORKSPACECmpBuffer;  /* 0x800aee34, size 0x0 */
-extern struct VECTOR *ObjTranVect;  /* 0x800aee38, size 0x10 */
+extern VECTOR *ObjTranVect;  /* 0x800aee38, size 0x10 */
 extern int LevelIsMultiPlayer;  /* 0x800aee3c, size 0x0 */
 extern int LevelChange;  /* 0x800aee40, size 0x0 */
 extern int vv;  /* 0x800aee58, size 0x0 */
@@ -412,27 +412,27 @@ extern short quitgame;  /* 0x800b2988, size 0x0 */
 extern int LastLevelComplete;  /* 0x800b298c, size 0x0 */
 extern int errordetectval;  /* 0x800b2990, size 0x0 */
 extern short levelfadespeed;  /* 0x800b2994, size 0x0 */
-extern struct LINE_F2 *NextLineF2;  /* 0x800b2998, size 0x10 */
+extern LINE_F2 *NextLineF2;  /* 0x800b2998, size 0x10 */
 extern int VDbFrame;  /* 0x800b299c, size 0x0 */
 extern struct VDB *OldVDb;  /* 0x800b29a0, size 0xc8 */
 extern struct VDB *CurrVDb;  /* 0x800b29a4, size 0xc8 */
 extern unsigned char DbFrame[2];  /* 0x800b29a8, size 0x2 */
 extern unsigned char TbFrame[3];  /* 0x800b29ac, size 0x3 */
-extern struct POLY_G4 *LastGeneralG4;  /* 0x800b29b0, size 0x24 */
-extern struct POLY_G4 *NextGeneralG4;  /* 0x800b29b4, size 0x24 */
+extern POLY_G4 *LastGeneralG4;  /* 0x800b29b0, size 0x24 */
+extern POLY_G4 *NextGeneralG4;  /* 0x800b29b4, size 0x24 */
 extern struct DB *olddb;  /* 0x800b29b8, size 0x7e98 */
-extern struct POLY_FT3 *LastTpChange;  /* 0x800b29bc, size 0x20 */
-extern struct POLY_FT3 *NextTpChange;  /* 0x800b29c0, size 0x20 */
+extern POLY_FT3 *LastTpChange;  /* 0x800b29bc, size 0x20 */
+extern POLY_FT3 *NextTpChange;  /* 0x800b29c0, size 0x20 */
 extern struct DB *currdb;  /* 0x800b29c4, size 0x7e98 */
 extern struct DUMMYGPU *LastDummyGpu;  /* 0x800b29c8, size 0x4 */
 extern struct DUMMYGPU *NextDummyGpu;  /* 0x800b29cc, size 0x4 */
-extern struct POLY_G4 *LensFlarePoly;  /* 0x800b29d0, size 0x24 */
-extern struct POLY_G4 *LastLensFlarePoly;  /* 0x800b29d4, size 0x24 */
-extern struct DRAWENV *LastChangeDrawEnv;  /* 0x800b29d8, size 0x5c */
-extern struct DRAWENV *ChangeDrawEnv;  /* 0x800b29dc, size 0x5c */
-extern struct LINE_F2 *LastLineF2;  /* 0x800b29e0, size 0x10 */
-extern struct POLY_FT4 *LastPolyFt4;  /* 0x800b29e4, size 0x28 */
-extern struct POLY_FT4 *NextPolyFt4;  /* 0x800b29e8, size 0x28 */
+extern POLY_G4 *LensFlarePoly;  /* 0x800b29d0, size 0x24 */
+extern POLY_G4 *LastLensFlarePoly;  /* 0x800b29d4, size 0x24 */
+extern DRAWENV *LastChangeDrawEnv;  /* 0x800b29d8, size 0x5c */
+extern DRAWENV *ChangeDrawEnv;  /* 0x800b29dc, size 0x5c */
+extern LINE_F2 *LastLineF2;  /* 0x800b29e0, size 0x10 */
+extern POLY_FT4 *LastPolyFt4;  /* 0x800b29e4, size 0x28 */
+extern POLY_FT4 *NextPolyFt4;  /* 0x800b29e8, size 0x28 */
 extern short WaitTime;  /* 0x800b29f4, size 0x0 */
 extern char gViolatingType;  /* 0x800b29f8, size 0x0 */
 extern char gViolatingPort;  /* 0x800b29fc, size 0x0 */
@@ -468,7 +468,7 @@ extern short numbrushes;  /* 0x800b2ab4, size 0x0 */
 extern struct BRUSHMOVEBUF *MoveBuf;  /* 0x800b2ab8, size 0x5c */
 extern char *BlurFreeListPntr;  /* 0x800b2abc, size 0x0 */
 extern struct BLURPOINT *BlurPoints;  /* 0x800b2ac0, size 0x8 */
-extern struct POLY_FT4 *ParticleFt4;  /* 0x800b2ac4, size 0x28 */
+extern POLY_FT4 *ParticleFt4;  /* 0x800b2ac4, size 0x28 */
 extern short MaxParticleFt4;  /* 0x800b2ac8, size 0x0 */
 extern short MaxParticle;  /* 0x800b2acc, size 0x0 */
 extern struct PARTICLE *Particles;  /* 0x800b2ad0, size 0x120 */
@@ -482,7 +482,7 @@ extern int (*NoInputTimeOutRoutine)();  /* 0x800b2af4, size 0x0 */
 extern int Sound_Invulnerability;  /* 0x800b2b1c, size 0x0 */
 extern int Sound_QuadDamage;  /* 0x800b2b20, size 0x0 */
 extern struct VECT *CurrCamPos;  /* 0x800b2b24, size 0xc */
-extern struct MATRIX *CurrCamMat;  /* 0x800b2b28, size 0x20 */
+extern MATRIX *CurrCamMat;  /* 0x800b2b28, size 0x20 */
 extern unsigned int usp;  /* 0x800b2b44, size 0x0 */
 extern int gSinglePlayerHintTime;  /* 0x800b2bcc, size 0x0 */
 extern struct CREATURE *LastPlayerDamageCre;  /* 0x800b2bd0, size 0x300 */
@@ -512,13 +512,13 @@ extern struct GLOBMODHDR *PlayerMaleAqua_ModHdr;  /* 0x800b2c2c, size 0x40 */
 extern struct GLOBMODHDR *PlayerMale_ModHdr;  /* 0x800b2c30, size 0x40 */
 extern int GlobalKey;  /* 0x800b2c40, size 0x0 */
 extern int VBLevelTicks;  /* 0x800b2c44, size 0x0 */
-extern struct RECT gDarkBoxRect;  /* 0x800b2c48, size 0x8 */
+extern RECT gDarkBoxRect;  /* 0x800b2c48, size 0x8 */
 extern unsigned int QuakeLevelFrame;  /* 0x800b2c50, size 0x0 */
 extern int GlobalKillsCount;  /* 0x800b2c54, size 0x0 */
 extern int GlobalKills;  /* 0x800b2c58, size 0x0 */
 extern short Console_Flags;  /* 0x800b2c5c, size 0x0 */
-extern struct LINE_F2 *LastQuakeLine;  /* 0x800b2c60, size 0x10 */
-extern struct LINE_F2 *NextQuakeLine;  /* 0x800b2c64, size 0x10 */
+extern LINE_F2 *LastQuakeLine;  /* 0x800b2c60, size 0x10 */
+extern LINE_F2 *NextQuakeLine;  /* 0x800b2c64, size 0x10 */
 extern int GlobalSecretsCount;  /* 0x800b2c68, size 0x0 */
 extern int GlobalSecretsFound;  /* 0x800b2c6c, size 0x0 */
 extern unsigned int QuakeLevelTime;  /* 0x800b2c70, size 0x0 */
@@ -566,14 +566,14 @@ extern void (*MissionPrintStatus)();  /* 0x800b2d20, size 0x0 */
 extern short CheatActiveStatus;  /* 0x800b2d24, size 0x0 */
 extern short ShowPathCorner;  /* 0x800b2d28, size 0x0 */
 extern int SpriTextError;  /* 0x800b2d3c, size 0x0 */
-extern struct SPRT *SpriteAnySize;  /* 0x800b2d40, size 0x14 */
-extern struct SPRT *LastSpriteAnySize;  /* 0x800b2d44, size 0x14 */
-extern struct POLY_GT4 *LastFMenuPoly;  /* 0x800b2d48, size 0x34 */
-extern struct POLY_FT4 *MenuPoly;  /* 0x800b2d4c, size 0x28 */
-extern struct POLY_GT4 *FMenuPoly;  /* 0x800b2d50, size 0x34 */
-extern struct POLY_FT4 *LastMenuPoly;  /* 0x800b2d54, size 0x28 */
-extern struct SPRT_16 *Sprite816;  /* 0x800b2d58, size 0x10 */
-extern struct SPRT_16 *LastSprite816;  /* 0x800b2d5c, size 0x10 */
+extern SPRT *SpriteAnySize;  /* 0x800b2d40, size 0x14 */
+extern SPRT *LastSpriteAnySize;  /* 0x800b2d44, size 0x14 */
+extern POLY_GT4 *LastFMenuPoly;  /* 0x800b2d48, size 0x34 */
+extern POLY_FT4 *MenuPoly;  /* 0x800b2d4c, size 0x28 */
+extern POLY_GT4 *FMenuPoly;  /* 0x800b2d50, size 0x34 */
+extern POLY_FT4 *LastMenuPoly;  /* 0x800b2d54, size 0x28 */
+extern SPRT_16 *Sprite816;  /* 0x800b2d58, size 0x10 */
+extern SPRT_16 *LastSprite816;  /* 0x800b2d5c, size 0x10 */
 extern struct COLLPLANE *LittlePlane;  /* 0x800b2d60, size 0xc */
 extern short LittleOut;  /* 0x800b2d64, size 0x0 */
 extern short *SecondarySpaceRemap;  /* 0x800b2d68, size 0x0 */
@@ -631,14 +631,14 @@ extern int enemy_range;  /* 0x800b2e48, size 0x0 */
 extern int c_no;  /* 0x800b2e4c, size 0x0 */
 extern int c_yes;  /* 0x800b2e50, size 0x0 */
 extern int trail_head;  /* 0x800b2e54, size 0x0 */
-extern struct DR_MOVE *WaterMoves[2];  /* 0x800b2e60, size 0x8 */
+extern DR_MOVE *WaterMoves[2];  /* 0x800b2e60, size 0x8 */
 extern int MaxWaterMoves;  /* 0x800b2e68, size 0x0 */
-extern struct DR_MOVE *LastWaterMove;  /* 0x800b2e6c, size 0x18 */
-extern struct DR_MOVE *WaterMove;  /* 0x800b2e70, size 0x18 */
+extern DR_MOVE *LastWaterMove;  /* 0x800b2e6c, size 0x18 */
+extern DR_MOVE *WaterMove;  /* 0x800b2e70, size 0x18 */
 extern int DebrisModelsActive;  /* 0x800b2e74, size 0x0 */
 extern struct THICKLINE *ThickLinePntr;  /* 0x800b2e78, size 0x28 */
 extern struct THICKLINE *LastThickLine;  /* 0x800b2e7c, size 0x28 */
-extern struct SVECTOR *ShieldEffPoints;  /* 0x800b2e80, size 0x8 */
+extern SVECTOR *ShieldEffPoints;  /* 0x800b2e80, size 0x8 */
 extern char *ShieldEffPolys;  /* 0x800b2e84, size 0x0 */
 extern struct SCRPNT CurrScreenMin;  /* 0x800b2e88, size 0x4 */
 extern int CurrWinIndx;  /* 0x800b2e8c, size 0x0 */
@@ -709,7 +709,7 @@ extern struct GLOBMODHDR *NextZoneCastList;  /* 0x800b2f8c, size 0x40 */
 extern struct GLOBMODHDR *CommonCastList;  /* 0x800b2f90, size 0x40 */
 extern struct GLOBMODHDR *ZoneCastList;  /* 0x800b2f94, size 0x40 */
 extern struct MODWIN *LastWinData;  /* 0x800b2f98, size 0x64 */
-extern struct POLY_GT4 *OtherPolys;  /* 0x800b2f9c, size 0x34 */
+extern POLY_GT4 *OtherPolys;  /* 0x800b2f9c, size 0x34 */
 extern short lightorder[4];  /* 0x800b2fa0, size 0x8 */
 extern struct CREATURE *LastCre;  /* 0x800b2fa8, size 0x300 */
 extern char FinishedCutScene;  /* 0x800b2fac, size 0x0 */
@@ -739,7 +739,7 @@ extern int LevelCounterLast;  /* 0x800b300c, size 0x0 */
 extern struct SCRPNT ScreenSize;  /* 0x800b3010, size 0x4 */
 extern int CurrentWorld;  /* 0x800b3014, size 0x0 */
 extern int PalNtsc;  /* 0x800b3018, size 0x0 */
-extern struct LINE_G2 *NextLine;  /* 0x800b301c, size 0x14 */
+extern LINE_G2 *NextLine;  /* 0x800b301c, size 0x14 */
 extern short *screen256pal;  /* 0x800b3020, size 0x0 */
 extern int NewVcounts;  /* 0x800b3024, size 0x0 */
 extern int LastNewVcounts;  /* 0x800b3028, size 0x0 */
@@ -751,9 +751,9 @@ extern struct SCRPNT CurrDrawWin;  /* 0x800b303c, size 0x4 */
 extern short TotalModelsLoaded;  /* 0x800b3040, size 0x0 */
 extern int controlcol;  /* 0x800b3044, size 0x0 */
 extern int PalNtscRate;  /* 0x800b3048, size 0x0 */
-extern struct RECT desrect;  /* 0x800b304c, size 0x8 */
+extern RECT desrect;  /* 0x800b304c, size 0x8 */
 extern int ChrisCount;  /* 0x800b3054, size 0x0 */
-extern struct SPRT *currsp;  /* 0x800b3058, size 0x14 */
+extern SPRT *currsp;  /* 0x800b3058, size 0x14 */
 extern int fogstart;  /* 0x800b305c, size 0x0 */
 extern int fogend;  /* 0x800b3060, size 0x0 */
 extern void (*MainLoop)();  /* 0x800b3064, size 0x0 */
@@ -761,7 +761,7 @@ extern int DrawSyncTime;  /* 0x800b3068, size 0x0 */
 extern long *DummyMemory;  /* 0x800b306c, size 0x0 */
 extern int lasttime;  /* 0x800b3070, size 0x0 */
 extern int lastfire;  /* 0x800b3074, size 0x0 */
-extern struct LINE_G2 *LastLine;  /* 0x800b3078, size 0x14 */
+extern LINE_G2 *LastLine;  /* 0x800b3078, size 0x14 */
 extern int JustLoaded;  /* 0x800b307c, size 0x0 */
 extern int drawbgflag;  /* 0x800b3080, size 0x0 */
 extern short movedispflag2;  /* 0x800b3084, size 0x0 */
@@ -830,12 +830,12 @@ extern char SkyClear;  /* 0x800b319c, size 0x0 */
 extern int DrawModTime;  /* 0x800b31a0, size 0x0 */
 extern int LightsTime;  /* 0x800b31a4, size 0x0 */
 extern int SpecificTime;  /* 0x800b31a8, size 0x0 */
-extern struct POLY_FT4 *ShadowPolys;  /* 0x800b31ac, size 0x28 */
-extern struct POLY_FT4 *EndShadowPolys;  /* 0x800b31b0, size 0x28 */
+extern POLY_FT4 *ShadowPolys;  /* 0x800b31ac, size 0x28 */
+extern POLY_FT4 *EndShadowPolys;  /* 0x800b31b0, size 0x28 */
 extern void **OnZoneLoadTable;  /* 0x800b31b4, size 0x0 */
 extern int levellistpos;  /* 0x800b31b8, size 0x0 */
 extern char VBLPicLoaded;  /* 0x800b31bc, size 0x0 */
-extern struct RECT tempdisprect;  /* 0x800b31c0, size 0x8 */
+extern RECT tempdisprect;  /* 0x800b31c0, size 0x8 */
 extern struct QLEVELINTERFACE *LevelInterface;  /* 0x800b31c8, size 0xc */
 extern struct FILEHDR *CommonFiles;  /* 0x800b31cc, size 0x10 */
 extern int cddemotimeout;  /* 0x800b31d0, size 0x0 */
@@ -853,7 +853,7 @@ extern struct ZONEDATA *ThisZoneData;  /* 0x800b31fc, size 0x20 */
 extern struct LEVELDATA *ThisLevelData;  /* 0x800b3200, size 0x38 */
 extern struct LEVELDATA *GlobalLevelData;  /* 0x800b3204, size 0x38 */
 extern short saveenabled;  /* 0x800b3208, size 0x0 */
-extern struct RECT tempdisprect2;  /* 0x800b320c, size 0x8 */
+extern RECT tempdisprect2;  /* 0x800b320c, size 0x8 */
 extern unsigned char moviequitflag;  /* 0x800b3214, size 0x0 */
 extern struct FILEHDR *CurrentZoneFiles;  /* 0x800b3218, size 0x10 */
 extern int vblfadetime2;  /* 0x800b321c, size 0x0 */
@@ -878,11 +878,11 @@ extern char pad0V[34];  /* 0x800b397c, size 0x22 */
 extern struct DB db[2];  /* 0x800b39a0, size 0xfd30 */
 extern struct VDB VDb[2];  /* 0x800c36d0, size 0x190 */
 extern struct STRING_TABLE MyStringTable[28];  /* 0x800c3860, size 0xa10 */
-extern struct POLY_FT4 actualStack0[130];  /* 0x800c4270, size 0x1450 */
-extern struct POLY_FT4 actualStack1[130];  /* 0x800c56c0, size 0x1450 */
+extern POLY_FT4 actualStack0[130];  /* 0x800c4270, size 0x1450 */
+extern POLY_FT4 actualStack1[130];  /* 0x800c56c0, size 0x1450 */
 extern struct CURSOR_MEMORY CursorMemory[47];  /* 0x800c6b10, size 0x5e */
-extern struct DRAWENV LoadDoClipDrawEnvs[2];  /* 0x800c6b70, size 0xb8 */
-extern struct DRAWENV LoadUnClipDrawEnvs[2];  /* 0x800c6c28, size 0xb8 */
+extern DRAWENV LoadDoClipDrawEnvs[2];  /* 0x800c6b70, size 0xb8 */
+extern DRAWENV LoadUnClipDrawEnvs[2];  /* 0x800c6c28, size 0xb8 */
 extern struct CREATURE FlyPickCre;  /* 0x800c6ce0, size 0x300 */
 extern struct FLYPICK FlyPicks[4];  /* 0x800c6fe0, size 0x160 */
 extern struct IDENTITYNAME LastObjective;  /* 0x800c7140, size 0xc */
@@ -946,13 +946,13 @@ extern struct OBJSORTINFO ObjSortInfo[255];  /* 0x800da7e8, size 0x33cc */
 extern unsigned long AreaNotHiddenData[3];  /* 0x800ddbb4, size 0xc */
 extern char PolsToFreeList[256];  /* 0x800dddd0, size 0x100 */
 extern struct BESTLIGHT bestlights[4];  /* 0x800dded0, size 0x40 */
-extern struct SVECTOR LightVec[3];  /* 0x800ddf10, size 0x18 */
-extern struct DISPENV movedisp;  /* 0x800ddf38, size 0x14 */
+extern SVECTOR LightVec[3];  /* 0x800ddf10, size 0x18 */
+extern DISPENV movedisp;  /* 0x800ddf38, size 0x14 */
 extern short allpals[32];  /* 0x800ddf4c, size 0x40 */
-extern struct MATRIX rgbmatrix;  /* 0x800ddf8c, size 0x20 */
+extern MATRIX rgbmatrix;  /* 0x800ddf8c, size 0x20 */
 extern short alltpages[32];  /* 0x800ddfac, size 0x40 */
 extern struct VECT NullVec;  /* 0x800ddfec, size 0xc */
-extern struct MATRIX lightmatrix;  /* 0x800ddff8, size 0x20 */
+extern MATRIX lightmatrix;  /* 0x800ddff8, size 0x20 */
 extern char levelpath[33];  /* 0x800de018, size 0x21 */
 extern long *primlistarray[1041];  /* 0x800de03c, size 0x1044 */
 extern short tpagex[32];  /* 0x800df080, size 0x40 */
@@ -963,7 +963,7 @@ extern unsigned char chanfreelist[24];  /* 0x800e0704, size 0x18 */
 extern char NameBuffer[16];  /* 0x800e071c, size 0x10 */
 extern struct SNDCTRL SoundControlBuffers[24];  /* 0x800e072c, size 0x540 */
 extern char ifrealocdoesntwork[1548];  /* 0x800e0c6c, size 0x60c */
-extern struct VECTOR SFXRotCoord;  /* 0x800e1278, size 0x10 */
+extern VECTOR SFXRotCoord;  /* 0x800e1278, size 0x10 */
 extern short Conv[256];  /* 0x800e1288, size 0x200 */
 extern struct TIMEDLIGHT TimedLights[16];  /* 0x800e1488, size 0x240 */
 extern struct LIGHTBACK LightBackList2[2][128];  /* 0x800e16c8, size 0x2800 */
@@ -973,8 +973,8 @@ extern char updateflag[64];  /* 0x800e3f48, size 0x40 */
 extern struct LIGHTS LightList[16];  /* 0x800e3f88, size 0x1c0 */
 extern struct LIGHTS HeavenlyLightList[3];  /* 0x800e4148, size 0x54 */
 extern short palette[80];  /* 0x800e419c, size 0xa0 */
-extern struct DIVPOLYGON4 divp;  /* 0x800e423c, size 0x334 */
-extern struct DIVPOLYGON4 divp2;  /* 0x800e4570, size 0x334 */
+extern DIVPOLYGON4 divp;  /* 0x800e423c, size 0x334 */
+extern DIVPOLYGON4 divp2;  /* 0x800e4570, size 0x334 */
 extern unsigned char savelist[40];  /* 0x800e48a4, size 0x28 */
 extern struct IDENTITYNAME ZoneName;  /* 0x800e48cc, size 0xc */
 extern struct IDENTITYNAME LastZoneName;  /* 0x800e48d8, size 0xc */
@@ -1028,7 +1028,7 @@ extern long pdhmallocbase;  /* 0x800ee988, size 0x0 */
 /* static short QTimerIdentsNtsc[7];  0x800a4130  [qents.obj] */
 /* static int NextDisplayPeriod;  0x800ae990  [HelpComp.obj] */
 /* static int AllowButtonExit;  0x800ae994  [HelpComp.obj] */
-/* static struct RECT MissionRect;  0x800ae9d0  [IMission.obj] */
+/* static RECT MissionRect;  0x800ae9d0  [IMission.obj] */
 /* static unsigned char PadAlign[6];  0x800aea50  [input.obj] */
 /* static short QM4PosY[4];  0x800aea78  [QPanel.obj] */
 /* static char BCDNo[3];  0x800aea84  [QPanel.obj] */
@@ -1116,7 +1116,7 @@ extern long pdhmallocbase;  /* 0x800ee988, size 0x0 */
 /* static struct VECTBOX PICB_Box;  0x800d5334  [p_trail.obj] */
 /* static struct QUATANIMFRAME GlobalTweenedQuatFrames[32];  0x800ddbd0  [models.obj] */
 /* static struct CROSSDATA CrossList[32];  0x800df110  [misc.obj] */
-/* static struct CdlLOC loc[16];  0x800df3bc  [cdaudio.obj] */
-/* static struct CdlLOC xailoc[20];  0x800df3fc  [cdaudio.obj] */
+/* static CdlLOC loc[16];  0x800df3bc  [cdaudio.obj] */
+/* static CdlLOC xailoc[20];  0x800df3fc  [cdaudio.obj] */
 /* static struct EffectStruct VAGList[97];  0x800df4ac  [nsound.obj] */
 /* static char pbSpuMallocRec[1032];  0x800dfc4c  [nsound.obj] */

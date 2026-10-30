@@ -1,5 +1,10 @@
 #include "types.h"
 #include "bss.h"
+#include <abs.h>
+#include <libpad.h>
+#include <libsn.h>
+#include <memory.h>
+#include <strings.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void ReadPaddHardware(void);
@@ -50,11 +55,6 @@ extern struct QENGINELEVINTERFACE Engine;
 extern int Paused;
 extern int InSelfPlayMode;
 extern int LevelIsMultiPlayer;
-int PadGetState(int port);
-int PadInfoMode(int port, int term, int offs);
-void PadSetAct(int port, unsigned char *data, int len);
-int PadSetActAlign(int port, unsigned char *data);
-void *memset();
 struct CHARPAIR ProcessShockData(int Win);
 
 void PadDualShock(int Win, struct HHPADD *Padds);
@@ -66,12 +66,6 @@ void FrontEndResetPlayerDefaults(void);
 void FrontEndResetSoundDefaults(void);
 void FrontEndResetVideoDefaults(void);
 void Config_InstallVideo(void);
-char *strcpy();
-char *strcat();
-int strlen();
-int PCcreat(char *name, int perms);
-int PCwrite(int fd, char *buff, int len);
-int PCclose(int fd);
 void MyFreeRep(void **Addr, char *Name);
 
 static char *itoa(int num)
@@ -107,7 +101,6 @@ extern int NewVcounts;
 extern int PalNtscRate;
 extern int LevelIsMultiPlayer;
 void SetController(int Win, int Method);
-int abs(int x);
 
 static int AnlgConv(int InVal)
 {

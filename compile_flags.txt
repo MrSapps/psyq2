@@ -2,7 +2,9 @@
 -std=gnu89
 -m32
 -funsigned-char
+-nostdinc
 -Isrc/include
 -Isrc/ovl/include
 -Isrc/ovl
+-I../psyq_sdk/psyq_4.4/include
 -Wno-everything

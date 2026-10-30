@@ -1,5 +1,6 @@
 #include "types.h"
 #include "bss.h"
+#include <rand.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void GetFireLocSpace(struct CREATURE *Cre, struct VECT *FirePosition, short *FireSpace);
@@ -396,7 +397,7 @@ int Find3dSpaceGivenSecondary(struct VECT *Location, struct VECT *MoveLoc, int M
 int AnyoneFireBFG(struct CREATURE *Aggressor, int Damage);
 int AnyoneFireGrenade(struct CREATURE *Aggressor, int Damage, int Life);
 void PreInitWeaponExtras(void);
-void RotateS(struct MATRIX *m, struct SVECT *v1, struct SVECT *o2);
+void RotateS(MATRIX *m, struct SVECT *v1, struct SVECT *o2);
 void PlayerNoise(struct edict_s *who, struct VECT *where, int type);
 int AnyoneFireGrenadeL(struct CREATURE *Aggressor, struct VECT *Start, struct SVECT *Dir, int Damage, int Life);
 int AnyoneFireBlaster();
@@ -484,7 +485,6 @@ void QuakeGenExplosion(struct VECT *Location, int Area, int Scale, int Type);
 int PointHit(struct CREATURE *Aggressor, int PrimarySpace, struct CREATURE *Ignore, struct VECT *Centre, struct SHORTPAIR DamRad, enum DAMAGETYPES DamType, int IgnoreAggressor);
 void KillModel(struct CREATURE *Cre);
 void UpdateBoxStuff(struct COLLBOX3D *Box, int AreaSource);
-int rand(void);
 void AnyoneFireInstantBullet(struct CREATURE *Cre, struct VECT *Start, struct SVECT *Dir, int Damage, int Space, int BulletType);
 int AddTimedLight(struct VECT *Location, struct COLOUR Colour, struct POWER Power, int Life);
 int GetSoundClone(int OriginalSoundNum);
@@ -541,7 +541,6 @@ int SoundStop(struct SOUNDINFO *SoundInfo);
 struct MISSILE *FindFreeMissile(void);
 void FreeMissile(struct MISSILE *Missile);
 int SquareRootNR(int a);
-long ratan2(long y, long x);
 int InitCol3dMove(struct COLLHEADER *Map, struct COL3DMOVE *Move3d, struct VECT *Location, short SpaceNum);
 
 extern long *DummyMemory;
@@ -981,7 +980,7 @@ GAHold:
         Cre->Box.Area = CollMap.Coll3dSpace[Cre->Box.PrimarySpace].Area;
         SetupCollBoxMinMax(&Cre->Box, *&(struct SVECT){20, 20, 20});
         {
-            struct MATRIX Matrix;
+            MATRIX Matrix;
 
             Velocity = (struct SVECT){0, 0x800, Cre->Params[2]};
             RotMatrixYXZ(&SequenceData->Ang, &Matrix);
@@ -1803,7 +1802,7 @@ int AnyoneFireBlaster(Self, FirePosition, Dir, Damage, Flags, DamageType, FireSp
     struct MISSILE *Bullet;
     struct SVECT BullVel;
     struct SVECT Ang;
-    struct MATRIX m;
+    MATRIX m;
     static struct SVECT Points[8] = {
         {-10, -10, -50}, {10, -10, -50}, {-10, -10, 50}, {10, -10, 50},
         {-10, 10, -50}, {10, 10, -50}, {-10, 10, 50}, {10, 10, 50},

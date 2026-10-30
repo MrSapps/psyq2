@@ -1,4 +1,5 @@
 #include "types.h"
+#include <rand.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void MuzzleFlash(struct CREATURE *Cre, struct MODSUBOFF ModSubOff, int Scale);
@@ -8,20 +9,17 @@ extern int NewVcounts;
 extern int MaxWindows;
 extern struct WINDOW GameWindows[];
 extern struct WINDOW *CurrWin;
-extern struct POLY_FT4 *NextPolyFt4;
-extern struct POLY_FT4 *LastPolyFt4;
+extern POLY_FT4 *NextPolyFt4;
+extern POLY_FT4 *LastPolyFt4;
 extern short tpscreenx[];
 extern short tpscreeny[];
 extern short palette[];
 extern short rcossin_tbl[][2];
-int rand(void);
 struct SVECT GetSubModXYZ(struct GLOBMODHDR *GlobHdr, struct MODSUBOFF SubOff, int AnimFrame, int AnimJump);
 int AddLight(struct VECT *Location, struct COLOUR Colour, struct POWER Power, struct SHORTPAIR FlareTypeSize);
-void RotateS(struct MATRIX *m, struct SVECT *v1, struct SVECT *o2);
+void RotateS(MATRIX *m, struct SVECT *v1, struct SVECT *o2);
 int AreaValid(int Win, int Area);
 void SetupScreenGivenArea(int Win, int Area);
-void SetGeomScreen(long h);
-unsigned short GetTPage(int tp, int abr, int x, int y);
 void AddPrim_(void *ot, void *p);
 void AddPrimInsert_(void *ot, void *p);
 
@@ -56,7 +54,7 @@ void MuzzleFlash(struct CREATURE *Cre, struct MODSUBOFF ModSubOff, int Scale)
 {
     struct SVECT Rel;
     struct SVECT Temp[4];
-    struct SVECTOR RelList[4];
+    SVECTOR RelList[4];
     struct VECT Pos;
     struct VECT Tran;
     int a;

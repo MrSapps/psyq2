@@ -1,6 +1,8 @@
 /* level_qfront: the front end (title, menus, options, credits, the movie player). */
 /* ovl-libs: libgpu/P00 libgpu/P33 libpress/LIBPRESS libpress/VLC_C libpress/BUILD libpress/DCT002 */
 #include "ovl.h"
+#include <libetc.h>
+#include <stdio.h>
 
 /* TODO: the functions not decompiled yet are their original instructions, generated into
  * level_qfront_asm.h (with the strings and jump tables they own):
@@ -38,23 +40,15 @@ struct LOADFLAGS {
 };
 #define LOADFLAGS(e) ((struct LOADFLAGS *)&(e)->gFrontEndPadShot)
 
-/* libgpu.h */
-#define setRECT(r, _x, _y, _w, _h) ((r)->x = (_x), (r)->y = (_y), (r)->w = (_w), (r)->h = (_h))
-
-/* libpress (linked after this file) */
-void DecDCTReset(int mode);
-int DecDCToutCallback(void (*func)());
-int DecDCTvlc2(unsigned long *bs, unsigned long *buf, unsigned short *table);
-int DecDCTBufSize(unsigned long *bs);
 
 /* the strplay sample's decode environment (as in level_qendmis1) */
 struct DECENV {
     unsigned long *vlcbuf[2];   /* 0x0 */
     unsigned short *imgbuf;     /* 0x8 */
     int vlcid;                  /* 0xc */
-    struct RECT rect[2];        /* 0x10 */
+    RECT rect[2];        /* 0x10 */
     int rectid;                 /* 0x20 */
-    struct RECT slice;          /* 0x24 */
+    RECT slice;          /* 0x24 */
     int isdone;                 /* 0x2c */
 };
 
@@ -69,29 +63,6 @@ struct STRFLAGS {
 };
 #define STRFLAGS(st) ((struct STRFLAGS *)((char *)(st) + 0x44))
 
-/* libgpu.h */
-typedef struct {
-    unsigned addr : 24;
-    unsigned len : 8;
-    unsigned char r0, g0, b0, code;
-} P_TAG;
-#define setlen(p, _len) (((P_TAG *)(p))->len = (unsigned char)(_len))
-#define setcode(p, _code) (((P_TAG *)(p))->code = (unsigned char)(_code))
-#define setPolyFT4(p) setlen(p, 9), setcode(p, 0x2c)
-#define setRGB0(p, _r0, _g0, _b0) (p)->r0 = _r0, (p)->g0 = _g0, (p)->b0 = _b0
-#define setXY4(p, _x0, _y0, _x1, _y1, _x2, _y2, _x3, _y3) \
-    (p)->x0 = (_x0), (p)->y0 = (_y0), (p)->x1 = (_x1), (p)->y1 = (_y1), \
-    (p)->x2 = (_x2), (p)->y2 = (_y2), (p)->x3 = (_x3), (p)->y3 = (_y3)
-#define setUV4(p, _u0, _v0, _u1, _v1, _u2, _v2, _u3, _v3) \
-    (p)->u0 = (_u0), (p)->v0 = (_v0), (p)->u1 = (_u1), (p)->v1 = (_v1), \
-    (p)->u2 = (_u2), (p)->v2 = (_v2), (p)->u3 = (_u3), (p)->v3 = (_v3)
-#define setXYWH(p, _x0, _y0, _w, _h) \
-    (p)->x0 = (_x0), (p)->y0 = (_y0), (p)->x1 = (_x0) + (_w), (p)->y1 = (_y0), \
-    (p)->x2 = (_x0), (p)->y2 = (_y0) + (_h), (p)->x3 = (_x0) + (_w), (p)->y3 = (_y0) + (_h)
-#define setUVWH(p, _u0, _v0, _w, _h) \
-    (p)->u0 = (_u0), (p)->v0 = (_v0), (p)->u1 = (_u0) + (_w), (p)->v1 = (_v0), \
-    (p)->u2 = (_u0), (p)->v2 = (_v0) + (_h), (p)->u3 = (_u0) + (_w), (p)->v3 = (_v0) + (_h)
-
 /* a palette to load: Mask has the colours that get the semi-transparency bit */
 struct CLUTENTRY {
     short *Data;
@@ -99,8 +70,8 @@ struct CLUTENTRY {
     short PalIndex;
 };
 
-/* the small functions gcc emits at the end of the file, in this order */
-void ResetCallback();
+/* the small functions gcc emits at the end of the file, in this order (ResetCallback,
+ * first, is declared by libetc.h above) */
 void FrontEndNothing();
 void FrontEndResetWindows();
 void FrontEndDrawSortedObjs();
@@ -160,7 +131,7 @@ void GOTO_INTRO();
 void GOTO_START_MULTIPLAYER();
 void FrontEndLoadCluts();
 void func_24fc(short y, short clut, short tpage, int is24, struct COLOUR col, int semitrans);
-void FrontEndAddQuad(struct POLY_FT4 **pp, short x, short y, short u, short v, short w, short h, short tpage, short clut, short col, int xoff);
+void FrontEndAddQuad(POLY_FT4 **pp, short x, short y, short u, short v, short w, short h, short tpage, short clut, short col, int xoff);
 void FrontEndDraw256();
 void FrontEndLighting();
 void FrontEndMainLoop();
@@ -187,7 +158,6 @@ void func_9c38(short w);
 void PickupSpinTitle();
 void PickupSpinMenu();
 void func_9f08();
-int printf(char *fmt, ...);
 void func_ae00();
 unsigned long *func_b00c();
 void func_b1c4();
@@ -201,9 +171,9 @@ struct QLEVELINTERFACE LevelInterface OVL_HEADER = { InitLevel, 0, 0 };
 static short ScreenX BSS;
 static short ScreenY BSS;
 static int VlcSize BSS;
-static struct CdlLOC Loc BSS;
+static CdlLOC Loc BSS;
 static int UnusedBss0[3] BSS;
-static struct CdlFILE File BSS;
+static CdlFILE File BSS;
 static int FileSize BSS;
 static int EndFrame BSS;
 static int isEndOfFlag BSS;
@@ -214,26 +184,26 @@ static unsigned long *RingBuf BSS;
 static unsigned short *VlcTable BSS;
 static int UnusedBss2 BSS;
 short D_12ae4 BSS;
-struct DR_TPAGE TPages[2][5] BSS;
+DR_TPAGE TPages[2][5] BSS;
 struct CREATURE *Pickups[5] BSS;
-struct DR_TPAGE *TPageEnd BSS;
+DR_TPAGE *TPageEnd BSS;
 int Unused_12b50[2] BSS;
-struct SPRT Sprites[2][5] BSS;
+SPRT Sprites[2][5] BSS;
 unsigned char D_12c20[4] BSS;
-struct DR_TPAGE *TPagePtr BSS;
+DR_TPAGE *TPagePtr BSS;
 int Unused_12c28[47] BSS;
 unsigned long SavedSp BSS;
 unsigned char D_12ce8[8] BSS;
 DRAWENV CreditsEnv[2] BSS;
 short IntroDelay BSS;
-struct SPRT *SprtEnd BSS;
+SPRT *SprtEnd BSS;
 unsigned long MainLoopSp BSS;
 int Unused_12db4 BSS;
 int D_12db8[8] BSS;
 int D_12dd8[1] BSS;
-struct SPRT *SprtPtr BSS;
-struct POLY_FT4 PolyStack0[512] BSS;
-struct POLY_FT4 PolyStack1[512] BSS;
+SPRT *SprtPtr BSS;
+POLY_FT4 PolyStack0[512] BSS;
+POLY_FT4 PolyStack1[512] BSS;
 
 short TimeLimits[12] = {
     1, 2, 3, 4, 5, 10, 15, 20, 25, 30, 60, -1,
@@ -1148,10 +1118,6 @@ void FrontEndLoadCluts(struct CLUTENTRY *Big, struct CLUTENTRY *Small)
     }
 }
 
-/* libgpu, linked after this object */
-unsigned short GetTPage(int tp, int abr, int x, int y);
-void SetDrawTPage(struct DR_TPAGE *p, int dfe, int dtd, int tpage);
-
 /* draws a 512x240 picture from four 256x256 texture pages, scrolled up by y lines (the
  * intermission module's DrawPicture) */
 void func_24fc(short y, short clut, short tpage, int is24, struct COLOUR col, int semitrans)
@@ -1210,10 +1176,10 @@ void func_24fc(short y, short clut, short tpage, int is24, struct COLOUR col, in
     }
 }
 
-void FrontEndAddQuad(struct POLY_FT4 **pp, short x, short y, short u, short v, short w, short h,
+void FrontEndAddQuad(POLY_FT4 **pp, short x, short y, short u, short v, short w, short h,
                      short tpage, short clut, short col, int xoff)
 {
-    struct POLY_FT4 *p;
+    POLY_FT4 *p;
     unsigned long *ot;
 
     p = *pp;
@@ -1229,7 +1195,7 @@ void FrontEndAddQuad(struct POLY_FT4 **pp, short x, short y, short u, short v, s
 }
 
 /* the controller layouts and the arena pictures (256 colour textures) */
-void FrontEndDraw256(struct POLY_FT4 **pp)
+void FrontEndDraw256(POLY_FT4 **pp)
 {
     short n;
 
@@ -2774,7 +2740,7 @@ void func_9c38(short w)
 
 void FrontEndSpinPickup(struct CREATURE *Pickup)
 {
-    struct VECTOR Pos;
+    VECTOR Pos;
     short Unused[2];
     int Spin;
     int dx, dy, dz; /* never used: the code computing them is optimised away late, after it has
@@ -2990,29 +2956,17 @@ void func_9f08(void)
 
 #define ENGINE LevelInterface.Engine
 
-/* libgpu's DR_MODE (not in types.h) */
-struct DR_MODE {
-    unsigned long tag;
-    unsigned long code[2];
-};
 
 
-/* libpress, linked after this object */
-void DecDCTReset(int mode);
-void DecDCTin(unsigned long *buf, int mode);
-void DecDCTout(unsigned long *buf, int size);
-int DecDCToutCallback(void (*func)());
-int DecDCTvlc2(unsigned long *bs, unsigned long *buf, unsigned short *table);
-void DecDCTvlcBuild(unsigned short *table);
-int DecDCTBufSize(unsigned long *bs);
-
+/* libpress, linked after this object, prints with printf and resets with ResetCallback;
+ * the module supplies both (declared by stdio.h and libetc.h) */
 int printf(char *fmt, ...)
 {
 }
 
 void func_ae00(void)
 {
-    struct RECT snap_rect;  /* unused, but in the frame */
+    RECT snap_rect;  /* unused, but in the frame */
     int rest;
 
     if (*ENGINE->StCdIntrFlagAddr) {
@@ -3043,7 +2997,7 @@ unsigned long *func_b00c(void)
     unsigned long *addr;
     struct StHEADER *sector;
     int cnt;
-    struct RECT rect;
+    RECT rect;
 
     cnt = 0x800000;
     while (ENGINE->StGetNext(&addr, &sector)) {
@@ -3071,7 +3025,7 @@ unsigned long *func_b00c(void)
     return addr;
 }
 
-void func_b1c4(struct DISPENV *disp, struct DRAWENV *draw)
+void func_b1c4(DISPENV *disp, DRAWENV *draw)
 {
     int id;
 
@@ -3163,8 +3117,8 @@ short PlayMovie(char *name, int endframe, int vlcsize, int clear, int volume)
 {
     long unused[12];    /* never used, but in the original's frame */
     char path[40];
-    struct DISPENV disp;
-    struct DRAWENV draw;
+    DISPENV disp;
+    DRAWENV draw;
     int frame;
     int i;
     short ret;
@@ -3273,16 +3227,16 @@ short PlayMovie(char *name, int endframe, int vlcsize, int clear, int volume)
 /* id: PlayMovie passes it, but it is recomputed here (the original's code ignores $a0) */
 void func_bdf4(int id)
 {
-    struct RECT srcrect;
-    struct RECT dstrect;
-    struct RECT *src;
-    struct RECT *dst;
-    struct TILE tile;
-    struct TILE *t;
-    struct DR_MODE mode;
-    struct DR_MODE *m;
-    struct DISPENV disp;
-    struct DRAWENV draw;
+    RECT srcrect;
+    RECT dstrect;
+    RECT *src;
+    RECT *dst;
+    TILE tile;
+    TILE *t;
+    DR_MODE mode;
+    DR_MODE *m;
+    DISPENV disp;
+    DRAWENV draw;
     unsigned char *buf;
     int yoff;
     int x, y;
@@ -3498,9 +3452,9 @@ void func_d9b8(char *out)
 
 
 
-void ResetCallback(void)
+int ResetCallback(void)
 {
-    LevelInterface.Engine->ResetCallback();
+    return LevelInterface.Engine->ResetCallback();
 }
 
 void FrontEndNothing(void)
@@ -3631,7 +3585,7 @@ void func_d58c(void)
 }
 void func_d644(unsigned short *clut, short slot, int is256)
 {
-    struct RECT rect;
+    RECT rect;
 
     rect.x = (LevelInterface.Engine->palette[slot] & 0x3f) << 4;
     rect.y = LevelInterface.Engine->palette[slot] >> 6;

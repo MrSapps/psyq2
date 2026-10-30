@@ -1,5 +1,7 @@
 #include "types.h"
 #include "bss.h"
+#include <memory.h>
+#include <rand.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void NoAmmoWeaponChange(struct PLAYER *Player);
@@ -31,14 +33,10 @@ struct SHORTPAIR Weapon_Generic(struct CREATURE *Gun, struct WEAPON_ANIM *Cur_Gu
 void Weapon_Animations(struct CREATURE *Gun, short AnimStart, int VCount_Amount, char Weapon_Type);
 void Weapon_HoldFire(struct CREATURE *Gun, int Vcounts_Amount, short *FireStatus, struct PLAYERCONTROLS *Controls);
 void Hyper_SubModelAnim(struct CREATURE *Gun, struct WEAPON_ANIM *Weapon_Movement, char Weapon_Type);
-struct MATRIX *RotMatrixYXZ(struct SVECT *r, struct MATRIX *m);
-struct MATRIX *MulMatrix0(struct MATRIX *m0, struct MATRIX *m1, struct MATRIX *m2);
-void RotateS(struct MATRIX *m, struct SVECT *v1, struct SVECT *o2);
-void RotateL(struct MATRIX *m, struct VECT *v1, struct VECT *v2);
+void RotateS(MATRIX *m, struct SVECT *v1, struct SVECT *o2);
+void RotateL(MATRIX *m, struct VECT *v1, struct VECT *v2);
 void AddCross(struct VECT *Pos, int Radius, struct COLOUR Colour);
 struct SVECT CalcPlayerCameraModifications(struct CREATURE *Cre);
-int rand(void);
-void *memset(void *, int, int);
 
 #define INTERP(a, b) ((((a) - (b)) * (Gun->ShadowPos.vy - Gun->Params[3])) / Gun->ShadowPos.vy)
 
@@ -65,8 +63,7 @@ extern int MaxWindows;
 extern struct WINDOW GameWindows[];
 extern int (*WeaponFireFunctions[])();
 struct CREATURE *GetNextCre(int UseExpendable);
-struct MATRIX *RotMatrixYXZ(struct SVECT *r, struct MATRIX *m);
-void MyScaleMatrix(struct MATRIX *MatrixOut, struct MATRIX *MatrixIn, int Scale);
+void MyScaleMatrix(MATRIX *MatrixOut, MATRIX *MatrixIn, int Scale);
 
 void AlterSubModAng(struct GLOBMODHDR *GlobHdr, short FrameNum, short SubModelNum, short AngX, int AngY, int AngZ);
 
@@ -135,7 +132,7 @@ short PrimaryWeaponMovement(struct CREATURE *Gun, struct PLAYERCONTROLS *Control
     struct SVECT Offset;
     struct SVECT Angs;
     struct VECT VectOffset;
-    struct MATRIX Mat;
+    MATRIX Mat;
     static struct SHORTPAIR VCFire SBSS;
     int ToProcess;
     int ThisPass;

@@ -1,5 +1,6 @@
 #include "types.h"
 #include "bss.h"
+#include <stdio.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void FreeMissile(struct MISSILE *Missile);
@@ -14,7 +15,6 @@ void GenerateBulletGfx(struct VECT *Location, int Area);
    refers to it: the literal of a static function never called, which gcc compiles (emitting
    its strings) and then drops. Presumably from an IFF loader header; this stand-in only
    reproduces the literal. */
-int printf(char *fmt, ...);
 static void PIC_BadBitplanes(int n)
 {
     printf("PIC_Load(): Bad # bitplanes (%d)", n);
@@ -62,17 +62,14 @@ extern struct SCRPNT CurrScreenSize;
 extern struct VECT *CurrCamPos;
 extern int NewVcounts;
 extern int MaxWindows;
-extern struct POLY_G4 *LastGeneralG4;
-extern struct POLY_G4 *NextGeneralG4;
+extern POLY_G4 *LastGeneralG4;
+extern POLY_G4 *NextGeneralG4;
 extern struct PARTCOLOURS ParticleColours_Yellow;
-void SetRotMatrix(struct MATRIX *m);
-void SetGeomOffset(long ofx, long ofy);
-void SetGeomScreen(long h);
 void LineIntersectCrePlane(struct VECT *P, struct VECT *Q, struct CREATURE *Target, struct VECT *I);
 int AreaValid(int Win, int Area);
 void SetupScreenGivenArea(int Win, int AreaIndx);
-struct POLY_G4 *HH_SimpleModel_(struct SIMPOL *Model, struct SIMPOL *ModelEnd, struct SCRPNT *ScrPnts, struct POLY_G4 *Poly);
-void GeneralG4Sort(struct POLY_G4 *OldPoly, struct VECT *Centre, struct SHORTPAIR AreaWin, int ScreenZ);
+POLY_G4 *HH_SimpleModel_(struct SIMPOL *Model, struct SIMPOL *ModelEnd, struct SCRPNT *ScrPnts, POLY_G4 *Poly);
+void GeneralG4Sort(POLY_G4 *OldPoly, struct VECT *Centre, struct SHORTPAIR AreaWin, int ScreenZ);
 int AddLight(struct VECT *Location, struct COLOUR Colour, struct POWER Power, struct SHORTPAIR FlareTypeSize);
 int ProcessCol3dMove(struct COLLHEADER *Map, struct COL3DMOVE *Move3d, struct VECT *Location, int NumFrames);
 struct PARTICLE *AddParticlesSL(struct VECT *Pos, struct SVECT *Vel, struct PARTCOLOURS *PColour0, struct PARTCOLOURS *PColour1, int NumToDraw, int Timer, int Size, int Area);
@@ -145,7 +142,7 @@ void ProcessMissiles_Many(void)
     int Win;
     int Za;
     int CurrentArea;
-    struct POLY_G4 *OldPoly;
+    POLY_G4 *OldPoly;
 
     Za = 0;
     CurrentArea = -1;

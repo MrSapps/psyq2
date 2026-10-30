@@ -6,6 +6,7 @@
  */
 /* ovl-libs: libc2/MEMSET libgpu/P00 libgpu/P33 libpress/LIBPRESS libpress/VLC_C libpress/BUILD libpress/DCT002 */
 #include "ovl.h"
+#include <libetc.h>
 #include "bss.h"
 
 void InitLevel(void);
@@ -36,14 +37,13 @@ struct SCORELINE {
 
 #include "level_qend_common.h"
 
-int ResetCallback(void);
 void DummyUpdate(void);
 void IntroUpdate(void);
 void ExtroUpdate(void);
 void MagazineIntrUpdate(void);
 void MagazineExtrUpdate(void);
 void SetClutSemiTrans(short *clut, int n);
-void LoadClut(unsigned short *clut, short slot, int is256);
+void LoadSlotClut(unsigned short *clut, short slot, int is256);
 void StaticCamera(void);
 void FormatScoreLine(struct SCORELINE *line, char *name, short score);
 int DMACallback(int dma, void (*func)());
@@ -75,8 +75,8 @@ static int LogosFade[3] BSS;
 static int UnusedBss4[2] BSS;
 static int PictureTime BSS;
 static int VlcSize BSS;
-static struct CdlLOC Loc BSS;
-static struct CdlFILE File BSS;
+static CdlLOC Loc BSS;
+static CdlFILE File BSS;
 static int FileSize BSS;
 static int EndFrame BSS;
 static int isEndOfFlag BSS;
@@ -88,17 +88,17 @@ static unsigned short *VlcTable BSS;
 static short ScreenX BSS;
 static short ScreenY __attribute__((section(".bss")));
 static int UnusedBss6 BSS;
-static struct DR_TPAGE TPages[2][5] BSS;
-static struct DR_TPAGE *TPageEnd BSS;
+static DR_TPAGE TPages[2][5] BSS;
+static DR_TPAGE *TPageEnd BSS;
 static int Wait BSS;
 static struct SCORELINE *PlayerLines[4] BSS;
 static int UnusedBss7[2] BSS;
-static struct SPRT Sprites[2][5] BSS;
-static struct DR_TPAGE *TPagePtr BSS;
+static SPRT Sprites[2][5] BSS;
+static DR_TPAGE *TPagePtr BSS;
 static int UnusedBss8 BSS;
 static int State BSS;
-static struct SPRT *SprtEnd BSS;
-static struct SPRT *SprtPtr BSS;
+static SPRT *SprtEnd BSS;
+static SPRT *SprtPtr BSS;
 
 /* .data defined before InitLevel's users */
 extern unsigned short Cluts[7][16];
@@ -127,40 +127,40 @@ void InitLevel(void)
         *ENGINE->LevelSpecific = EndMissionUpdate;
         ENGINE->palette[0] = 0x4000;
         ENGINE->palette[1] = 0x4040;
-        LoadClut(Cluts[2], 0, 0);
-        LoadClut(Cluts[1], 1, 0);
+        LoadSlotClut(Cluts[2], 0, 0);
+        LoadSlotClut(Cluts[1], 1, 0);
         State = 0;
         ENGINE->GameWindows->CameraRoutine = StaticCamera;
     } else if (ENGINE->ModNameCmp(ENGINE->ThisLevelName, &(struct IDENTITYNAME){"EndMission 2"}) == 1) {
         *ENGINE->LevelSpecific = EndMissionUpdate;
         ENGINE->palette[0] = 0x4000;
         ENGINE->palette[1] = 0x4040;
-        LoadClut(Cluts[3], 0, 0);
-        LoadClut(Cluts[1], 1, 0);
+        LoadSlotClut(Cluts[3], 0, 0);
+        LoadSlotClut(Cluts[1], 1, 0);
         State = 0;
         ENGINE->GameWindows->CameraRoutine = StaticCamera;
     } else if (ENGINE->ModNameCmp(ENGINE->ThisLevelName, &(struct IDENTITYNAME){"EndMission 3"}) == 1) {
         *ENGINE->LevelSpecific = EndMissionUpdate;
         ENGINE->palette[0] = 0x4000;
         ENGINE->palette[1] = 0x4040;
-        LoadClut(Cluts[4], 0, 0);
-        LoadClut(Cluts[1], 1, 0);
+        LoadSlotClut(Cluts[4], 0, 0);
+        LoadSlotClut(Cluts[1], 1, 0);
         State = 0;
         ENGINE->GameWindows->CameraRoutine = StaticCamera;
     } else if (ENGINE->ModNameCmp(ENGINE->ThisLevelName, &(struct IDENTITYNAME){"EndMission 4"}) == 1) {
         *ENGINE->LevelSpecific = EndMissionUpdate;
         ENGINE->palette[0] = 0x4000;
         ENGINE->palette[1] = 0x4040;
-        LoadClut(Cluts[5], 0, 0);
-        LoadClut(Cluts[1], 1, 0);
+        LoadSlotClut(Cluts[5], 0, 0);
+        LoadSlotClut(Cluts[1], 1, 0);
         State = 0;
         ENGINE->GameWindows->CameraRoutine = StaticCamera;
     } else if (ENGINE->ModNameCmp(ENGINE->ThisLevelName, &(struct IDENTITYNAME){"EndMission 5"}) == 1) {
         *ENGINE->LevelSpecific = EndMissionUpdate;
         ENGINE->palette[0] = 0x4000;
         ENGINE->palette[1] = 0x4040;
-        LoadClut(Cluts[6], 0, 0);
-        LoadClut(Cluts[1], 1, 0);
+        LoadSlotClut(Cluts[6], 0, 0);
+        LoadSlotClut(Cluts[1], 1, 0);
         State = 0;
         ENGINE->GameWindows->CameraRoutine = StaticCamera;
     } else if (ENGINE->ModNameCmp(ENGINE->ThisLevelName, &(struct IDENTITYNAME){"Intro FMV"}) == 1) {
@@ -178,8 +178,8 @@ void InitLevel(void)
         ENGINE->GameWindows->CameraRoutine = StaticCamera;
         SetClutSemiTrans((short *)Clut256[0], 256);
         SetClutSemiTrans((short *)Clut256[6], 256);
-        LoadClut(Clut256[6], 0, 1);
-        LoadClut(Clut256[0], 1, 1);
+        LoadSlotClut(Clut256[6], 0, 1);
+        LoadSlotClut(Clut256[0], 1, 1);
     } else if (ENGINE->ModNameCmp(ENGINE->ThisLevelName, &(struct IDENTITYNAME){"QLogos"}) == 1) {
         *ENGINE->LevelSpecific = LogosUpdate;
         ENGINE->palette[0] = 0x3fc0;
@@ -188,28 +188,28 @@ void InitLevel(void)
         ENGINE->palette[3] = 0x3ff0;
         ENGINE->GameWindows->CameraRoutine = StaticCamera;
         SetClutSemiTrans((short *)Clut256[0], 1024);
-        LoadClut(Clut256[0], 0, 1);
-        LoadClut(Clut256[1], 1, 1);
-        LoadClut(Clut256[2], 2, 1);
-        LoadClut(Clut256[7], 3, 1);
+        LoadSlotClut(Clut256[0], 0, 1);
+        LoadSlotClut(Clut256[1], 1, 1);
+        LoadSlotClut(Clut256[2], 2, 1);
+        LoadSlotClut(Clut256[7], 3, 1);
     } else if (ENGINE->ModNameCmp(ENGINE->ThisLevelName, &(struct IDENTITYNAME){"Dummy"}) == 1) {
         *ENGINE->LevelSpecific = DummyUpdate;
     } else if (ENGINE->ModNameCmp(ENGINE->ThisLevelName, &(struct IDENTITYNAME){"MagazineIntr"}) == 1) {
         *ENGINE->LevelSpecific = MagazineIntrUpdate;
         ENGINE->palette[0] = 0x3fc0;
         SetClutSemiTrans((short *)Clut256[3], 256);
-        LoadClut(Clut256[3], 0, 1);
+        LoadSlotClut(Clut256[3], 0, 1);
     } else if (ENGINE->ModNameCmp(ENGINE->ThisLevelName, &(struct IDENTITYNAME){"MagazineExtr"}) == 1) {
         *ENGINE->LevelSpecific = MagazineExtrUpdate;
         ENGINE->palette[0] = 0x3fc0;
         SetClutSemiTrans((short *)Clut256[4], 256);
-        LoadClut(Clut256[4], 0, 1);
+        LoadSlotClut(Clut256[4], 0, 1);
         ENGINE->GameWindows->CameraRoutine = StaticCamera;
     } else if (ENGINE->ModNameCmp(ENGINE->ThisLevelName, &(struct IDENTITYNAME){"MPResults"}) == 1) {
         *ENGINE->LevelSpecific = MPResultsUpdate;
         ENGINE->palette[1] = 0x3fc0;
         SetClutSemiTrans((short *)Clut256[5], 256);
-        LoadClut(Clut256[5], 1, 1);
+        LoadSlotClut(Clut256[5], 1, 1);
         InitScoreScreen();
     }
     ENGINE->PrintF("Done Initialise\n");
@@ -450,7 +450,7 @@ static void InitScoreScreen(void)
 }
 
 static void DrawPicture(short y, short clut, short tpage, int is24, struct COLOUR col, int semitrans);
-static void DrawSprite(struct DVECTOR xy, struct DVECTOR wh, short clut, short tpage, struct COLOUR col, int abr);
+static void DrawSprite(DVECTOR xy, DVECTOR wh, short clut, short tpage, struct COLOUR col, int abr);
 
 static void MPResultsUpdate(void)
 {
@@ -482,7 +482,7 @@ static void EndMissionUpdate(void)
                 Fade = 128;
         }
         if (Fade)
-            DrawSprite((struct DVECTOR){40, 20}, (struct DVECTOR){192, 128}, 1, 4, (struct COLOUR){Fade, Fade, Fade}, *ENGINE->ChrisCount & 0xf);
+            DrawSprite((DVECTOR){40, 20}, (DVECTOR){192, 128}, 1, 4, (struct COLOUR){Fade, Fade, Fade}, *ENGINE->ChrisCount & 0xf);
     }
     DrawPicture(ScrollY, 0, 0, 0, (struct COLOUR){128, 128, 128}, 0);
     if (*ENGINE->ChrisCount > 30 && ENGINE->MapPadInputToFire(0))

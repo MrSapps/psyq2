@@ -1,5 +1,8 @@
 #include "types.h"
 #include "bss.h"
+#include <libapi.h>
+#include <memory.h>
+#include <rand.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void InitialiseAfterReset(void);
@@ -40,8 +43,8 @@ static char UnusedStartString[12] BSS;
 extern unsigned long CurrTime;
 extern int viewdist;
 extern int lasttime;
-extern struct DIVPOLYGON4 divp;
-extern struct DIVPOLYGON4 divp2;
+extern DIVPOLYGON4 divp;
+extern DIVPOLYGON4 divp2;
 extern int LevelIsMultiPlayer;
 extern int InSelfPlayMode;
 extern short CrIdent;
@@ -55,8 +58,6 @@ extern short *SkyData;
 extern short SkyOffsetY;
 extern struct COLOUR SkyColour;
 extern struct COLOUR WindowColour;
-long GetRCnt();
-void srand();
 void InitHeaps(void);
 void DownloadPals(void);
 void InitCluts(void);
@@ -67,7 +68,6 @@ void RestoreSavedData(void);
 void OnLoadZone(void);
 int ModNameCmp(struct IDENTITYNAME *Name1, struct IDENTITYNAME *Name2);
 void StoreLevelStartState(void);
-void *memset();
 
 extern short *FreeListPntr;
 extern unsigned char *SceneBuffFreePntr;
@@ -83,8 +83,6 @@ void InitSubdivision(void);
 #define setlen(p, _len) (*(((unsigned char *)(p)) + 3) = (unsigned char)(_len))
 #define setcode(p, _code) (*(((unsigned char *)(p)) + 7) = (unsigned char)(_code))
 #define setPolyGT4(p) setlen(p, 12), setcode(p, 0x3c)
-void SetSemiTrans(void *p, int abe);
-void SetShadeTex(void *p, int tge);
 
 extern int ActivationCountdown;
 extern short SkyNullData[1];
@@ -113,7 +111,6 @@ extern struct QENGINELEVINTERFACE Engine;
 extern struct CREATURE Creatures[48];
 extern struct CREATURE *HeavenlyDrawList[12];
 void InitTpages(void);
-void *memset();
 void InitialiseSceneEveryLevel(void);
 void InitialiseBumpListStart(void);
 void InitThickLines(void);
@@ -127,7 +124,7 @@ void InitWindowText(void);
 static void InitTpageDums(void)
 {
     {
-        struct POLY_FT3 *Poly;
+        POLY_FT3 *Poly;
         int b;
         int a;
 
@@ -158,7 +155,7 @@ static int Gt4BufferSize(int MaxGt4, int MaxSubPols)
     int NumPackets;
 
     NumPackets = (MaxGt4 + 31) / 32;
-    Size = (MaxGt4 + MaxSubPols * 16) * sizeof(struct POLY_GT4) * 2;
+    Size = (MaxGt4 + MaxSubPols * 16) * sizeof(POLY_GT4) * 2;
     Size += MaxSubPols * sizeof(struct SUBPACK);
     Size += (MaxSubPols * 2 + 1) * sizeof(short);
     Size += MaxSubPols * sizeof(short);
@@ -169,29 +166,29 @@ static int Gt4BufferSize(int MaxGt4, int MaxSubPols)
 extern struct LEVELDATA *ThisLevelData;
 extern unsigned int LevelTicks;
 extern int LevelChange;
-extern struct LINE_F2 *NextLineF2;
-extern struct POLY_G4 *LastGeneralG4;
-extern struct POLY_G4 *NextGeneralG4;
-extern struct POLY_FT3 *LastTpChange;
-extern struct POLY_FT3 *NextTpChange;
+extern LINE_F2 *NextLineF2;
+extern POLY_G4 *LastGeneralG4;
+extern POLY_G4 *NextGeneralG4;
+extern POLY_FT3 *LastTpChange;
+extern POLY_FT3 *NextTpChange;
 extern struct DUMMYGPU *LastDummyGpu;
 extern struct DUMMYGPU *NextDummyGpu;
-extern struct DRAWENV *LastChangeDrawEnv;
-extern struct DRAWENV *ChangeDrawEnv;
-extern struct LINE_F2 *LastLineF2;
-extern struct POLY_FT4 *LastPolyFt4;
-extern struct POLY_FT4 *NextPolyFt4;
-extern struct POLY_FT4 *ParticleFt4;
-extern struct SPRT *SpriteAnySize;
-extern struct SPRT *LastSpriteAnySize;
-extern struct SPRT_16 *Sprite816;
-extern struct SPRT_16 *LastSprite816;
+extern DRAWENV *LastChangeDrawEnv;
+extern DRAWENV *ChangeDrawEnv;
+extern LINE_F2 *LastLineF2;
+extern POLY_FT4 *LastPolyFt4;
+extern POLY_FT4 *NextPolyFt4;
+extern POLY_FT4 *ParticleFt4;
+extern SPRT *SpriteAnySize;
+extern SPRT *LastSpriteAnySize;
+extern SPRT_16 *Sprite816;
+extern SPRT_16 *LastSprite816;
 extern int ChrisCount1;
 extern void (*VBlankSpecific)();
 extern int LevelCounterLast;
-extern struct LINE_G2 *NextLine;
+extern LINE_G2 *NextLine;
 extern int NewVcounts;
-extern struct LINE_G2 *LastLine;
+extern LINE_G2 *LastLine;
 extern int LevelCounter;
 extern int ClearingNecessary;
 extern struct DB *currdb;
@@ -210,7 +207,6 @@ void Event_ProcessTimers(void);
 
 extern struct WINDOW GameWindows[];
 struct STARTPOSITION *FindStartPosition(struct IDENTITYNAME Name);
-int rand();
 
 void InitialiseAfterReset(void)
 {
@@ -314,8 +310,8 @@ void InitEveryLevel(void)
 
 void InitGt4s(void)
 {
-    struct POLY_GT4 *Gt40;
-    struct POLY_GT4 *Gt41;
+    POLY_GT4 *Gt40;
+    POLY_GT4 *Gt41;
     int a;
     int NumPackets;
 
@@ -345,7 +341,7 @@ void InitGt4s(void)
 
 void AquireGt4s(int numgt4s, int NumSubPolys)
 {
-    struct POLY_GT4 *Buffer;
+    POLY_GT4 *Buffer;
     int Size;
 
     if (numgt4s < 0)

@@ -21,7 +21,7 @@ and `ASPSX` override the SDK paths. `make check` and the tools below need the or
 
 The pipeline, per object of the original link (`config/link_order.txt`):
 
-    src/<obj>.c        gcc -E -> CC1PSX 4.4 (-O3 -G8 -g) -> ASPSX 2.81    -> build/obj/<obj>.obj
+    src/<obj>.c        CPPPSX -> CC1PSX 4.4 (-O3 -G8 -g) -> ASPSX 2.81    -> build/obj/<obj>.obj
     src/hand_asm.s, src/libsn/*.s, src/libbss/*.s       ASPSX 2.81       -> build/obj/...
     PSY-Q 4.5 libraries                                 PSYLIB /x        -> build/lib/<lib>/*.OBJ
     config/SLUS_007.lnk                                 PSYLINK          -> build/SLUS_007.cpe
@@ -32,7 +32,7 @@ The pipeline, per object of the original link (`config/link_order.txt`):
 - `src/<obj>.c`     one file per object of the original link: `event.c` is EVENT.C and QEVENT.C (QEVENT is
                     included into it), `models.c` is QUATANIM.C and MODELS.C. Data-only objects (`qlevifce`,
                     `dbuffer`, `weapons`, `window`, `skybox`, `endgroup`) are C files with just their data.
-- `src/include/`    `types.h` and `globals.h` (decoded from `MAIN.SYM`), `bss.h`
+- `src/include/`    `types.h` and `globals.h` (decoded from `MAIN.SYM`, see Headers), `bss.h`
 - `src/hand_asm.s`  the original's hand-written assembly (section `CODE`)
 - `src/libsn/`      SNMAIN, `__sn_cpp_structors`, PCread and PCwrite, rebuilt from the original
 - `src/libbss/`     the library variables (commons) the original link placed between library modules
@@ -74,6 +74,37 @@ function pointers the engine fills in there (`LevelInterface.Engine->...`, `Ifac
   the real objects from the PSY-Q 4.5 libraries, whose patch order the `.rel` keeps.
 - The interface is a plain writable variable: `const` lets gcc keep its fields in registers across calls,
   which the originals don't.
+- `lib/MODULE@SIZE` in `ovl-libs` cuts the module's `.text` to SIZE bytes (zero padding only, checked).
+  level_biggun's RAND is 0x3c bytes in the original and 0x40 (the same code and a trailing `nop`) in
+  PSY-Q 4.3 to 4.5.
+- The movie-playing modules (level_qfront, level_qendmis1, level_qdummy, level_qmagextr) link libpress,
+  whose LIBPRESS.OBJ calls `printf`, `ResetCallback` and `DMACallback`. A module can't link libetc or
+  libc, so it defines them itself (`printf` empty, the others through the engine's pointers).
+
+### Overlay workarounds
+
+Each is commented where it is:
+
+- **Stray bytes.** Some originals have non-zero bytes in the `.rdata` alignment padding after the last
+  string (garbage left by their assembler), reproduced with a `__asm__(".rdata\n\t.byte ...")`.
+- **Unused space.** `.data`, `.bss` and stack frames have room no surviving code uses: `Unused*`
+  variables and locals hold it.
+- **`.bss` alignment.** cre_gunner, cre_infantry, cre_strider and cre_soldier_magdemo start `.bss` 4
+  bytes later than their data ends (8-aligned, which other modules aren't), filled with a `.data` word,
+  `BssAlign`.
+- **bss order.** Uninitialised statics use the `BSS` section attribute (`bss.h`): ASPSX's `.lcomm`
+  aligns 8-byte statics to 8 and bigger ones to 16, which the originals don't.
+- **Functions still in assembly** (cre_boss1's, level_lab's and level_boss1's C is under
+  `#ifdef NONMATCHING`, with what was tried):
+  - cre_boss1's `PreInit_Supertank`: sched1 puts a load of an uninitialised variable, passed as a
+    stray extra argument, into `$a3` last, because `$a3` is also set by three 4-argument calls, so the
+    load isn't boosted.
+  - level_lab's and level_boss1's `FindCreature`, with the functions that inline it (`CheckGotHead`,
+    `CheckNearMakron`): the original never gives `$v1` to the loop temporaries, which frees it for the
+    address of `FoundCre`. What source shape makes `$v1` unavailable to local-alloc is not known.
+  - level_qfront's `func_7184` (in `level_qfront_asm.h`): loop.c hoists the format string's address
+    out of the loop, one luid over its threshold, and global-alloc ranks the loop counter below two
+    masks.
 
 ## A native CC1PSX
 
@@ -83,7 +114,9 @@ Linux into `build/cc1/` (with the host fixes that takes, see the script), and `t
 those flags: every function of every overlay module and of 78 of the 79 objects of the executable
 compiles to the same assembly as under wine (draw.c's `DrawTimeBar` is scheduled differently). It is
 much faster than wine and has the gcc 2.8.1 source behind it: RTL dumps (`-da`), gdb, printf in a
-pass, decomp-permuter. Matches are still checked with CC1PSX.
+pass, decomp-permuter. Matches are still checked with CC1PSX. It takes a preprocessed file (the build
+leaves one as `build/obj/<obj>.i`, `build/ovl/<module>.i`); the ECOFF target has no named sections, so
+strip the `section` attributes first.
 
 ## Toolchain
 
@@ -117,6 +150,24 @@ names them in a `/* calib-flags: ... */` comment.
 
 `char` is unsigned. Some SYM types are wrong where the code says otherwise (fields loaded with `lb` are
 signed char, some `int`s are `short`); the source casts or redeclares around them.
+
+## Headers
+
+`types.h` and `globals.h` are generated from `MAIN.SYM` by `tools/symdump.py`, except for the types the
+PSY-Q headers define (`SDK_HEADERS` there): `types.h` includes those headers (`libgte.h`, `libgpu.h`,
+`libcd.h`, `libspu.h`, `libsnd.h`, `libpress.h`, `kernel.h`, `libmcrd.h`, ...) from the PSY-Q 4.4 SDK
+instead of redefining them, and the code names their types the SDK's way, `RECT` and `POLY_FT4` (the
+SDK's are typedefs of untagged structs, which SYM names after the typedef). Library functions are
+declared by the SDK headers, never by hand: a file includes `<memory.h>`, `<rand.h>`, `<libetc.h>`, ...
+for those `types.h` doesn't bring in. Every object matches with the SDK's prototypes.
+
+The preprocessor is the SDK's CPPPSX, run with the predefines CCPSX gives it for C (`tools/build.py`'s
+`CPP`). `_LANGUAGE_C` matters: without it `asm.h`, which `kernel.h` includes, defines the register
+names (`sp`, `v0`, ...) as macros.
+
+The prototypes left in the sources are the files' own functions: the block at the top of a file sets
+the order in which gcc emits the small ones (see Toolchain), and others declare a function or table used
+before its definition. A prototype that changed neither was removed.
 
 ## Data
 

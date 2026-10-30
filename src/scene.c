@@ -1,5 +1,6 @@
 #include "types.h"
 #include "bss.h"
+#include <memory.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void ReInitAreaConxData(void *ConxFile);
@@ -92,7 +93,7 @@ extern unsigned char semitranstable[];
 extern short alltpages[];
 extern unsigned short tptranstable[];
 extern struct DB db[];
-void FreeSubDivFromPoly(struct POLY_GT4 *Poly);
+void FreeSubDivFromPoly(POLY_GT4 *Poly);
 void FreePolyPackets(short *Source);
 
 static void FreeSceneBuff(unsigned char *BuffIndx)
@@ -104,15 +105,12 @@ static void FreeSceneBuff(unsigned char *BuffIndx)
 extern struct SCRPNT CurrOffset;
 extern int CurrWinIndx;
 extern unsigned long *CurrOt;
-extern struct DRAWENV *ChangeDrawEnv;
-extern struct DRAWENV *LastChangeDrawEnv;
+extern DRAWENV *ChangeDrawEnv;
+extern DRAWENV *LastChangeDrawEnv;
 extern unsigned char DbFrame[];
 void dprintf(struct WINDOW *Window, char *_format, ...);
 void PortalTestWibble(struct SCREENCHANGE *SChange, struct SCENE2 *Scn2);
-struct DRAWENV *SetDefDrawEnv(struct DRAWENV *env, int x, int y, int w, int h);
-void SetDrawEnv(struct DR_ENV *dr_env, struct DRAWENV *env);
 void AddPrim_(void *ot, void *p);
-void *memset(void *, int, int);
 
 #define gte_SetGeomOffset(r0, r1) { \
     __asm__ volatile("move $12,%0" : : "r"(r0) : "$12", "memory"); \
@@ -123,9 +121,9 @@ extern struct DUMMYGPU *NextDummyGpu;
 extern struct DUMMYGPU *LastDummyGpu;
 extern struct DB *currdb;
 void RotateSceneCoords_(struct MODELREF *Ref, int Many, struct SCRPNTZ *Buffer);
-void DrawSceneBitAllSubDiv_(short *Model, struct POLY_GT4 *Poly, unsigned long *Ot, short *NextModel);
-void DrawSceneBitNoSubDiv_(short *Model, struct POLY_GT4 *Poly, unsigned long *Ot, short *NextModel);
-void DrawSceneBitSomeSubDiv_(short *Model, struct POLY_GT4 *Poly, unsigned long *Ot, short *NextModel);
+void DrawSceneBitAllSubDiv_(short *Model, POLY_GT4 *Poly, unsigned long *Ot, short *NextModel);
+void DrawSceneBitNoSubDiv_(short *Model, POLY_GT4 *Poly, unsigned long *Ot, short *NextModel);
+void DrawSceneBitSomeSubDiv_(short *Model, POLY_GT4 *Poly, unsigned long *Ot, short *NextModel);
 char *GetNextGlobalMemory(int Size);
 void OrderedSort(struct SORT *Self, struct SORT **SortLink);
 struct SORT *GetNextSortData(void);
@@ -138,7 +136,7 @@ struct SORT *GetNextSortData(void);
 
 static int OriginZ(void)
 {
-    struct SVECTOR NullSVector;
+    SVECTOR NullSVector;
     int ZVal;
     memset(&NullSVector, 0, sizeof(NullSVector));
     gte_ldv0(&NullSVector);
@@ -159,7 +157,7 @@ void RotateSceneCoords_(struct MODELREF *Ref, int Many, struct SCRPNTZ *Buffer);
     gte_op("lw $13,20($12)"); gte_op("lw $14,24($12)"); gte_op("ctc2 $13,$5"); \
     gte_op("lw $15,28($12)"); gte_op("ctc2 $14,$6"); gte_op("ctc2 $15,$7"); }
 
-static void RelRotVect(struct VECT *P, struct VECT *Q, struct SVECTOR *Rel, struct VECT *Out)
+static void RelRotVect(struct VECT *P, struct VECT *Q, SVECTOR *Rel, struct VECT *Out)
 {
     Rel->vx = P->vx - Q->vx;
     Rel->vy = P->vy - Q->vy;
@@ -189,12 +187,9 @@ static void RotVect(struct VECT *P, struct VECT *Q, struct VECT *Out)
 
 extern int MASK[17];
 extern int LastObjDrawn;
-extern struct MATRIX *CurrCamMat;
+extern MATRIX *CurrCamMat;
 extern void T2GlobSubdivideGt4();
-void SetRotMatrix(struct MATRIX *m);
-void MulMatrix0(struct MATRIX *m0, struct MATRIX *m1, struct MATRIX *m2);
-struct MATRIX *RotMatrixYXZ(struct SVECT *r, struct MATRIX *m);
-void Rotate(struct MATRIX *m, struct SVECT *v1, struct VECT *v2);
+void Rotate(MATRIX *m, struct SVECT *v1, struct VECT *v2);
 int InitBrush(struct SCENE2 *sc2, struct SCENE *scn);
 
 #define gte_ldv0_ds(r0) { \
@@ -234,7 +229,7 @@ static unsigned char GetSceneBuff(void)
 
 /* inlined (SYM block Brush/MoveBuf/C); its frame and SetTransRel's share one temp slot, so both Rel
    live at sp+0x48 and the hoisted &Rel is spilled once. M (&Mat) is not in the SYM: a frame address */
-static void MoveBrushTrans(struct SCENE2 *Brush, struct BRUSHMOVEBUF *MoveBuf, struct VECT *C, struct MATRIX *M)
+static void MoveBrushTrans(struct SCENE2 *Brush, struct BRUSHMOVEBUF *MoveBuf, struct VECT *C, MATRIX *M)
 {
     struct SVECT Rel;
     struct SVECT SecRel;
@@ -392,7 +387,7 @@ void TurnOffSceneModel(struct SCENE2 *Scn2, int Win)
 {
     int b;
     int c;
-    struct POLY_GT4 *Spr0;
+    POLY_GT4 *Spr0;
     struct SCENE *Scn;
 
     if (Scn2->BuffIndx[Win]) {
@@ -568,7 +563,7 @@ int ProcessDoorway(int Obj, int ClipLevel, int Area, int BrushOt)
     struct SCRPNT MinMax[2];
     struct SCRPNT SMinMax[2];
     struct SCRPNT *ThisMinMax;
-    struct SVECTOR Rel;
+    SVECTOR Rel;
     struct VECT Tran;
 
     Scn2 = &Scene2Data[Obj];
@@ -581,7 +576,7 @@ int ProcessDoorway(int Obj, int ClipLevel, int Area, int BrushOt)
         Rotated = StackData;
     gte_SetGeomOffset(CurrWin->Geom.sx, CurrWin->Geom.sy);
     RelRotVect(&Scene2Data[Obj].Origin, CurrCamPos, &Rel, &Tran);
-    gte_SetTransMatrix_s((struct MATRIX *)((char *)&Tran - 20));
+    gte_SetTransMatrix_s((MATRIX *)((char *)&Tran - 20));
     RotateSceneCoords_(MRef->Ref, MRef->Many, Rotated);
     /* the line table runs 918 (MinMax[0]), 923/924 (AllZClip, NoZClip), 919..921: the
        do {} while (0) loop notes are a sched barrier that keeps the two flags between
@@ -661,7 +656,7 @@ void DrawBrush(short OtIndx, struct SCENE2 *Scn2, struct SCENE *Scn, struct MODE
     short *Model;
     short *NextModel;
     unsigned long *Ot;
-    struct POLY_GT4 *Poly;
+    POLY_GT4 *Poly;
     struct SCRPNTZ Buffer[15];
     int GeneralSort;
     struct SORT *Sort;
@@ -683,8 +678,8 @@ void DrawBrush(short OtIndx, struct SCENE2 *Scn2, struct SCENE *Scn, struct MODE
                 Sort->Flags = 0;
                 Sort->ScreenZ = OriginZ();
                 NextDummyGpu->Tag = 0;
-                Sort->FirstLast[0] = (struct POLY_GT4 *)NextDummyGpu;
-                Sort->FirstLast[1] = (struct POLY_GT4 *)NextDummyGpu;
+                Sort->FirstLast[0] = (POLY_GT4 *)NextDummyGpu;
+                Sort->FirstLast[1] = (POLY_GT4 *)NextDummyGpu;
                 if (Scn2->MoveBufId) {
                     struct BRUSHMOVEBUF *MoveBuf;
                     MoveBuf = MOVEBUF(Scn2->MoveBufId);
@@ -743,7 +738,7 @@ void DrawBrush(short OtIndx, struct SCENE2 *Scn2, struct SCENE *Scn, struct MODE
 void DrawScene(int Win)
 {
     struct BRUSHMOVEBUF *MoveBuf;
-    struct POLY_GT4 *Spr0;
+    POLY_GT4 *Spr0;
     int a;
     int b;
     int c;
@@ -759,7 +754,7 @@ void DrawScene(int Win)
     short BrushOt;
     int ValA;
     int ValB;
-    struct MATRIX Mat;
+    MATRIX Mat;
     unsigned char objbits;
     unsigned char portalbits;
     unsigned char bigobjbits;
@@ -971,8 +966,8 @@ AllDrawn:
    into one pointer at &modgt4->Tp (the last one in the body) */
 int InitBrush(struct SCENE2 *sc2, struct SCENE *scn)
 {
-    struct POLY_GT4 *pol1g4;
-    struct POLY_GT4 *pol2g4;
+    POLY_GT4 *pol1g4;
+    POLY_GT4 *pol2g4;
     short *fp;
     int NumPolys;
     int f;

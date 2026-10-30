@@ -1,5 +1,8 @@
 #include "types.h"
 #include "bss.h"
+#include <memory.h>
+#include <stdio.h>
+#include <strings.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void InitCDFS(void);
@@ -65,31 +68,23 @@ int MusicSeek SBSS;
 short trkvolboost SBSS;
 short totalxaifiles SBSS;
 short actcdvol SBSS;
-static struct CdlLOC loc[16] BSS;
-static struct CdlLOC xailoc[20] BSS;
+static CdlLOC loc[16] BSS;
+static CdlLOC xailoc[20] BSS;
 
 
 extern int UseCdMusic;
 extern int cdtime2;
-int CdControlB(unsigned char com, unsigned char *param, unsigned char *result);
-void *memset(void *, int, int);
 
 
 extern char *xaifilename[6];
-int CdGetToc(struct CdlLOC *loc);
-int CdPosToInt(struct CdlLOC *p);
-struct CdlLOC *CdIntToPos(int i, struct CdlLOC *p);
-struct CdlFILE *CdSearchFile(struct CdlFILE *fp, char *name);
-char *strcpy(char *, const char *);
-char *strcat(char *, const char *);
 
 void GetToc(void)
 {
     unsigned char param[4];
     int i;
-    struct CdlFILE file;
+    CdlFILE file;
     char name2[64];
-    struct CdlATV Vol;
+    CdlATV Vol;
 
     param[0] = 5;
     CdControlB(0xe, param, 0);
@@ -125,7 +120,6 @@ short cddefvol = 100;
 
 /* the original's .rdata has this message after GetToc's path, with nothing that refers to
    it: the literal of code the game never calls (this stand-in only supplies it) */
-int printf(char *fmt, ...);
 static __inline__ void PrintXATrack(int Track)
 {
     printf("XA track %d\n", Track);
@@ -142,7 +136,7 @@ void PlayTrackList(char *list)
 
 void InitCDFS(void)
 {
-    struct SpuCommonAttr commonAttr;
+    SpuCommonAttr commonAttr;
     unsigned char pbParam[8];
     commonAttr.mask = 0x3c0;
     commonAttr.cd.mix = 1;
@@ -159,7 +153,7 @@ void SeekAndPlay(void)
 {
     unsigned char param[4] = {0};
     unsigned char result[8];
-    struct CdlFILTER filt;
+    CdlFILTER filt;
     int trktype;
     short error;
 
@@ -198,7 +192,7 @@ void SeekAndPlay(void)
 
 void SetCDVolume(int a)
 {
-    struct CdlATV cdVol;
+    CdlATV cdVol;
     if (Engine.GameConfig.bStereo) {
         cdVol.val0 = a;
         cdVol.val1 = 0;

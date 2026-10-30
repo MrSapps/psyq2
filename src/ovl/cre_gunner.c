@@ -240,7 +240,8 @@ static struct mframe_t gunner_frames_attack_grenade[] = {
     {AI_CHARGE, 0, 0},
 };
 static struct mmove_t gunner_move_attack_grenade = { 108, 128, gunner_frames_attack_grenade, gunner_run };
-/* the original's .bss starts 8-aligned and tools/ovllink.py aligns it to 4: this word is the gap */
+/* the original's .bss starts 4 bytes further on, 8-aligned (not a rule of its linker: most
+ * modules' .bss is only word-aligned); this .data word fills the gap */
 static int BssAlign = 0;
 
 static void GunnerFire(struct edict_s *self)

@@ -1,5 +1,6 @@
 #include "types.h"
 #include "bss.h"
+#include <strings.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void VectorMA(struct VECT *veca, long scale, struct VECT *vecb, struct VECT *vecc);
@@ -25,7 +26,6 @@ void gitrace(struct VECT *start, struct VECT *mins, struct VECT *maxs, struct VE
 /* The original's .sdata starts with "", "\\", "\"" and ";", which nothing refers to: the
    literals of Quake 2's info-string helpers, compiled but never emitted. This stand-in only
    supplies them, in that order. */
-char *strstr();
 static __inline__ char *InfoValidate(char *s)
 {
     if (!s)
@@ -80,9 +80,7 @@ struct edict_s *NextEdict(struct edict_s *Edict);
 int VectBoxOverlap(struct VECTBOX *VBoxA, struct VECTBOX *VBoxB);
 void CalcAbsFromCreBox(struct edict_s *ent, struct VECTBOX *VectBox);
 
-long SquareRoot0(long a);
 
-long SquareRoot12(long a);
 
 extern short rcossin_tbl[][2];
 extern struct VECT vec3_origin;

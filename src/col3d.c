@@ -1,5 +1,6 @@
 #include "types.h"
 #include "bss.h"
+#include <memory.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 int Find3dSpaceIndxLink(struct COLLHEADER *Map, struct VECT *Loc, short Main, int CheckAll);
@@ -44,7 +45,6 @@ int ComparePosFractions_(struct FRACTION a, struct FRACTION b);
 extern struct WINDOW GameWindows[];
 void dprintf(struct WINDOW *Window, char *_format, ...);
 int MaxSizeSVect(struct SVECT V);
-void *memset(void *s, int c, unsigned int n);
 
 int InitCol3dMove(struct COLLHEADER *Map, struct COL3DMOVE *Move3d, struct VECT *Location, short SpaceNum)
 {

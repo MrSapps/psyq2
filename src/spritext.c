@@ -1,5 +1,7 @@
 #include "types.h"
 #include "bss.h"
+#include <stdio.h>
+#include <strings.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void ProcessMessageText(void);
@@ -52,14 +54,14 @@ static int SpaceMode = 0;
 static short CharX __attribute__((section(".sbss")));
 static short CharY __attribute__((section(".sbss")));
 int SpriTextError SBSS;
-struct SPRT *SpriteAnySize SBSS;
-struct SPRT *LastSpriteAnySize SBSS;
-struct POLY_GT4 *LastFMenuPoly SBSS;
-struct POLY_FT4 *MenuPoly SBSS;
-struct POLY_GT4 *FMenuPoly SBSS;
-struct POLY_FT4 *LastMenuPoly SBSS;
-struct SPRT_16 *Sprite816 SBSS;
-struct SPRT_16 *LastSprite816 SBSS;
+SPRT *SpriteAnySize SBSS;
+SPRT *LastSpriteAnySize SBSS;
+POLY_GT4 *LastFMenuPoly SBSS;
+POLY_FT4 *MenuPoly SBSS;
+POLY_GT4 *FMenuPoly SBSS;
+POLY_FT4 *LastMenuPoly SBSS;
+SPRT_16 *Sprite816 SBSS;
+SPRT_16 *LastSprite816 SBSS;
 struct SCRPNT Fizzles[64] BSS;
 /* no aligned(4) here: the original only knew this array's alignment at output time, so the
    strcpy of "..." into it in DoAddCentredSpriText is expanded with unaligned lwl/lwr swl/swr */
@@ -69,21 +71,16 @@ char MikeStringBuffer[128] __attribute__((section(".bss")));
 extern int MaxWindows;
 extern struct WINDOW GameWindows[];
 
-int sprintf();
 void DoSpriText(struct WINDOW *Window);
 void DoAddSpriText(struct WINDOW *Window);
 void DoAddCentredSpriText(struct WINDOW *Window);
 void UpdateMessageText(struct WINDOW *Window);
 
-char *strncpy();
 
-char *strcpy();
 
 extern struct DB *currdb;
 extern short tpscreenx[];
 extern short tpscreeny[];
-unsigned short GetTPage(int tp, int abr, int x, int y);
-void SetDrawTPage(struct DR_TPAGE *p, int dfe, int dtd, int tpage);
 void AddPrim_(void *ot, void *p);
 
 #define setlen(p, _len) (*(((unsigned char *)(p)) + 3) = (unsigned char)(_len))
@@ -112,7 +109,6 @@ extern int NewVcounts;
 
 extern short Event_MuteLevFlag;
 int mystrlen(char *String);
-char *strchr();
 int GetLengthOfToken(char Token);
 extern struct UVWH WordSprites[15];
 extern short palette[80];

@@ -1,5 +1,7 @@
 #include "types.h"
 #include "bss.h"
+#include <memory.h>
+#include <stdio.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void *MYrealloc(void *p, int s, int HiFlag);
@@ -59,10 +61,7 @@ static void *MallocNoName(int s)
     return p;
 }
 
-int printf(char *fmt, ...);
 
-void *memmove(void *dst, void *src, int n);
-void *memcpy(void *dst, void *src, int n);
 
 void UpdateMallocStart(char *Old, char *New)
 {

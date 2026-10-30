@@ -1,5 +1,6 @@
 #include "types.h"
 #include "bss.h"
+#include <rand.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void UpdateBoxStuff(struct COLLBOX3D *Box, int AreaSource);
@@ -27,7 +28,7 @@ int PointHit(struct CREATURE *Aggressor, int PrimarySpace, struct CREATURE *Igno
 int PointAttack(struct CREATURE *Cre, struct SHORTPAIR DamRad, struct MODSUBOFF ModSubOff, enum DAMAGETYPES DamType);
 int OutsideExtraCollisionMove(struct VECT *Location, int Flags, int Movement, int CheckSolidBoxs);
 int SetupBoxDrop(struct COLLBOX3D *Box, struct VECT *Location, struct SCRPNT CollSize, struct SHORTPAIR MainSpaceDrop, struct SHORTPAIR HitSize);
-int rand(void); int CheckVersusBumpList(struct CREATURE *Cre);
+int CheckVersusBumpList(struct CREATURE *Cre);
 int ReadCollisionData(struct FILEHDR *File, struct COLLHEADER *CollHdr, struct IDENTITYNAME Name, struct IDENTITYNAME RemapName, int ZeroIfMissing);
 int CreSeesCre(struct CREATURE *CreA, struct CREATURE *CreB);
 int CheckSolidBoxOkToMove(struct SOLIDBOX *SolidBox, struct SVECT Movement);
@@ -71,11 +72,10 @@ void DrawCylinder(struct VECT *Location, short Radius, short MinY, short MaxY);
 int CheckSolidBoxOkToMove(struct SOLIDBOX *SolidBox, struct SVECT Movement);
 
 struct SVECT GetSubModXYZ(struct GLOBMODHDR *GlobHdr, struct MODSUBOFF SubOff, int AnimFrame, int AnimJump);
-void RotateS(struct MATRIX *m, struct SVECT *v1, struct SVECT *o2);
+void RotateS(MATRIX *m, struct SVECT *v1, struct SVECT *o2);
 void AddCross(struct VECT *Pos, int Radius, struct COLOUR Colour);
 int PointHit(struct CREATURE *Aggressor, int PrimarySpace, struct CREATURE *Ignore, struct VECT *Centre, struct SHORTPAIR DamRad, enum DAMAGETYPES DamType, int IgnoreAggressor);
 
-int SquareRoot0(int a);
 
 struct FILEDATA GetFileData(struct FILEHDR *BaseHdr, struct IDENTITYNAME Name);
 char *PrintIdentityName(struct IDENTITYNAME Name);
@@ -484,7 +484,6 @@ void AddCreToNextBumpList(struct CREATURE *Cre)
         *NextBumpListPntr++ = Cre;
 }
 
-int rand(void);
 
 int CheckVersusBumpList(struct CREATURE *Cre)
 {

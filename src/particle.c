@@ -1,5 +1,6 @@
 #include "types.h"
 #include "bss.h"
+#include <memory.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 struct PARTICLE *AddParticles(struct VECT *Pos, struct SVECT *Vel, struct PARTCOLOURS *PColour0, struct PARTCOLOURS *PColour1, short NumToDraw, short Timer, int Size, int Area);
@@ -661,7 +662,7 @@ struct PARTCOLOURS ParticleColours_GreenBFGFade = { 32, 0, {
     { 0, 63, 0, 46 },
 } };
 struct PARTCOLOURS *ParticleColoursTable[19] = { (void *)&ParticleColours_Blue, (void *)&ParticleColours_Grey, (void *)&ParticleColours_Red, (void *)&ParticleColours_BloodRed, (void *)&ParticleColours_DarkBloodRed, (void *)&ParticleColours_SolidGrey, (void *)&ParticleColours_DarkGrey, (void *)&ParticleColours_Orange, (void *)&ParticleColours_OrangeBrown, (void *)&ParticleColours_Yellow, (void *)&ParticleColours_White, (void *)&ParticleColours_Green, (void *)&ParticleColours_Purple, (void *)&ParticleColours_DarkPurple, (void *)&ParticleColours_Fire, (void *)&ParticleColours_FireOrange, (void *)&ParticleColours_GreenBFG, (void *)&ParticleColours_GreenBFGFade, (void *)&ParticleColours_Quad };
-struct POLY_FT4 *ParticleFt4 SBSS;
+POLY_FT4 *ParticleFt4 SBSS;
 short MaxParticleFt4 SBSS;
 short MaxParticle SBSS;
 struct PARTICLE *Particles SBSS;
@@ -671,7 +672,6 @@ struct SPARK SparkList[16] BSS;
 int AddLight(struct VECT *Location, struct COLOUR Colour, struct POWER Power, struct SHORTPAIR FlareTypeSize);
 
 extern struct WINDOW GameWindows[];
-void *memset(void *, int, int);
 int FindAreaNum(int Area, struct VECT *Pos);
 
 static struct PARTICLE *FindFreeParticle(void)
@@ -691,9 +691,6 @@ extern struct WINDOW *CurrWin;
 extern short alltpages[32];
 extern struct VECT NullVec;
 extern struct AREA AreaData[96];
-void SetGeomOffset(long ofx, long ofy);
-void SetGeomScreen(long h);
-void SetRotMatrix(struct MATRIX *m);
 int AreaValid(int Win, int Area);
 void SetupScreenGivenArea(int Win, int Area);
 void OrderedSort(struct SORT *Sort, struct SORT **Link);
@@ -829,13 +826,13 @@ struct PARTICLE *AddParticlesSL(struct VECT *Pos, struct SVECT *Vel, struct PART
 
 void ProcessParticles(void)
 {
-    struct POLY_FT4 *PartFt4;
+    POLY_FT4 *PartFt4;
     struct PARTICLE *Particle;
     struct VECT Relative;
     struct VECT tran;
     struct VECT CamPos;
-    struct SVECTOR rel[15];
-    struct SVECTOR TempCoord[15];
+    SVECTOR rel[15];
+    SVECTOR TempCoord[15];
     int LeftToDraw;
     unsigned char a;
     unsigned char b;
@@ -862,7 +859,7 @@ void ProcessParticles(void)
         SetGeomOffset(CurrWin->Geom.sx, CurrWin->Geom.sy);
         SetGeomScreen(CurrWin->Focal);
         SetRotMatrix(&CurrWin->CamMat);
-        gte_SetTransMatrix((struct MATRIX *)((char *)&NullVec - 20));
+        gte_SetTransMatrix((MATRIX *)((char *)&NullVec - 20));
         for (Particle = Particles; Particle < &Particles[MaxParticle]; Particle++) {
             if (!Particle->Timer || ((Particle->NoDrawWin >> Win) & 1))
                 continue;
@@ -901,7 +898,7 @@ void ProcessParticles(void)
                 CurrentArea = Particle->Area;
                 SetupScreenGivenArea(Win, CurrentArea);
             }
-            Particle->Sort[Win].FirstLast[1] = (struct POLY_GT4 *)PartFt4;
+            Particle->Sort[Win].FirstLast[1] = (POLY_GT4 *)PartFt4;
             OrderedSort(&Particle->Sort[Win], &AreaData[Particle->Area].Data[Win].QuickSortLink);
             for (c = 0; c < Particle->NumToDraw; c += 3) {
                 gte_ldv3(&rel[c], &rel[c] + 1, &rel[c] + 2);  /* +8/+16 from one base, as the original */
@@ -951,8 +948,8 @@ void ProcessParticles(void)
 
 void MallocParticles(int NumParticles)
 {
-    struct POLY_FT4 *Ft40;
-    struct POLY_FT4 *Ft41;
+    POLY_FT4 *Ft40;
+    POLY_FT4 *Ft41;
     int a;
     int Size;
 
@@ -966,7 +963,7 @@ void MallocParticles(int NumParticles)
         MaxParticleFt4 = MaxParticle * 15;
     else
         MaxParticleFt4 = MaxParticle / 2 * MaxWindows * 15;
-    Size = MaxParticleFt4 * sizeof(struct POLY_FT4) * 2 + MaxParticle * sizeof(struct PARTICLE);
+    Size = MaxParticleFt4 * sizeof(POLY_FT4) * 2 + MaxParticle * sizeof(struct PARTICLE);
     if (Size) {
         db[0].PartFt4 = MY_malloc_name(Size, "Some Particles");
         db[1].PartFt4 = db[0].PartFt4 + MaxParticleFt4;

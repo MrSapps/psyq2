@@ -1,5 +1,7 @@
 #include "types.h"
 #include "bss.h"
+#include <memory.h>
+#include <rand.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 int CreCollideAsPoint(struct CREATURE *Cre, struct CREATURE *CreIgnore, int Bounce, struct CREATURE **ppHitCre, int Damage);
@@ -31,8 +33,6 @@ int Visable3d(struct COLLHEADER *Map, struct VECT *Start, struct VECT *End, int 
 void UpdateBoxStuff(struct COLLBOX3D *Box, int AreaSource);
 
 extern int Paused;
-int rand(void);
-struct MATRIX *RotMatrixYXZ(struct SVECT *r, struct MATRIX *m);
 
 extern struct COLLISIONRETURNDATA CollisionReturnData;
 int VisableSolidBoxMove(struct VECT *P, struct VECT *Q, struct VECT *Stop, short Flags);
@@ -54,11 +54,8 @@ extern struct WINDOW GameWindows[];
 void dprintf(struct WINDOW *Window, char *_format, ...);
 int VisableSolidBoxLine(struct VECT *P, struct VECT *Q, struct VECT *Stop);
 void DoSolidBoxEventDamage(struct SOLIDBOX *solidbox, short damage, struct VECT *Location);
-long SquareRoot0(long a);
-void VectorNormal(struct VECT *v0, struct VECT *v1);
 struct CREATURE *LineIntersectCreCylinder(struct VECT *P, struct VECT *Q, struct CREATURE *CreIgnore, struct VECT *I, struct CREATURE **BumpStart, struct CREATURE **BumpStop);
 void CalcCreShadowPos(struct CREATURE *Cre);
-void *memset(void *s, int c, unsigned int n);
 
 extern int LevelIsMultiPlayer;
 int MakeIn3dSpace(struct COLLHEADER *Map, struct VECT *Start, short Indx);

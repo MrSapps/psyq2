@@ -8,7 +8,9 @@ usage: tools/ovlbuild.py [-j N] [NAME...]        (default: every src/ovl/NAME.c)
 
 A module is one C file, plus the PSY-Q library modules its source names in an
 /* ovl-libs: lib/MODULE ... */ comment (e.g. libpress/LIBPRESS), linked after it in that order from
-the PSY-Q 4.5 libraries (PSYQ_LIB), extracted to build/ovl/lib/<lib>/. Prints, per module, whether .bin and .rel match the sha1s that
+the PSY-Q 4.5 libraries (PSYQ_LIB), extracted to build/ovl/lib/<lib>/. lib/MODULE@SIZE links the
+module with its .text cut to SIZE bytes (hex): for a library build that differs from the SDK's
+only by trailing padding (level_biggun's RAND). Prints, per module, whether .bin and .rel match the sha1s that
 tools/ovlextract.py recorded; with baserom/ovl/ present a mismatch also names the first
 differing offset. Exit status 1 if any module fails to build or match.
 Env and flags as for tools/build.py (PSYQ, ASPSX, /* calib-flags: ... */).
@@ -42,8 +44,7 @@ def compile_ovl(name):
     m = re.search(r'calib-flags: *([^*]*[^ *]) *\*/', text)
     flags = m.group(1).split() if m else FLAGS
     i, s = f'{OUT}/{name}.i', f'{OUT}/{name}.s'
-    rc, out = build.run(['gcc', '-E', '-P', '-I', f'{R}/src/include', '-I', f'{R}/src/ovl/include',
-                         '-I', f'{R}/src/ovl', src, '-o', i])
+    rc, out = build.run(build.CPP + ['-I', f'{R}/src/ovl/include', '-I', f'{R}/src/ovl', src, '-o', i])
     if rc:
         return rc, out
     rc, out = build.run(['wine', f'{build.PSYQ}/bin/cc1psx.exe', '-quiet'] + flags + [i, '-o', s])
@@ -62,6 +63,7 @@ def ovl_libs(name):
     m = re.search(r'ovl-libs: *([^*]*[^ *]) *\*/', open(f'{R}/src/ovl/{name}.c').read())
     objs = []
     for spec in (m.group(1).split() if m else []):
+        spec, _, size = spec.partition('@')
         lib, mod = spec.split('/')
         d = f'{OUT}/lib/{lib}'
         if not os.path.isdir(d):
@@ -69,7 +71,13 @@ def ovl_libs(name):
             shutil.copy(f'{build.PSYQ_LIB}/lib/{lib}.lib', d)
             build.run(['wine', f'{build.PSYQ}/bin/psylib.exe', '/x', f'{lib}.lib'], cwd=d)
             os.remove(f'{d}/{lib}.lib')
-        objs.append(f'{d}/{mod.upper()}.OBJ')
+        o = ovllink.Obj(f'{d}/{mod.upper()}.OBJ')
+        if size:
+            text = o.data[o.sec('.text')]
+            if any(text[int(size, 16):]):
+                raise ValueError(f'{spec}@{size}: would cut code')
+            del text[int(size, 16):]
+        objs.append(o)
     return objs
 
 
@@ -109,7 +117,7 @@ def main():
             continue
         binp = f'{OUT}/{name}.bin'
         try:
-            image, rel, glob_ = ovllink.link([ovllink.Obj(p) for p in [f'{OUT}/{name}.obj'] + ovl_libs(name)])
+            image, rel, glob_ = ovllink.link([ovllink.Obj(f'{OUT}/{name}.obj')] + ovl_libs(name))
         except (ValueError, OSError) as e:
             print(f'{name}: link failed: {e}')
             bad += 1

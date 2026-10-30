@@ -1,5 +1,9 @@
 #include "types.h"
 #include "bss.h"
+#include <libapi.h>
+#include <memory.h>
+#include <rand.h>
+#include <stdio.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void GameFreeCreatureStuff(void *CreV);
@@ -160,7 +164,6 @@ struct CREATURE *RespawnQuakeDeadBody(struct CRESAVE *CreSave);
 extern struct CREATURE *CreFreeList[];
 void MyFree(void **Addr);
 void *MY_malloc_name(int s, char *name);
-void *memset();
 int EffectyDeath(struct CREATURE *Cre);
 void ProcessQuakeGeneralCreEffects(struct CREATURE *Cre);
 void AddCreToNextBumpList(struct CREATURE *Cre);
@@ -175,7 +178,6 @@ void PrimaryQuakeDeadBody(struct CREATURE *Cre);
 int BodgySleep(struct CREATURE *Cre);
 void UpdateEntity(struct edict_s *ent, int flags);
 void G_TouchTriggers(struct edict_s *ent);
-struct MATRIX *RotMatrixYXZ(struct SVECT *r, struct MATRIX *m);
 void NewTrueMove3d(struct CREATURE *Cre, int ThirdPersonStuff, int FinalCall, int AlwaysStep);
 void AnimEdictCre(struct CREATURE *Cre, int NewFrameBool, int Time);
 
@@ -222,8 +224,6 @@ extern struct cvar_s skillstore;
 extern struct trace_t Trace;
 extern unsigned int usp;
 void __SN_RELOCATE(unsigned int baseaddr, unsigned int *relocs);
-int printf();
-int rand();
 void linkentity();
 int SoundByCreature();
 int GetSoundNum();
@@ -283,7 +283,6 @@ int getminsvy();
 int getminsvx();
 void SetMyAiTable();
 void QuakeGenExplosion();
-unsigned long SetSp();
 void SetShockData();
 
 

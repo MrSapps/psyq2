@@ -29,19 +29,19 @@ static void PictureUpdate(int len, short clut, int next)
         *ENGINE->LevelComplete = next;
 }
 
-static void DrawSprite(struct DVECTOR xy, struct DVECTOR wh, short clut, short tpage, struct COLOUR col, int abr)
+static void DrawSprite(DVECTOR xy, DVECTOR wh, short clut, short tpage, struct COLOUR col, int abr)
 {
     unsigned long *ot = &(*ENGINE->currdb)->Ot[0][48];
     short tp = tpage + (abr >> 1);
 
     if (SprtPtr < SprtEnd) {
         *(struct COLOUR *)&SprtPtr->r0 = col;
-        *(struct DVECTOR *)&SprtPtr->x0 = xy;
+        *(DVECTOR *)&SprtPtr->x0 = xy;
         /* u0/v0 as one 2-byte struct store (as in mainloop.c): both bytes go through one
          * SprtPtr load; two plain char stores would reload it in between */
         *(struct CHARPAIR *)&SprtPtr->u0 = (struct CHARPAIR){0, (abr & 1) << 7};
         SprtPtr->clut = ENGINE->palette[clut];
-        *(struct DVECTOR *)&SprtPtr->w = wh;
+        *(DVECTOR *)&SprtPtr->w = wh;
         SprtPtr->code = 0x66;
         SprtPtr->tag = 0x04000000;
         ENGINE->AddPrim_(ot, SprtPtr++);
@@ -108,13 +108,16 @@ static void DrawPicture(short y, short clut, short tpage, int is24, struct COLOU
     }
 }
 
+/* LIBPRESS.OBJ, linked after this object, calls printf, ResetCallback and DMACallback, which
+ * an overlay can't link from the libraries: the module supplies them (printf as a stub, the
+ * other two by way of the engine) */
 int printf(char *fmt, ...)
 {
 }
 
 static void strCallback(void)
 {
-    struct RECT snap_rect;
+    RECT snap_rect;
     int rest;   /* an int: a short would be extended after the IsRGB24Start test */
 
     if (*ENGINE->StCdIntrFlagAddr) {
@@ -144,7 +147,7 @@ static unsigned long *strNext(void)
     unsigned long *addr;
     struct StHEADER *sector;
     int cnt;
-    struct RECT rect;
+    RECT rect;
 
     cnt = 0x800000;
     while (ENGINE->StGetNext(&addr, &sector)) {
@@ -172,7 +175,7 @@ static unsigned long *strNext(void)
     return addr;
 }
 
-static void strSetDispEnv(struct DISPENV *disp, struct DRAWENV *draw)
+static void strSetDispEnv(DISPENV *disp, DRAWENV *draw)
 {
     int id;
 
@@ -259,8 +262,8 @@ static short PlayMovie(char *name, int endframe, int vlcsize, int clear, int vol
 {
     long unused[12];    /* never used, but in the original's frame */
     char path[40];
-    struct DISPENV disp;
-    struct DRAWENV draw;
+    DISPENV disp;
+    DRAWENV draw;
     int frame;
     int i;
     short ret;
@@ -394,16 +397,16 @@ static short PlayMovie(char *name, int endframe, int vlcsize, int clear, int vol
 /* id: PlayMovie passes it, but it is recomputed here (the original's code ignores $a0) */
 static void MovieFreeze(int id)
 {
-    struct RECT srcrect;
-    struct RECT dstrect;
-    struct RECT *src;
-    struct RECT *dst;
-    struct TILE tile;
-    struct TILE *t;
-    struct DR_MODE mode;
-    struct DR_MODE *m;
-    struct DISPENV disp;
-    struct DRAWENV draw;
+    RECT srcrect;
+    RECT dstrect;
+    RECT *src;
+    RECT *dst;
+    TILE tile;
+    TILE *t;
+    DR_MODE mode;
+    DR_MODE *m;
+    DISPENV disp;
+    DRAWENV draw;
     unsigned char *buf;
     int yoff;
     int x, y;
@@ -532,9 +535,9 @@ void SetClutSemiTrans(short *clut, int n)
     }
 }
 
-void LoadClut(unsigned short *clut, short slot, int is256)
+void LoadSlotClut(unsigned short *clut, short slot, int is256)
 {
-    struct RECT rect;
+    RECT rect;
 
     rect.x = (ENGINE->palette[slot] & 0x3f) << 4;
     rect.y = ENGINE->palette[slot] >> 6;

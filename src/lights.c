@@ -1,5 +1,6 @@
 #include "types.h"
 #include "bss.h"
+#include <memory.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void ProcessLights(void);
@@ -99,11 +100,10 @@ static struct TIMEDLIGHT *FindFreeTimedLight(void)
 extern struct WINDOW GameWindows[];
 extern struct DB *currdb;
 extern struct VECT *CurrCamPos;
-extern struct MATRIX *CurrCamMat;
+extern MATRIX *CurrCamMat;
 extern struct COLLHEADER MoveCollMap;
 extern short alltpages[];
 extern struct WINDOW *CurrWin;
-void SetRotMatrix(struct MATRIX *m);
 void ProcessLensFlare(struct LIGHTS *Light, unsigned long *Ot);
 
 /* inline_c.h */
@@ -136,19 +136,17 @@ void DrawLensFlares(struct LENSFLARE *LensFlare, struct SCRPNT BaseCoord, int Ba
 #define gte_stlvnl(r0) __asm__ volatile("move $12,%0\nswc2 $25,0($12)\nswc2 $26,4($12)\nswc2 $27,8($12)" : : "r"(r0) : "$12", "memory")
 #define gte_stsxy(r0) __asm__ volatile("move $12,%0\nswc2 $14,0($12)" : : "r"(r0) : "$12", "memory")
 
-extern struct POLY_G4 *NextGeneralG4;
-extern struct POLY_G4 *LastGeneralG4;
+extern POLY_G4 *NextGeneralG4;
+extern POLY_G4 *LastGeneralG4;
 void AddPrim_(void *ot, void *p);
-void *memset();
 #define setLineG2(p) (*(((unsigned char *)(p)) + 3) = 4), (*(((unsigned char *)(p)) + 7) = 0x52)
 
-void SetPolyF4(void *p);
 
 /* Colour is the 4th parameter: inlined, its home slot in the 16-byte arg block lands at sp+164.
    The braces around each case let both inlines reuse the same arg block. */
 static void DrawLensFlareG4(struct SCRPNT *Points, int NumPoints, unsigned long *Ot, struct COLOUR Colour)
 {
-    struct POLY_G4 *Poly;
+    POLY_G4 *Poly;
     int p;
 
     Poly = NextGeneralG4;
@@ -171,14 +169,14 @@ static void DrawLensFlareG4(struct SCRPNT *Points, int NumPoints, unsigned long 
 
 static void DrawLensFlareF4(struct SCRPNT *Points, int NumPoints, unsigned long *Ot, struct COLOUR Colour)
 {
-    struct POLY_F4 *Poly;
+    POLY_F4 *Poly;
     int p;
 
-    Poly = (struct POLY_F4 *)NextGeneralG4;
-    if ((struct POLY_G4 *)Poly + 2 > LastGeneralG4)
+    Poly = (POLY_F4 *)NextGeneralG4;
+    if ((POLY_G4 *)Poly + 2 > LastGeneralG4)
         return;
     for (p = 0; p < NumPoints; p += 2) {
-        Poly = (struct POLY_F4 *)NextGeneralG4;
+        Poly = (POLY_F4 *)NextGeneralG4;
         *(struct COLOUR *)&Poly->r0 = Colour;
         SetPolyF4(Poly);
         Poly->code |= 2;
@@ -267,7 +265,7 @@ void ProcessTimedLights(void)
 void ResetModelLights_Many(struct GLOBSMODHDR *ModelHdr, char **Spr, int Many)
 {
     struct GLOBSMODGT4 *ModGt4;
-    struct POLY_GT4 *SprM[4];
+    POLY_GT4 *SprM[4];
     struct RGB3 *Rgbs;
     short Num;
     short NumPolys;
@@ -287,7 +285,7 @@ void ResetModelLights_Many(struct GLOBSMODHDR *ModelHdr, char **Spr, int Many)
         Temp = 0;
         for (a = 0; a < Many; a++) {
             Temp += (long)Spr[a];
-            SprM[a] = (struct POLY_GT4 *)Temp;
+            SprM[a] = (POLY_GT4 *)Temp;
         }
         Spr += 4;
         Num = NumPolys > 32 ? 32 : NumPolys;
@@ -440,8 +438,8 @@ void ProcessMobileLights(void)
                     b = d;
                     c = e;
 
-                    *++SprA = (char *)(f * sizeof(struct POLY_GT4));
-                    *++SprB = (char *)(g * sizeof(struct POLY_GT4));
+                    *++SprA = (char *)(f * sizeof(POLY_GT4));
+                    *++SprB = (char *)(g * sizeof(POLY_GT4));
                 }
 AlreadyThere:
                 RelBase.vx = Light.vx - ObjSort->ObjPntr->Origin.vx;
@@ -614,7 +612,7 @@ void DrawLensFlareSparkle(struct SCRPNT Coord, int NumPoints, int Size, unsigned
     int y;
     int a;
     int AngStep;
-    struct LINE_G2 *Line;
+    LINE_G2 *Line;
     int Ang;
 
     AngStep = 4096 / NumPoints;
@@ -630,14 +628,14 @@ void DrawLensFlareSparkle(struct SCRPNT Coord, int NumPoints, int Size, unsigned
             x /= 800000;
             y /= 600000;
         }
-        Line = (struct LINE_G2 *)NextGeneralG4;
+        Line = (LINE_G2 *)NextGeneralG4;
         *(struct COLOUR *)&Line->r0 = Colour;
         *(struct COLOUR *)&Line->r1 = (struct COLOUR){0, 0, 0, 0x3a};
         *(struct SCRPNT *)&Line->x0 = Coord;
         *(struct SCRPNT *)&Line->x1 = (struct SCRPNT){Coord.sx - x, Coord.sy - y};
         setLineG2(Line);
         AddPrim_(Ot, Line);
-        Line = (struct LINE_G2 *)++NextGeneralG4;
+        Line = (LINE_G2 *)++NextGeneralG4;
         *(struct COLOUR *)&Line->r0 = Colour;
         *(struct COLOUR *)&Line->r1 = (struct COLOUR){0, 0, 0, 0x3a};
         *(struct SCRPNT *)&Line->x0 = Coord;
@@ -743,7 +741,7 @@ void ProcessLensFlares(int Win)
     Ot = &currdb->Ot[Win][50];
     SetRotMatrix(CurrCamMat);
     /* splat names this address alltpages+0x2C */
-    gte_SetTransMatrix((struct MATRIX *)((char *)alltpages + 0x2C));
+    gte_SetTransMatrix((MATRIX *)((char *)alltpages + 0x2C));
     for (Lighting = LightList; Lighting < LightListCurrent; Lighting++)
         if (Lighting->LensFlareType)
             ProcessLensFlare(Lighting, Ot);

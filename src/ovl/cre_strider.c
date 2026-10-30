@@ -250,7 +250,8 @@ static struct NEWANIMREMAP AnimRemap[] = {
     { -1, -1, {"\377"}, 0, 0 },
 };
 
-/* the original's .bss starts 8-aligned and tools/ovllink.py aligns it to 4: this word is the gap */
+/* the original's .bss starts 4 bytes further on, 8-aligned (not a rule of its linker: most
+ * modules' .bss is only word-aligned); this .data word fills the gap */
 static int BssAlign = 0;
 
 struct QCREINTERFACE Iface OVL_HEADER = { SP_monster_strider, 0, PreInit_Strider, AnimRemap };

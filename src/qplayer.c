@@ -3,6 +3,10 @@
    hold the byte-packing masks). Every other function in this file matches either way. */
 #include "types.h"
 #include "bss.h"
+#include <memory.h>
+#include <rand.h>
+#include <stdio.h>
+#include <strings.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void InitMultiQuakePlayer(int Win);
@@ -25,7 +29,7 @@ void CheckForAllWeap(struct PLAYER *Player);
 struct CREATURE *InitialiseQuakePlayer(int Win, struct STARTPOSITION *Start);
 void InitialisePlayerSounds(void);
 void InitialisePlayerSounds(void); void PreInitPlayerMale(struct GLOBMODHDR *Hdr);
-int rand(void); void AnimateQuakePlayer(struct CREATURE *Cre, int AnimType);
+void AnimateQuakePlayer(struct CREATURE *Cre, int AnimType);
 void QuakePlayerCheckUnderwater(struct CREATURE *Cre);
 void QuakeSinglePlayerStuff(struct PLAYER *Player);
 void GamePlayerLoadSave(int PlayerIndx, int Save);
@@ -104,7 +108,6 @@ extern int NewVcounts;
 extern struct PARTCOLOURS ParticleColours_Blue;
 void PlayerNoise(struct edict_s *who, struct VECT *where, int type);
 struct PARTICLE *AddParticlesSL(struct VECT *Pos, struct SVECT *Vel, struct PARTCOLOURS *PColour0, struct PARTCOLOURS *PColour1, int NumToDraw, int Timer, int Size, int Area);
-int rand(void);
 void GenerateWaterSplash(struct VECT *Location, int Area);
 int SoundByCreature(int SFXNumber, struct CREATURE *Cre);
 extern unsigned int LevelTicks;
@@ -122,7 +125,6 @@ extern struct WINDOW GameWindows[];
 extern struct QENGINELEVINTERFACE Engine;
 int Seek(short *a, short b, short c);
 void Event_ProcessTriggers(struct CREATURE *Cre, int typemask);
-void RotMatrixYXZ(struct SVECT *r, struct MATRIX *m);
 void FindPlayerTarget(struct PLAYER *Player);
 void FlashPowerUp(struct CREATURE *Cre);
 int FindBoxMoveSpace(struct COLLBOX3D *Box, int Main);
@@ -131,8 +133,8 @@ void ProcessGunSight(struct PLAYER *Player);
 void QuakeWeaponChange(struct CREATURE *Cre, struct PLAYERCONTROLS *Controls);
 int QuakePlayerJump(struct CREATURE *Cre, int JumpTapped);
 int SoundAtLocation(int SFXNumber, struct VECT *loc);
-void RotateRelSpeedsLadder(struct MATRIX *M, struct SVECT *Rel, struct SVECT *Vel, struct SVECT *Norm, struct SVECT *OutPut);
-void RotateRelSpeedsFly(struct MATRIX *M, struct SVECT *Rel, struct SVECT *Vel, struct SVECT *Norm);
+void RotateRelSpeedsLadder(MATRIX *M, struct SVECT *Rel, struct SVECT *Vel, struct SVECT *Norm, struct SVECT *OutPut);
+void RotateRelSpeedsFly(MATRIX *M, struct SVECT *Rel, struct SVECT *Vel, struct SVECT *Norm);
 void RotateRelSpeeds(short Ang, short x, short z, struct SVECT *OutPut);
 void QCre_Move(struct CREATURE *Cre);
 short PrimaryWeaponMovement(struct CREATURE *Gun, struct PLAYERCONTROLS *Controls);
@@ -158,7 +160,6 @@ void PrimaryQuakeDeadPlayerBody(struct CREATURE *Cre);
 
 extern int Mission;
 int QWeapon_NextPrev(struct PLAYER *Player, int Weapon_Type, int Next);
-void *memset(void *, int, int);
 extern int LevelIsMultiPlayer;
 extern unsigned int GameTimeOutTime;
 extern unsigned int GameTime;
@@ -166,7 +167,6 @@ extern int GameRunningMode;
 extern struct QLEVELINTERFACE *LevelInterface;
 void Q2CreDropItemOnDeath(struct CREATURE *Cre);
 void InGame_GOTO_DIED2(void);
-void RotMatrixYXZ(struct SVECT *r, struct MATRIX *m);
 void KillModel(void *m);
 void PrimaryQuakeDyingPlayer(struct CREATURE *Cre);
 
@@ -183,11 +183,9 @@ extern struct CREATURE **ThisBumpList;
 extern struct CREATURE **ThisBumpListEnd;
 extern struct COLLHEADER CollMap;
 extern struct CREATURE Creatures[];
-void RotateL(struct MATRIX *m, struct VECT *v1, struct VECT *v2);
+void RotateL(MATRIX *m, struct VECT *v1, struct VECT *v2);
 struct CREATURE *LineIntersectCreCylinder(struct VECT *Start, struct VECT *Stop, struct CREATURE *Cre, struct VECT *ISect, struct CREATURE **Bump, struct CREATURE **BumpEnd);
 int Visable3d(struct COLLHEADER *Map, struct VECT *Start, struct VECT *End, int S0);
-long ratan2(long y, long x);
-void VectorNormal(struct VECT *v0, struct VECT *v1);
 
 extern struct MISSIONEND MissionEnd[6];
 extern int GlobalKey;
@@ -219,8 +217,6 @@ struct CREATURE *GetNextCre(int UseExpendable);
 int GetFloorOffset(struct CREATURE *Cre);
 int SetupBoxDrop(struct COLLBOX3D *Box, struct VECT *Location, struct SCRPNT CollSize, struct SHORTPAIR MainSpaceDrop, struct SHORTPAIR HitSize);
 void GenQuakePlayerGun(struct CREATURE *Cre);
-char *strncpy(char *, const char *, int);
-int printf(const char *, ...);
 int GetSoundNum(struct IDENTITYNAME Name);
 int GetSoundClone(int OriginalSoundNum);
 void SetRandomPitch(int SoundNum, int MaxPlus, int MaxMinus);
@@ -1033,7 +1029,6 @@ void PreInitPlayerMale(struct GLOBMODHDR *Hdr)
     PrintIdentityName(Hdr->ModelName);
 }
 
-int rand(void);
 
 void AnimateQuakePlayer(struct CREATURE *Cre, int AnimType)
 {

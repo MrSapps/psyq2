@@ -1,5 +1,10 @@
 #include "types.h"
 #include "bss.h"
+#include <abs.h>
+#include <memory.h>
+#include <rand.h>
+#include <stdio.h>
+#include <strings.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 int Event_GetNamedOffset(struct IDENTITYNAME name3);
@@ -176,7 +181,6 @@ short LaserBeamEvents[32][2] BSS;
 
 
 extern int NewVcounts;
-int rand(void);
 int Event_DoTimerSub(struct EVENTTIMER *timer, struct CREATURE *Cre);
 
 static int Event_FindTimer(void *timerevent)
@@ -194,10 +198,8 @@ static int Event_FindTimer(void *timerevent)
 
 extern long *DummyMemory;
 extern struct WINDOW GameWindows[];
-int sprintf(char *, const char *, ...);
 
 extern int MaxWindows;
-int rand(void);
 int AreaValid1(int Win, int Area);
 int AddLight(struct VECT *Location, struct COLOUR Colour, struct POWER Power, struct SHORTPAIR FlareTypeSize);
 int Do_SubEvent(struct PSXSUBEVENT *subevent, struct CREATURE *Cre);
@@ -248,7 +250,6 @@ void QuakeGenExplosion(struct VECT *Location, int Area, int Scale, int Type);
 void HideObjWithSolid(int Obj);
 
 struct SOLIDBOX *GenSolidBox(struct VECTBOX *MinMax, int Flags, int NewGroup);
-int abs(int);
 void PrimaryDoor2_PDH(struct BRUSHMOVEBUF *MoveBuf);
 
 
@@ -262,12 +263,10 @@ void ReCalcCollBox(struct CREATURE *Cre);
 extern struct IDENTITYNAME ThisLevelName;
 struct SAVEFILEHDR *OpenSaveMemory(struct IDENTITYNAME Name, int Writeable);
 void CloseWritableSaveMemoryFile(struct IDENTITYNAME Name, short Flags);
-char *strcpy(char *, const char *);
 
 extern struct IDENTITYNAME ThisLevelName;
 struct SAVEFILEHDR *OpenSaveMemory(struct IDENTITYNAME Name, int Writeable);
 void CloseWritableSaveMemoryFile(struct IDENTITYNAME Name, short Flags);
-char *strcpy(char *, const char *);
 
 
 int AttatchSolidBoxForObj(int Obj);
@@ -362,7 +361,6 @@ extern struct SCENE2 *Scene2Data;
 int SoundAtLocation(int SFXNumber, struct VECT *loc);
 
 extern struct BRUSHMOVEBUF BrushMoveBufs[];
-void *memset(void *s, int c, unsigned int n);
 struct SOLIDBOX *GenSolidBox(struct VECTBOX *MinMax, int Flags, int NewGroup);
 struct PSXSUBEVENT *PSXSHOOTTHEN(struct PSXSUBEVENT *subevent, struct CREATURE *cre, short damage);
 
@@ -388,7 +386,6 @@ void PSXB3ROCKS_ROCK_M(struct BRUSHMOVEBUF *MoveBuf);
 void PSXB3ROCKS_GIRDF_M(struct BRUSHMOVEBUF *MoveBuf);
 void PSXB3ROCKS_GIRDR_M(struct BRUSHMOVEBUF *MoveBuf);
 
-int rand(void);
 unsigned short QuickRand(void);
 
 extern struct COLLHEADER CollMap;
@@ -409,9 +406,7 @@ struct BMBTAIL {
 
 extern struct BRUSHMOVEBUF BrushMoveBufs[];
 extern struct SCENE2 *Scene2Data;
-void *memset(void *s, int c, unsigned int n);
 struct SOLIDBOX *GenSolidBox(struct VECTBOX *MinMax, int Flags, int NewGroup);
-int abs(int);
 void PrimaryDoor2_PDH(struct BRUSHMOVEBUF *MoveBuf);
 
 extern short rcossin_tbl[][2];

@@ -1,5 +1,6 @@
 #include "types.h"
 #include "bss.h"
+#include <memory.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void BaseLoadSaveHub(int Write);
@@ -33,7 +34,6 @@ void CloseWritableSaveMemoryFile(struct IDENTITYNAME Name, short Flags);
 void HelpComputer_SetMessages(struct IDENTITYNAME Orders, struct IDENTITYNAME Objective);
 void HelpComputer_GetMessages(struct IDENTITYNAME *Orders, struct IDENTITYNAME *Objective);
 int HelpComputer_Reset(void);
-void *memset(void *s, int c, unsigned int n);
 
 void BaseLoadSaveHub(int Write)
 {

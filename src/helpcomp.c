@@ -43,7 +43,7 @@ extern int LevelChange;
 extern int NewVcounts;
 void SetCursorPos(struct WINDOW *Window, struct SCRPNT Pos);
 void SpriText();
-void DrawDarkenedBox(struct RECT Rect);
+void DrawDarkenedBox(RECT Rect);
 
 void HelpComputer_GetMessages(struct IDENTITYNAME *Orders, struct IDENTITYNAME *Objective)
 {
@@ -118,7 +118,7 @@ void HelpComputer_DoDisplay(void)
     static int Unused = 0; /* never referenced; the original has 4 unreferenced zero bytes here in .sdata */
     static int ThisLevel = -2;
     struct SCRPNT Pos;
-    static struct RECT Rect = {0x60, 0x20, 0x150, 0x64};
+    static RECT Rect = {0x60, 0x20, 0x150, 0x64};
     static struct COLOUR Colour1 = {0x50, 0x8c, 0x78, 0};
     static struct COLOUR Colour2 = {0x78, 0x8c, 0x50, 0};
     struct WINDOW *Window;

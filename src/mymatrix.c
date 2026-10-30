@@ -1,18 +1,17 @@
 #include "types.h"
 
 /* defined below; gcc defers these to the end of the file in this order */
-struct MATRIX *GenRotMatrixY(int yang, struct MATRIX *mat);
+MATRIX *GenRotMatrixY(int yang, MATRIX *mat);
 int SquareRootNR(int a);
-void ReverseMatrix(struct MATRIX *MatrixOut, struct MATRIX *MatrixIn);
-void ScaleCameraMatrix(struct MATRIX *MatrixOut, struct MATRIX *MatrixIn, short x, short y);
-void MyScaleMatrix(struct MATRIX *MatrixOut, struct MATRIX *MatrixIn, int Scale);
-void MYRotMatrixANIM(struct SVECT *ang, struct MATRIX *m);
-void MYRotMatrixYXZ2(struct SVECT *ang, struct MATRIX *m);
-void ElipseMatrix(struct MATRIX *Source, struct MATRIX *Dest, struct SVECT *R);
+void ReverseMatrix(MATRIX *MatrixOut, MATRIX *MatrixIn);
+void ScaleCameraMatrix(MATRIX *MatrixOut, MATRIX *MatrixIn, short x, short y);
+void MyScaleMatrix(MATRIX *MatrixOut, MATRIX *MatrixIn, int Scale);
+void MYRotMatrixANIM(struct SVECT *ang, MATRIX *m);
+void MYRotMatrixYXZ2(struct SVECT *ang, MATRIX *m);
+void ElipseMatrix(MATRIX *Source, MATRIX *Dest, struct SVECT *R);
 extern short rcossin_tbl[][2];
-int SquareRoot0(int a);
 
-void MYRotMatrixANIM(struct SVECT *ang, struct MATRIX *m)
+void MYRotMatrixANIM(struct SVECT *ang, MATRIX *m)
 {
     int sinx, cosx, siny, cosy, sinz, cosz;
 
@@ -33,7 +32,7 @@ void MYRotMatrixANIM(struct SVECT *ang, struct MATRIX *m)
     m->m[2][2] = cosx * cosy / 4096;
 }
 
-struct MATRIX *GenRotMatrixY(int yang, struct MATRIX *mat)
+MATRIX *GenRotMatrixY(int yang, MATRIX *mat)
 {
     yang &= 0xfff;
     mat->m[0][0] = rcossin_tbl[yang][1];
@@ -48,7 +47,7 @@ struct MATRIX *GenRotMatrixY(int yang, struct MATRIX *mat)
     return mat;
 }
 
-void MYRotMatrixYXZ2(struct SVECT *ang, struct MATRIX *m)
+void MYRotMatrixYXZ2(struct SVECT *ang, MATRIX *m)
 {
     int sinx, cosx, siny, cosy, sinz, cosz;
 
@@ -69,7 +68,7 @@ void MYRotMatrixYXZ2(struct SVECT *ang, struct MATRIX *m)
     m->m[2][2] = cosx * cosy / 4096;
 }
 
-void ScaleCameraMatrix(struct MATRIX *MatrixOut, struct MATRIX *MatrixIn, short x, short y)
+void ScaleCameraMatrix(MATRIX *MatrixOut, MATRIX *MatrixIn, short x, short y)
 {
     MatrixOut->m[0][0] = MatrixIn->m[0][0] * x / 320;
     MatrixOut->m[0][1] = MatrixIn->m[0][1] * x / 320;
@@ -82,7 +81,7 @@ void ScaleCameraMatrix(struct MATRIX *MatrixOut, struct MATRIX *MatrixIn, short 
     MatrixOut->m[2][2] = MatrixIn->m[2][2];
 }
 
-void MyScaleMatrix(struct MATRIX *MatrixOut, struct MATRIX *MatrixIn, int Scale)
+void MyScaleMatrix(MATRIX *MatrixOut, MATRIX *MatrixIn, int Scale)
 {
     MatrixOut->m[0][0] = MatrixIn->m[0][0] * Scale / 4096;
     MatrixOut->m[0][1] = MatrixIn->m[0][1] * Scale / 4096;
@@ -95,7 +94,7 @@ void MyScaleMatrix(struct MATRIX *MatrixOut, struct MATRIX *MatrixIn, int Scale)
     MatrixOut->m[2][2] = MatrixIn->m[2][2] * Scale / 4096;
 }
 
-void ReverseMatrix(struct MATRIX *MatrixOut, struct MATRIX *MatrixIn)
+void ReverseMatrix(MATRIX *MatrixOut, MATRIX *MatrixIn)
 {
     MatrixOut->m[0][0] = MatrixIn->m[0][0];
     MatrixOut->m[0][1] = MatrixIn->m[1][0];
@@ -120,7 +119,7 @@ int SquareRootNR(int a)
     return 0;
 }
 
-void ElipseMatrix(struct MATRIX *Source, struct MATRIX *Dest, struct SVECT *R)
+void ElipseMatrix(MATRIX *Source, MATRIX *Dest, struct SVECT *R)
 {
     Dest->m[0][0] = Source->m[0][0] * R->vx / 256;
     Dest->m[0][1] = Source->m[0][1] * R->vy / 256;

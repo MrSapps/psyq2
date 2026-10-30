@@ -1,5 +1,8 @@
 #include "types.h"
 #include "bss.h"
+#include <memory.h>
+#include <rand.h>
+#include <strings.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void SoundSetPitch(int SampleNum, int Pitch);
@@ -91,19 +94,12 @@ struct SNDCTRL SoundControlBuffers[24] BSS;
 /* SoundNames' initialiser above needs the extern, and a redeclaration would lose the section
    attribute (see bss.h), so the definition is spelt under another C name */
 char ifrealocdoesntwork_[1548] __asm__("ifrealocdoesntwork") BSS;
-struct VECTOR SFXRotCoord BSS;
+VECTOR SFXRotCoord BSS;
 
 
 /* libspu functions return void (an int return value in v0 changes DoMix's register allocation) */
-void SpuSetVoiceAttr(struct SpuVoiceAttr *arg);
-void SpuGetVoiceAttr(struct SpuVoiceAttr *arg);
-void SpuSetKey(long on_off, unsigned long voice_bit);
 
 unsigned long Big2Little(unsigned long v);
-long SpuMalloc(long size);
-void SpuSetTransferStartAddr(unsigned long addr);
-unsigned long SpuWrite(unsigned char *addr, unsigned long size);
-long SpuIsTransferCompleted(long flag);
 
 extern int LevelIsMultiPlayer;
 extern char levelpath[];
@@ -120,10 +116,7 @@ extern int Paused;
 extern unsigned int LevelTicks;
 extern struct CREATURE Creatures[];
 int GetFreeChannel(void);
-int rand(void);
 
-void *memset(void *s, int c, unsigned int n);
-char *strcpy(char *d, const char *s);
 long SfxTransEffect(void *pVagPtr, void *pImgPtr);
 void InitSampleInfoTable(int First, int Count);
 int FlagIfLoopingSample(char *VagPntr, int SampleIndex);
@@ -143,22 +136,15 @@ struct SNDCTRL_S {
     char pad[0x38 - 0x16];
 };
 
-void SpuSetKey(long on_off, unsigned long voice_bit);
-void SpuInit(void);
-long SpuInitMalloc(long num, char *top);
-void SpuSetCommonAttr(struct SpuCommonAttr *attr);
-long SpuSetTransferMode(long mode);
 
 void *MYrealloc(void *p, int s, int HiFlag);
 void MyFree(void **Addr);
 void *MY_malloc_namehb(int s, char *name);
-void *memcpy(void *dst, const void *src, unsigned int n);
 
 
 extern int MaxWindows;
 extern struct WINDOW GameWindows[];
-void Rotate(struct MATRIX *m, struct SVECT *v1, struct VECT *v2);
-long SquareRoot0(long a);
+void Rotate(MATRIX *m, struct SVECT *v1, struct VECT *v2);
 
 int ModNameCmp(struct IDENTITYNAME *Name1, struct IDENTITYNAME *Name2);
 char *PrintIdentityName(struct IDENTITYNAME Name);
@@ -169,8 +155,6 @@ extern unsigned char pbQPanLookup[];
 
 
 extern struct QENGINELEVINTERFACE Engine;
-long SpuGetKeyStatus(unsigned long voice_bit);
-char *strncpy(char *d, const char *s, unsigned int n);
 void SpriText();
 
 static void SetVolPan(struct SNDCTRL *sbuf)
@@ -335,7 +319,7 @@ int MYSFXInit(void)
 
 void ReCalcPitch(int chan, struct SNDCTRL *sbuf)
 {
-    struct SpuVoiceAttr voiceAttr;
+    SpuVoiceAttr voiceAttr;
     int dwMulti;
     int d;
 
@@ -370,7 +354,7 @@ void ReCalcPitch(int chan, struct SNDCTRL *sbuf)
 
 void CalcSFXCurrDist(struct VECT *loc)
 {
-    struct SVECTOR s;
+    SVECTOR s;
     int x;
     int z;
     int a;
@@ -394,7 +378,7 @@ void CalcSFXCurrDist(struct VECT *loc)
    SpuSetVoiceAttr call is merged with the else-branch's */
 void DoMix(int chan, struct SNDCTRL *sbuf)
 {
-    struct SpuVoiceAttr voiceAttr;
+    SpuVoiceAttr voiceAttr;
     int pan;
     unsigned int wLeftVol;
     unsigned int wRightVol;
@@ -506,7 +490,7 @@ void DoMix(int chan, struct SNDCTRL *sbuf)
 
 void SfxInit(unsigned char bMode)
 {
-    struct SpuCommonAttr commonAttr;
+    SpuCommonAttr commonAttr;
     int wSampleId;
 
     MYSFXInit();
@@ -835,7 +819,7 @@ void SoundSetRelativePitch(int SampleNum, int Pitch)
 
 void SendPitch(int chan, int pitch)
 {
-    static struct SpuVoiceAttr voiceAttr BSS;
+    static SpuVoiceAttr voiceAttr BSS;
     voiceAttr.voice = 1 << chan;
     voiceAttr.mask = 0x10;
     voiceAttr.pitch = pitch;
@@ -865,7 +849,7 @@ void unfreechanoff(int chan)
    file calls it after its definition, so it is never actually inlined). Same for GetSoundNum. */
 inline void ProcessSounds(void)
 {
-    struct SpuVoiceAttr voiceAttr;
+    SpuVoiceAttr voiceAttr;
     struct SNDCTRL *SoundControlBuffer;
     int Channel;
     int wStatus;

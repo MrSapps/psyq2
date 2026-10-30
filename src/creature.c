@@ -46,7 +46,6 @@ struct CREATURE *GetNextCre(int UseExpendable);
 int GetFloorOffset(struct CREATURE *Cre);
 int GetCeilingOffset(struct CREATURE *Cre);
 int GameSpawn(struct CREATURE *Cre, struct CREDATA *CreData, struct SPAWNDETAILS *Details, struct RESPAWNDATA *RespawnData);
-struct MATRIX *RotMatrixYXZ(struct SVECT *r, struct MATRIX *m);
 
 extern struct CRESAVE *SaveMemoryWriteAddress;
 int BytesBetween(void *Pntr0, void *Pntr1);

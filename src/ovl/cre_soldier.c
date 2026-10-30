@@ -392,7 +392,8 @@ static int shotgun_flash[] = { 41, 42, 84, 87, 90, 93, 96, 99 };
 static int machinegun_flash[] = { 43, 44, 85, 88, 91, 94, 97, 100 };
 
 #ifdef SOLDIER_BSS_ALIGN
-/* the original linker started .bss on an 8-byte boundary; tools/ovllink.py uses 4 */
+/* the original's .bss starts 4 bytes further on, 8-aligned (not a rule of its linker: most
+ * modules' .bss is only word-aligned); this .data word fills the gap */
 static int BssAlign = 0;
 #endif
 

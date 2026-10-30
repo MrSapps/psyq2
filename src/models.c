@@ -1,5 +1,7 @@
 #include "types.h"
 #include "bss.h"
+#include <abs.h>
+#include <memory.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void LinkCastLists(void);
@@ -29,9 +31,9 @@ void *FindIdentNameInList(struct IDENTITYNAME *Name, void *VPntr, int NumBytes);
 int ModNameCmp(struct IDENTITYNAME *Name1, struct IDENTITYNAME *Name2);
 struct SHORTPAIR GetCreHitSize(struct CREATURE *Cre);
 int DrawAnimGlobal(struct CREATURE *Cre, struct MODWIN *WinData, int Win);
-void PolyOpaqueSetup(struct POLY_GT4 *PolyA, struct POLY_GT4 *PolyB, struct POLY_GT4 *PC, struct POLY_GT4 *PD);
-void PolyOpaqueSetupSecondary(struct POLY_GT4 *PolyA, struct POLY_GT4 *PolyB, struct POLY_GT4 *PC, struct POLY_GT4 *PD);
-void ResetPolyTpageCode(struct GLOBMODHDR *Hdr, struct GLOBPOL *GlobPol, struct POLY_GT4 *PolyA, struct POLY_GT4 *PolyB);
+void PolyOpaqueSetup(POLY_GT4 *PolyA, POLY_GT4 *PolyB, POLY_GT4 *PC, POLY_GT4 *PD);
+void PolyOpaqueSetupSecondary(POLY_GT4 *PolyA, POLY_GT4 *PolyB, POLY_GT4 *PC, POLY_GT4 *PD);
+void ResetPolyTpageCode(struct GLOBMODHDR *Hdr, struct GLOBPOL *GlobPol, POLY_GT4 *PolyA, POLY_GT4 *PolyB);
 int GetCeilingOffset(struct CREATURE *Cre);
 int PolysAvailable(int NumPolys);
 void MallocPolyPackets(short *Dest, int Count);
@@ -56,13 +58,13 @@ struct GLOBMODHDR *NextZoneCastList SBSS;
 struct GLOBMODHDR *CommonCastList SBSS;
 struct GLOBMODHDR *ZoneCastList SBSS;
 struct MODWIN *LastWinData SBSS;
-struct POLY_GT4 *OtherPolys SBSS;
+POLY_GT4 *OtherPolys SBSS;
 short lightorder[4] SBSS;
 struct CREATURE *LastCre SBSS;
 static struct QUATANIMFRAME GlobalTweenedQuatFrames[32] BSS;
 char PolsToFreeList[256] BSS;
 struct BESTLIGHT bestlights[4] BSS;
-struct SVECTOR LightVec[3] BSS;
+SVECTOR LightVec[3] BSS;
 /* Buf.4 in the original: a function static of lost code */
 static char UnusedBuf[13] BSS;
 
@@ -108,7 +110,6 @@ struct CREATURE **CreColListStopB;
 
 extern struct MAPNAME *MapNames;
 void KillModel(struct CREATURE *Cre);
-void *memset();
 
 /* GetNextCre's loop bound &Creatures[48] is CreFreeList in splat's naming (cmpfunc compares the
    address); naming CreFreeList in C makes gcc CSE it with the count check. */
@@ -159,9 +160,9 @@ void dprintf(struct WINDOW *Window, char *_format, ...);
 void ForEachPolyInModelOpaque(struct CREATURE *Cre, void *VoidRoutine, int Win);
 void ForEachPolyInModel(struct CREATURE *Cre, void *VoidRoutine, int Win);
 void FilterInOpaquePolys(struct MODWIN *WinData, int Opaque);
-void PolyOpaqueSetup(struct POLY_GT4 *PolyA, struct POLY_GT4 *PolyB, struct POLY_GT4 *PC, struct POLY_GT4 *PD);
-void PolyOpaqueSetupSecondary(struct POLY_GT4 *PolyA, struct POLY_GT4 *PolyB, struct POLY_GT4 *PC, struct POLY_GT4 *PD);
-void ResetPolyTpageCode(struct GLOBMODHDR *Hdr, struct GLOBPOL *GlobPol, struct POLY_GT4 *PolyA, struct POLY_GT4 *PolyB);
+void PolyOpaqueSetup(POLY_GT4 *PolyA, POLY_GT4 *PolyB, POLY_GT4 *PC, POLY_GT4 *PD);
+void PolyOpaqueSetupSecondary(POLY_GT4 *PolyA, POLY_GT4 *PolyB, POLY_GT4 *PC, POLY_GT4 *PD);
+void ResetPolyTpageCode(struct GLOBMODHDR *Hdr, struct GLOBPOL *GlobPol, POLY_GT4 *PolyA, POLY_GT4 *PolyB);
 void DrawCreShadow(struct CREATURE *Cre, struct MODWIN *WinData);
 void NewShieldEffect(struct CREATURE *Cre);
 int InitModelGlobal(struct GLOBMODHDR *Hdr, short *Pols);
@@ -172,7 +173,7 @@ int InitModelGlobal(struct GLOBMODHDR *Hdr, short *Pols);
 int ClipGlobalModel(struct CREATURE *Cre, struct MODWIN *WinData, int Win);
 int DrawAnimGlobal(struct CREATURE *Cre, struct MODWIN *WinData, int Win);
 
-#define FT4(p) ((struct POLY_FT4 *)(p))
+#define FT4(p) ((POLY_FT4 *)(p))
 #define UVS(x) (*(unsigned short *)&(x))
 
 extern struct DB *currdb;
@@ -182,7 +183,7 @@ extern struct DB *currdb;
 extern struct DB *olddb;
 
 extern struct DB *currdb;
-void FilterInOpaquePolys_(struct POLY_GT4 **FirstLast, struct POLY_GT4 *Last, struct POLY_GT4 *ShadowTable[2][16], int Colour);
+void FilterInOpaquePolys_(POLY_GT4 **FirstLast, POLY_GT4 *Last, POLY_GT4 *ShadowTable[2][16], int Colour);
 
 extern struct CREATURE Creatures[];
 extern struct CREATURE *CreFreeList[];
@@ -193,14 +194,13 @@ extern short *FreeListPntr;
 extern void Relocate(void *Pntr, void *Base);
 
 struct SVECT GetSubModXYZ(struct GLOBMODHDR *GlobHdr, struct MODSUBOFF SubOff, short AnimFrame, short AnimJump);
-void RotateS(struct MATRIX *m, struct SVECT *v1, struct SVECT *o2);
+void RotateS(MATRIX *m, struct SVECT *v1, struct SVECT *o2);
 extern struct VECT *CurrCamPos;
-extern struct MATRIX *CurrCamMat;
+extern MATRIX *CurrCamMat;
 extern struct SCRPNT CurrScreenMin;
 extern struct SCRPNT CurrScreenSize;
 extern struct SCRPNT CurrScreenHalfSize;
 extern int ChrisCount;
-void *memset();
 int ChooseSortArea(int Win, int Area, int AltArea);
 void SetupScreenGivenArea(int Win, int AreaIndx);
 void CalcSortList(struct CREATURE *Cre, struct VECT *In, short *Seed, short *Offset);
@@ -214,7 +214,7 @@ void CalcSortList(struct CREATURE *Cre, struct VECT *In, short *Seed, short *Off
 #define gte_stsxy(r0) __asm__ volatile("move $12,%0\nswc2 $14,0($12)" : : "r"(r0) : "$12", "memory")
 #define gte_stsz(r0) __asm__ volatile("move $12,%0\nswc2 $19,0($12)" : : "r"(r0) : "$12", "memory")
 
-void CalcVectorL(struct MATRIX *m, struct VECT *v1, struct VECT *v2);
+void CalcVectorL(MATRIX *m, struct VECT *v1, struct VECT *v2);
 
 static int FindSortRanges(struct GLOBMODHDR *lpModelHeader, int iSortDir, int iFrame, struct RANGESHDR **lpRangesHdrOut)
 {
@@ -250,7 +250,6 @@ extern unsigned short *GamePals;
 extern short NumMapPals;
 extern struct DB db[];
 int CalcLightBright(struct LIGHTS *Light, struct SVECT *Rel, short OverBright);
-int abs(int);
 
 extern struct LIGHTS LightList[];
 extern struct LIGHTS *LightListCurrent;
@@ -260,30 +259,22 @@ extern struct LIGHTS tempgloblight;
 extern struct COLLHEADER MoveCollMap;
 extern short *FixedLightList;
 extern struct LIGHTS *FixedLightData;
-extern struct MATRIX rgbmatrix;
+extern MATRIX rgbmatrix;
 void CalcLightModel(struct CREATURE *Cre, struct LIGHTS *Light);
-void VectorNormalSS(struct SVECTOR *v0, struct SVECTOR *v1);
-void ScaleSVect(struct SVECTOR *Vec, int Scale);
-/* SetBackColor (libgte) is called without its prototype in scope: implicit int. Its int
-   return value matters to CreLights: with a void prototype its last argument is computed in
-   $v0 instead of $v1. */
-int SetBackColor();
+void ScaleSVect(SVECTOR *Vec, int Scale);
 void PackedEulerToCamQuat(struct PACKEDEULER Ang, struct QUAT *Res);
 int QuatSlerp(struct QUAT *From, struct QUAT *To, int T, struct QUAT *Res);
 void dprintf(struct WINDOW *Window, char *_format, ...);
 extern struct WINDOW GameWindows[];
 
-void QuatToMat(struct QUAT *Quat, struct MATRIX *Mat);
-void MYRotMatrixANIM(struct SVECT *ang, struct MATRIX *m);
+void QuatToMat(struct QUAT *Quat, MATRIX *Mat);
+void MYRotMatrixANIM(struct SVECT *ang, MATRIX *m);
 
-struct VECTOR *ObjTranVect;
+VECTOR *ObjTranVect;
 extern struct DUMMYGPU *LastDummyGpu;
 extern struct DUMMYGPU *NextDummyGpu;
 extern long *primlistarray[];
 void GetAnimFramesForAnim(struct ANIMFRAMEHDRHDR *FrameHdrHdr, struct ANIMFRAMEHDRHDR *NextKeyFrameHdrHdr, int ToDo300FPSUnClipped, int NumSubMods);
-void MulMatrix0(struct MATRIX *m0, struct MATRIX *m1, struct MATRIX *m2);
-void SetColorMatrix(struct MATRIX *m);
-void SetRotMatrix(struct MATRIX *m);
 
 void PackedEulerToCamQuat(struct PACKEDEULER Ang, struct QUAT *Res)
 {
@@ -309,7 +300,7 @@ void PackedEulerToCamQuat(struct PACKEDEULER Ang, struct QUAT *Res)
     Res->vx = Temp;
 }
 
-void QuatToMat(struct QUAT *Quat, struct MATRIX *Mat)
+void QuatToMat(struct QUAT *Quat, MATRIX *Mat)
 {
     int wx, wy, wz, xx, yy, yz, xy, xz, zz, x2, y2, z2;
 
@@ -423,8 +414,8 @@ void CalcSortList(struct CREATURE *Cre, struct VECT *In, short *Seed, short *Off
 {
     struct VECT Out;
     int Sort;
-    struct MATRIX Matrix;
-    struct MATRIX StaticMatrix;
+    MATRIX Matrix;
+    MATRIX StaticMatrix;
     struct RANGESHDR *lpRangesHdr;
     struct RANGE *lpRange;
 
@@ -509,8 +500,8 @@ void FreeAllModelPolys(void)
 int InitModelGlobal(struct GLOBMODHDR *Hdr, short *Pols)
 {
     short *fp;
-    struct POLY_GT4 *pol1g4;
-    struct POLY_GT4 *pol2g4;
+    POLY_GT4 *pol1g4;
+    POLY_GT4 *pol2g4;
     int a;
     int f;
     struct GLOBPOL *GlobPoly;
@@ -574,7 +565,7 @@ void MoveModels(void)
 
 void FilterInOpaquePolys(struct MODWIN *WinData, int Opaque)
 {
-    struct POLY_GT4 *ShadowTable[2][16];
+    POLY_GT4 *ShadowTable[2][16];
     int Green;
     int Blue;
     int Colour;
@@ -732,7 +723,7 @@ void CalcLightModel(struct CREATURE *Cre, struct LIGHTS *Light)
     }
 }
 
-void CreLights(struct CREATURE *Cre, struct SVECTOR *LightVec)
+void CreLights(struct CREATURE *Cre, SVECTOR *LightVec)
 {
     struct LIGHTS *Lighting;
     short *fp;
@@ -777,9 +768,9 @@ void CreLights(struct CREATURE *Cre, struct SVECTOR *LightVec)
         rgbmatrix.m[0][2] = bestlights[lightorder[2]].r;
         rgbmatrix.m[1][2] = bestlights[lightorder[2]].g;
         rgbmatrix.m[2][2] = bestlights[lightorder[2]].b;
-        VectorNormalSS((struct SVECTOR *)&bestlights[lightorder[0]].dir, &LightVec[0]);
-        VectorNormalSS((struct SVECTOR *)&bestlights[lightorder[1]].dir, &LightVec[1]);
-        VectorNormalSS((struct SVECTOR *)&bestlights[lightorder[2]].dir, &LightVec[2]);
+        VectorNormalSS((SVECTOR *)&bestlights[lightorder[0]].dir, &LightVec[0]);
+        VectorNormalSS((SVECTOR *)&bestlights[lightorder[1]].dir, &LightVec[1]);
+        VectorNormalSS((SVECTOR *)&bestlights[lightorder[2]].dir, &LightVec[2]);
         ScaleSVect(&LightVec[0], Cre->ModelOpaque * Cre->ModelBright / 2048);
         ScaleSVect(&LightVec[1], Cre->ModelOpaque * Cre->ModelBright / 2048);
         ScaleSVect(&LightVec[2], Cre->ModelOpaque * Cre->ModelBright / 2048);
@@ -794,8 +785,8 @@ void CreLights(struct CREATURE *Cre, struct SVECTOR *LightVec)
         rgbmatrix.m[0][2] = 0;
         rgbmatrix.m[1][2] = 0;
         rgbmatrix.m[2][2] = 0;
-        VectorNormalSS((struct SVECTOR *)&bestlights[lightorder[0]].dir, &LightVec[0]);
-        VectorNormalSS((struct SVECTOR *)&bestlights[lightorder[1]].dir, &LightVec[1]);
+        VectorNormalSS((SVECTOR *)&bestlights[lightorder[0]].dir, &LightVec[0]);
+        VectorNormalSS((SVECTOR *)&bestlights[lightorder[1]].dir, &LightVec[1]);
         ScaleSVect(&LightVec[0], Cre->ModelOpaque * Cre->ModelBright / 2048);
         ScaleSVect(&LightVec[1], Cre->ModelOpaque * Cre->ModelBright / 2048);
         break;
@@ -809,7 +800,7 @@ void CreLights(struct CREATURE *Cre, struct SVECTOR *LightVec)
         rgbmatrix.m[0][2] = 0;
         rgbmatrix.m[1][2] = 0;
         rgbmatrix.m[2][2] = 0;
-        VectorNormalSS((struct SVECTOR *)&bestlights[lightorder[0]].dir, &LightVec[0]);
+        VectorNormalSS((SVECTOR *)&bestlights[lightorder[0]].dir, &LightVec[0]);
         ScaleSVect(&LightVec[0], Cre->ModelOpaque * Cre->ModelBright / 2048);
         break;
     }
@@ -1002,8 +993,8 @@ int DrawAnimGlobalSetup(struct CREATURE *Cre, struct MODWIN *WinData, int *Param
     struct ANIMFRAMEHDR *FrameHdr;
     struct QUATANIMFRAME *BaseQFrame;
     struct ANIMFRAME *BaseFrame;
-    struct MATRIX *MainMat;
-    struct MATRIX *CreMat;
+    MATRIX *MainMat;
+    MATRIX *CreMat;
     char *Pntr;
     int FrameNumA;
     int FrameNumB;
@@ -1043,8 +1034,8 @@ int DrawAnimGlobalSetup(struct CREATURE *Cre, struct MODWIN *WinData, int *Param
             BaseQFrame++;
         }
     }
-    MainMat = (struct MATRIX *)&Params[35];
-    CreMat = (struct MATRIX *)&Params[24];
+    MainMat = (MATRIX *)&Params[35];
+    CreMat = (MATRIX *)&Params[24];
     CreMat->m[0][0] = Cre->Matrix.m[0][0];
     CreMat->m[0][1] = Cre->Matrix.m[0][1];
     CreMat->m[0][2] = Cre->Matrix.m[0][2];
@@ -1058,7 +1049,7 @@ int DrawAnimGlobalSetup(struct CREATURE *Cre, struct MODWIN *WinData, int *Param
     rgbmatrix.m[0][0] = 0; rgbmatrix.m[1][0] = 0; rgbmatrix.m[2][0] = 0;
     rgbmatrix.m[0][1] = 0; rgbmatrix.m[1][1] = 0; rgbmatrix.m[2][1] = 0;
     rgbmatrix.m[0][2] = 0; rgbmatrix.m[1][2] = 0; rgbmatrix.m[2][2] = 0;
-    CreLights(Cre, (struct SVECTOR *)&Params[29]);
+    CreLights(Cre, (SVECTOR *)&Params[29]);
     SetColorMatrix(&rgbmatrix);
     SetRotMatrix(MainMat);
     Params[4] = (int)GlobHdr->GlobPoints;
@@ -1067,9 +1058,9 @@ int DrawAnimGlobalSetup(struct CREATURE *Cre, struct MODWIN *WinData, int *Param
     Params[5] = (int)GlobHdr->SubModels;
     Params[1] = (int)&WinData->Pols[1];
     Params[2] = (int)currdb->modpolsg4;
-    Params[13] = (int)((struct POLY_GT4 *)Params[2] + WinData->Pols[1]);
+    Params[13] = (int)((POLY_GT4 *)Params[2] + WinData->Pols[1]);
     Params[9] = (int)primlistarray;
-    Params[12] = (int)((struct POLY_GT4 *)Params[13] + 32);
+    Params[12] = (int)((POLY_GT4 *)Params[13] + 32);
     Params[10] = (int)ObjTranVect;
     Params[15] = (int)rcossin_tbl;
     Params[7] = (int)GlobalTweenedQuatFrames;
@@ -1079,8 +1070,8 @@ int DrawAnimGlobalSetup(struct CREATURE *Cre, struct MODWIN *WinData, int *Param
         Params[17] = (int)&WinData->Sort.FirstLast[0];
         NextDummyGpu->Tag = 0;
         WinData->Sort.VectBox = &Cre->Box.VectBox;
-        WinData->Sort.FirstLast[0] = (struct POLY_GT4 *)NextDummyGpu;
-        WinData->Sort.FirstLast[1] = (struct POLY_GT4 *)NextDummyGpu;
+        WinData->Sort.FirstLast[0] = (POLY_GT4 *)NextDummyGpu;
+        WinData->Sort.FirstLast[1] = (POLY_GT4 *)NextDummyGpu;
         NextDummyGpu++;
         return 1;
     }
@@ -1109,7 +1100,7 @@ int ClipGlobalModel(struct CREATURE *Cre, struct MODWIN *WinData, int Win)
 {
     struct VECT Rel;
     struct VECT Vect;
-    struct SVECTOR CentreOffset;
+    SVECTOR CentreOffset;
     struct SCRPNTZ ScreenXYZ;
     int a;
     int Edge;
@@ -1122,7 +1113,7 @@ int ClipGlobalModel(struct CREATURE *Cre, struct MODWIN *WinData, int Win)
         return 1;
     Vect.vx = (Rel.vx * CurrCamMat->m[0][0] + Rel.vy * CurrCamMat->m[0][1] + Rel.vz * CurrCamMat->m[0][2]) / 4096;
     Vect.vy = (Rel.vx * CurrCamMat->m[1][0] + Rel.vy * CurrCamMat->m[1][1] + Rel.vz * CurrCamMat->m[1][2]) / 4096;
-    gte_SetTransMatrix((struct MATRIX *)((char *)&Vect - 20));
+    gte_SetTransMatrix((MATRIX *)((char *)&Vect - 20));
     WinData->SortArea = ChooseSortArea(Win, Cre->Box.Area, Cre->Box.AltArea);
     SetupScreenGivenArea(Win, WinData->SortArea);
     CalcSortList(Cre, &Rel, &WinData->Seed, &WinData->Offset);
@@ -1460,7 +1451,7 @@ struct QUATANIMFRAME *GetTweenedSubModXYZ(short SubModId, struct ANIMFRAMEHDRHDR
     struct ANIMFRAME *AnimFrameA;
     struct ANIMFRAME *AnimFrameB;
     struct QUATANIMFRAME *QBaseFrame;
-    struct MATRIX QuatMatrix;
+    MATRIX QuatMatrix;
     int ToDo300FPS;
     unsigned char *Temp;
 
@@ -1529,7 +1520,7 @@ struct SVECT GetSubModXYZ(struct GLOBMODHDR *GlobHdr, struct MODSUBOFF SubOff, s
     struct QUATANIMFRAME *QBaseFrame;
     struct SVECT RotReturn;
     struct SVECT UnPacked;
-    struct MATRIX Matrix;
+    MATRIX Matrix;
     int DoOffsetRot;
 
     FrameHdrHdr = GlobHdr->AnimData;
@@ -1645,7 +1636,7 @@ void GetAbsoluteModelVert(struct CREATURE *Cre, short VertexNum, struct VECT *Po
     }
 }
 
-void PolyOpaqueSetup(struct POLY_GT4 *PolyA, struct POLY_GT4 *PolyB, struct POLY_GT4 *PC, struct POLY_GT4 *PD)
+void PolyOpaqueSetup(POLY_GT4 *PolyA, POLY_GT4 *PolyB, POLY_GT4 *PC, POLY_GT4 *PD)
 {
     UVS(FT4(PD)->u0) = UVS(FT4(PC)->u0) = UVS(PolyA->u0);
     UVS(FT4(PD)->u1) = UVS(FT4(PC)->u1) = UVS(PolyA->u1);
@@ -1659,13 +1650,13 @@ void PolyOpaqueSetup(struct POLY_GT4 *PolyA, struct POLY_GT4 *PolyB, struct POLY
     PolyA->tpage = (PolyA->tpage & 0x1f) | 0x20;
 }
 
-void PolyOpaqueSetupSecondary(struct POLY_GT4 *PolyA, struct POLY_GT4 *PolyB, struct POLY_GT4 *PC, struct POLY_GT4 *PD)
+void PolyOpaqueSetupSecondary(POLY_GT4 *PolyA, POLY_GT4 *PolyB, POLY_GT4 *PC, POLY_GT4 *PD)
 {
     PolyA->code = 0x3e;
     PolyA->tpage = (PolyA->tpage & 0x1f) | 0x20;
 }
 
-void ResetPolyTpageCode(struct GLOBMODHDR *Hdr, struct GLOBPOL *GlobPol, struct POLY_GT4 *PolyA, struct POLY_GT4 *PolyB)
+void ResetPolyTpageCode(struct GLOBMODHDR *Hdr, struct GLOBPOL *GlobPol, POLY_GT4 *PolyA, POLY_GT4 *PolyB)
 {
     PolyA->tpage = PolyB->tpage = alltpages[GlobPol->Tp & 0x1f] | tptranstable[GlobPol->Tp >> 5];
     PolyA->code = PolyB->code = semitranstable[GlobPol->Tp >> 5] | 0x3c;
@@ -1674,8 +1665,8 @@ void ResetPolyTpageCode(struct GLOBMODHDR *Hdr, struct GLOBPOL *GlobPol, struct 
 void ForEachPolyInModel(struct CREATURE *Cre, void *VoidRoutine, int Win)
 {
     short *fp;
-    struct POLY_GT4 *PolyA;
-    struct POLY_GT4 *PolyB;
+    POLY_GT4 *PolyA;
+    POLY_GT4 *PolyB;
     int f;
     int a;
     struct GLOBPOL *GlobPoly;
@@ -1698,8 +1689,8 @@ void ForEachPolyInModel(struct CREATURE *Cre, void *VoidRoutine, int Win)
 void ForEachPolyInModelParams(struct CREATURE *Cre, void *VoidRoutine, int Win, int ParamA, int ParamB)
 {
     short *fp;
-    struct POLY_GT4 *PolyA;
-    struct POLY_GT4 *PolyB;
+    POLY_GT4 *PolyA;
+    POLY_GT4 *PolyB;
     int f;
     int a;
     struct GLOBMODHDR *Hdr;
@@ -1731,10 +1722,10 @@ void ForEachPolyInModelOpaque(struct CREATURE *Cre, void *VoidRoutine, int Win)
 {
     short *fp;
     short *fpO;
-    struct POLY_GT4 *PolyA;
-    struct POLY_GT4 *PolyB;
-    struct POLY_GT4 *PolyC;
-    struct POLY_GT4 *PolyD;
+    POLY_GT4 *PolyA;
+    POLY_GT4 *PolyB;
+    POLY_GT4 *PolyC;
+    POLY_GT4 *PolyD;
     int f;
     int a;
     struct GLOBMODHDR *Hdr;

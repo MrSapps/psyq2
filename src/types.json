@@ -847,7 +847,7 @@
     "type": 8,
     "tag": "SVECTOR",
     "dims": [],
-    "decl": "struct SVECTOR v"
+    "decl": "SVECTOR v"
    },
    {
     "name": "uv",
@@ -879,7 +879,7 @@
     "type": 8,
     "tag": "CVECTOR",
     "dims": [],
-    "decl": "struct CVECTOR c"
+    "decl": "CVECTOR c"
    },
    {
     "name": "sxy",
@@ -889,7 +889,7 @@
     "type": 8,
     "tag": "DVECTOR",
     "dims": [],
-    "decl": "struct DVECTOR sxy"
+    "decl": "DVECTOR sxy"
    },
    {
     "name": "sz",
@@ -917,7 +917,7 @@
     "type": 8,
     "tag": "RVECTOR",
     "dims": [],
-    "decl": "struct RVECTOR r01"
+    "decl": "RVECTOR r01"
    },
    {
     "name": "r12",
@@ -927,7 +927,7 @@
     "type": 8,
     "tag": "RVECTOR",
     "dims": [],
-    "decl": "struct RVECTOR r12"
+    "decl": "RVECTOR r12"
    },
    {
     "name": "r20",
@@ -937,7 +937,7 @@
     "type": 8,
     "tag": "RVECTOR",
     "dims": [],
-    "decl": "struct RVECTOR r20"
+    "decl": "RVECTOR r20"
    },
    {
     "name": "r0",
@@ -947,7 +947,7 @@
     "type": 24,
     "tag": "RVECTOR",
     "dims": [],
-    "decl": "struct RVECTOR *r0"
+    "decl": "RVECTOR *r0"
    },
    {
     "name": "r1",
@@ -957,7 +957,7 @@
     "type": 24,
     "tag": "RVECTOR",
     "dims": [],
-    "decl": "struct RVECTOR *r1"
+    "decl": "RVECTOR *r1"
    },
    {
     "name": "r2",
@@ -967,7 +967,7 @@
     "type": 24,
     "tag": "RVECTOR",
     "dims": [],
-    "decl": "struct RVECTOR *r2"
+    "decl": "RVECTOR *r2"
    },
    {
     "name": "rtn",
@@ -995,7 +995,7 @@
     "type": 8,
     "tag": "RVECTOR",
     "dims": [],
-    "decl": "struct RVECTOR r01"
+    "decl": "RVECTOR r01"
    },
    {
     "name": "r02",
@@ -1005,7 +1005,7 @@
     "type": 8,
     "tag": "RVECTOR",
     "dims": [],
-    "decl": "struct RVECTOR r02"
+    "decl": "RVECTOR r02"
    },
    {
     "name": "r31",
@@ -1015,7 +1015,7 @@
     "type": 8,
     "tag": "RVECTOR",
     "dims": [],
-    "decl": "struct RVECTOR r31"
+    "decl": "RVECTOR r31"
    },
    {
     "name": "r32",
@@ -1025,7 +1025,7 @@
     "type": 8,
     "tag": "RVECTOR",
     "dims": [],
-    "decl": "struct RVECTOR r32"
+    "decl": "RVECTOR r32"
    },
    {
     "name": "rc",
@@ -1035,7 +1035,7 @@
     "type": 8,
     "tag": "RVECTOR",
     "dims": [],
-    "decl": "struct RVECTOR rc"
+    "decl": "RVECTOR rc"
    },
    {
     "name": "r0",
@@ -1045,7 +1045,7 @@
     "type": 24,
     "tag": "RVECTOR",
     "dims": [],
-    "decl": "struct RVECTOR *r0"
+    "decl": "RVECTOR *r0"
    },
    {
     "name": "r1",
@@ -1055,7 +1055,7 @@
     "type": 24,
     "tag": "RVECTOR",
     "dims": [],
-    "decl": "struct RVECTOR *r1"
+    "decl": "RVECTOR *r1"
    },
    {
     "name": "r2",
@@ -1065,7 +1065,7 @@
     "type": 24,
     "tag": "RVECTOR",
     "dims": [],
-    "decl": "struct RVECTOR *r2"
+    "decl": "RVECTOR *r2"
    },
    {
     "name": "r3",
@@ -1075,7 +1075,7 @@
     "type": 24,
     "tag": "RVECTOR",
     "dims": [],
-    "decl": "struct RVECTOR *r3"
+    "decl": "RVECTOR *r3"
    },
    {
     "name": "rtn",
@@ -1181,7 +1181,7 @@
     "type": 8,
     "tag": "RECT",
     "dims": [],
-    "decl": "struct RECT clip"
+    "decl": "RECT clip"
    },
    {
     "name": "ofs",
@@ -1203,7 +1203,7 @@
     "type": 8,
     "tag": "RECT",
     "dims": [],
-    "decl": "struct RECT tw"
+    "decl": "RECT tw"
    },
    {
     "name": "tpage",
@@ -1283,7 +1283,7 @@
     "type": 8,
     "tag": "DR_ENV",
     "dims": [],
-    "decl": "struct DR_ENV dr_env"
+    "decl": "DR_ENV dr_env"
    }
   ],
   "obj": "QLevIfce.obj"
@@ -1301,7 +1301,7 @@
     "type": 8,
     "tag": "RECT",
     "dims": [],
-    "decl": "struct RECT disp"
+    "decl": "RECT disp"
    },
    {
     "name": "screen",
@@ -1311,7 +1311,7 @@
     "type": 8,
     "tag": "RECT",
     "dims": [],
-    "decl": "struct RECT screen"
+    "decl": "RECT screen"
    },
    {
     "name": "isinter",
@@ -3149,7 +3149,7 @@
     "type": 8,
     "tag": "CdlLOC",
     "dims": [],
-    "decl": "struct CdlLOC pos"
+    "decl": "CdlLOC pos"
    },
    {
     "name": "size",
@@ -5788,7 +5788,7 @@
     "dims": [
      4
     ],
-    "decl": "struct LINE_F2 QuakeLines[4]"
+    "decl": "LINE_F2 QuakeLines[4]"
    }
   ],
   "obj": "QLevIfce.obj"
@@ -5818,7 +5818,7 @@
     "dims": [
      4
     ],
-    "decl": "struct TILE WaterTiles[4]"
+    "decl": "TILE WaterTiles[4]"
    },
    {
     "name": "PausedTile",
@@ -5830,7 +5830,7 @@
     "dims": [
      2
     ],
-    "decl": "struct TILE PausedTile[2]"
+    "decl": "TILE PausedTile[2]"
    },
    {
     "name": "PausedDrTPageToSemi",
@@ -5840,7 +5840,7 @@
     "type": 8,
     "tag": "DR_TPAGE",
     "dims": [],
-    "decl": "struct DR_TPAGE PausedDrTPageToSemi"
+    "decl": "DR_TPAGE PausedDrTPageToSemi"
    },
    {
     "name": "PausedDrTPageToOpaque",
@@ -5850,7 +5850,7 @@
     "type": 8,
     "tag": "DR_TPAGE",
     "dims": [],
-    "decl": "struct DR_TPAGE PausedDrTPageToOpaque"
+    "decl": "DR_TPAGE PausedDrTPageToOpaque"
    },
    {
     "name": "PausedPolys",
@@ -5862,7 +5862,7 @@
     "dims": [
      8
     ],
-    "decl": "struct POLY_FT4 PausedPolys[8]"
+    "decl": "POLY_FT4 PausedPolys[8]"
    },
    {
     "name": "PreClearEnv",
@@ -5872,7 +5872,7 @@
     "type": 8,
     "tag": "DRAWENV",
     "dims": [],
-    "decl": "struct DRAWENV PreClearEnv"
+    "decl": "DRAWENV PreClearEnv"
    },
    {
     "name": "DrawEnv",
@@ -5884,7 +5884,7 @@
     "dims": [
      5
     ],
-    "decl": "struct DRAWENV DrawEnv[5]"
+    "decl": "DRAWENV DrawEnv[5]"
    },
    {
     "name": "WaterEnv",
@@ -5896,7 +5896,7 @@
     "dims": [
      4
     ],
-    "decl": "struct DRAWENV WaterEnv[4]"
+    "decl": "DRAWENV WaterEnv[4]"
    },
    {
     "name": "PanelEnv",
@@ -5908,7 +5908,7 @@
     "dims": [
      4
     ],
-    "decl": "struct DRAWENV PanelEnv[4]"
+    "decl": "DRAWENV PanelEnv[4]"
    },
    {
     "name": "ChangeDrawEnv",
@@ -5920,7 +5920,7 @@
     "dims": [
      96
     ],
-    "decl": "struct DRAWENV ChangeDrawEnv[96]"
+    "decl": "DRAWENV ChangeDrawEnv[96]"
    },
    {
     "name": "DummyGpu",
@@ -5944,7 +5944,7 @@
     "dims": [
      4
     ],
-    "decl": "struct TILE PanelBlanks[4]"
+    "decl": "TILE PanelBlanks[4]"
    },
    {
     "name": "TileFade",
@@ -5956,7 +5956,7 @@
     "dims": [
      4
     ],
-    "decl": "struct TILE TileFade[4]"
+    "decl": "TILE TileFade[4]"
    },
    {
     "name": "DispEnv",
@@ -5966,7 +5966,7 @@
     "type": 8,
     "tag": "DISPENV",
     "dims": [],
-    "decl": "struct DISPENV DispEnv"
+    "decl": "DISPENV DispEnv"
    },
    {
     "name": "WaterMove",
@@ -5976,7 +5976,7 @@
     "type": 8,
     "tag": "DR_MOVE",
     "dims": [],
-    "decl": "struct DR_MOVE WaterMove"
+    "decl": "DR_MOVE WaterMove"
    },
    {
     "name": "InitOt",
@@ -6025,7 +6025,7 @@
     "dims": [
      16
     ],
-    "decl": "struct POLY_FT4 ShadowPolys[16]"
+    "decl": "POLY_FT4 ShadowPolys[16]"
    },
    {
     "name": "GeneralFt4",
@@ -6037,7 +6037,7 @@
     "dims": [
      16
     ],
-    "decl": "struct POLY_FT4 GeneralFt4[16]"
+    "decl": "POLY_FT4 GeneralFt4[16]"
    },
    {
     "name": "modpolsg4",
@@ -6047,7 +6047,7 @@
     "type": 24,
     "tag": "POLY_GT4",
     "dims": [],
-    "decl": "struct POLY_GT4 *modpolsg4"
+    "decl": "POLY_GT4 *modpolsg4"
    },
    {
     "name": "subpolsg4",
@@ -6057,7 +6057,7 @@
     "type": 24,
     "tag": "POLY_GT4",
     "dims": [],
-    "decl": "struct POLY_GT4 *subpolsg4"
+    "decl": "POLY_GT4 *subpolsg4"
    },
    {
     "name": "LineF2",
@@ -6069,7 +6069,7 @@
     "dims": [
      80
     ],
-    "decl": "struct LINE_F2 LineF2[80]"
+    "decl": "LINE_F2 LineF2[80]"
    },
    {
     "name": "TpageDum",
@@ -6081,7 +6081,7 @@
     "dims": [
      8
     ],
-    "decl": "struct POLY_FT3 TpageDum[8]"
+    "decl": "POLY_FT3 TpageDum[8]"
    },
    {
     "name": "SmallObj",
@@ -6091,7 +6091,7 @@
     "type": 24,
     "tag": "POLY_FT4",
     "dims": [],
-    "decl": "struct POLY_FT4 *SmallObj"
+    "decl": "POLY_FT4 *SmallObj"
    },
    {
     "name": "PartFt4",
@@ -6101,7 +6101,7 @@
     "type": 24,
     "tag": "POLY_FT4",
     "dims": [],
-    "decl": "struct POLY_FT4 *PartFt4"
+    "decl": "POLY_FT4 *PartFt4"
    },
    {
     "name": "SpriteTpages",
@@ -6113,7 +6113,7 @@
     "dims": [
      5
     ],
-    "decl": "struct DR_TPAGE SpriteTpages[5]"
+    "decl": "DR_TPAGE SpriteTpages[5]"
    },
    {
     "name": "MenuPolys",
@@ -6125,7 +6125,7 @@
     "dims": [
      42
     ],
-    "decl": "struct POLY_FT4 MenuPolys[42]"
+    "decl": "POLY_FT4 MenuPolys[42]"
    },
    {
     "name": "FMenuPolys",
@@ -6137,7 +6137,7 @@
     "dims": [
      8
     ],
-    "decl": "struct POLY_GT4 FMenuPolys[8]"
+    "decl": "POLY_GT4 FMenuPolys[8]"
    },
    {
     "name": "SpriteAnySize",
@@ -6149,7 +6149,7 @@
     "dims": [
      16
     ],
-    "decl": "struct SPRT SpriteAnySize[16]"
+    "decl": "SPRT SpriteAnySize[16]"
    },
    {
     "name": "Sprite816",
@@ -6161,7 +6161,7 @@
     "dims": [
      256
     ],
-    "decl": "struct SPRT_16 Sprite816[256]"
+    "decl": "SPRT_16 Sprite816[256]"
    },
    {
     "name": "TimerTiles",
@@ -6173,7 +6173,7 @@
     "dims": [
      8
     ],
-    "decl": "struct TILE TimerTiles[8]"
+    "decl": "TILE TimerTiles[8]"
    },
    {
     "name": "Lines",
@@ -6185,7 +6185,7 @@
     "dims": [
      32
     ],
-    "decl": "struct LINE_G2 Lines[32]"
+    "decl": "LINE_G2 Lines[32]"
    },
    {
     "name": "GeneralG4",
@@ -6197,7 +6197,7 @@
     "dims": [
      289
     ],
-    "decl": "struct POLY_G4 GeneralG4[289]"
+    "decl": "POLY_G4 GeneralG4[289]"
    }
   ],
   "obj": "QLevIfce.obj"
@@ -7359,7 +7359,7 @@
     "dims": [
      2
     ],
-    "decl": "struct POLY_GT4 *FirstLast[2]"
+    "decl": "POLY_GT4 *FirstLast[2]"
    }
   ],
   "obj": "QLevIfce.obj"
@@ -7630,7 +7630,7 @@
     "type": 8,
     "tag": "MATRIX",
     "dims": [],
-    "decl": "struct MATRIX CamMat"
+    "decl": "MATRIX CamMat"
    },
    {
     "name": "CamMatNorm",
@@ -7640,7 +7640,7 @@
     "type": 8,
     "tag": "MATRIX",
     "dims": [],
-    "decl": "struct MATRIX CamMatNorm"
+    "decl": "MATRIX CamMatNorm"
    },
    {
     "name": "CamMatNormFlip",
@@ -7650,7 +7650,7 @@
     "type": 8,
     "tag": "MATRIX",
     "dims": [],
-    "decl": "struct MATRIX CamMatNormFlip"
+    "decl": "MATRIX CamMatNormFlip"
    },
    {
     "name": "SkyColour",
@@ -11220,7 +11220,7 @@
     "type": 8,
     "tag": "MATRIX",
     "dims": [],
-    "decl": "struct MATRIX Matrix"
+    "decl": "MATRIX Matrix"
    },
    {
     "name": "SequenceHdr",
@@ -12898,7 +12898,7 @@
     "type": 24,
     "tag": "POLY_FT4",
     "dims": [],
-    "decl": "struct POLY_FT4 *PolyStack0"
+    "decl": "POLY_FT4 *PolyStack0"
    },
    {
     "name": "PolyStack1",
@@ -12908,7 +12908,7 @@
     "type": 24,
     "tag": "POLY_FT4",
     "dims": [],
-    "decl": "struct POLY_FT4 *PolyStack1"
+    "decl": "POLY_FT4 *PolyStack1"
    },
    {
     "name": "MissionData",
@@ -13558,7 +13558,7 @@
     "type": 408,
     "tag": "MATRIX",
     "dims": [],
-    "decl": "struct MATRIX *(*RotMatrixYXZ)()"
+    "decl": "MATRIX *(*RotMatrixYXZ)()"
    },
    {
     "name": "PrintIdentityName",
@@ -15102,7 +15102,7 @@
     "type": 408,
     "tag": "DISPENV",
     "dims": [],
-    "decl": "struct DISPENV *(*SetDefDispEnv)()"
+    "decl": "DISPENV *(*SetDefDispEnv)()"
    },
    {
     "name": "SetDefDrawEnv",
@@ -15112,7 +15112,7 @@
     "type": 408,
     "tag": "DRAWENV",
     "dims": [],
-    "decl": "struct DRAWENV *(*SetDefDrawEnv)()"
+    "decl": "DRAWENV *(*SetDefDrawEnv)()"
    },
    {
     "name": "PutDispEnv",
@@ -15122,7 +15122,7 @@
     "type": 408,
     "tag": "DISPENV",
     "dims": [],
-    "decl": "struct DISPENV *(*PutDispEnv)()"
+    "decl": "DISPENV *(*PutDispEnv)()"
    },
    {
     "name": "PutDrawEnv",
@@ -15132,7 +15132,7 @@
     "type": 408,
     "tag": "DRAWENV",
     "dims": [],
-    "decl": "struct DRAWENV *(*PutDrawEnv)()"
+    "decl": "DRAWENV *(*PutDrawEnv)()"
    },
    {
     "name": "SetDrawMode",
@@ -15262,7 +15262,7 @@
     "type": 408,
     "tag": "CdlFILE",
     "dims": [],
-    "decl": "struct CdlFILE *(*CdSearchFile)()"
+    "decl": "CdlFILE *(*CdSearchFile)()"
    },
    {
     "name": "SetCDVolume",
@@ -15673,7 +15673,7 @@
     "type": 8,
     "tag": "SpuVolume",
     "dims": [],
-    "decl": "struct SpuVolume volume"
+    "decl": "SpuVolume volume"
    },
    {
     "name": "volmode",
@@ -15683,7 +15683,7 @@
     "type": 8,
     "tag": "SpuVolume",
     "dims": [],
-    "decl": "struct SpuVolume volmode"
+    "decl": "SpuVolume volmode"
    },
    {
     "name": "volumex",
@@ -15693,7 +15693,7 @@
     "type": 8,
     "tag": "SpuVolume",
     "dims": [],
-    "decl": "struct SpuVolume volumex"
+    "decl": "SpuVolume volumex"
    },
    {
     "name": "pitch",
@@ -15871,7 +15871,7 @@
     "type": 8,
     "tag": "SpuVolume",
     "dims": [],
-    "decl": "struct SpuVolume volume"
+    "decl": "SpuVolume volume"
    },
    {
     "name": "reverb",
@@ -16027,7 +16027,7 @@
     "type": 8,
     "tag": "DRAWENV",
     "dims": [],
-    "decl": "struct DRAWENV DrawEnv"
+    "decl": "DRAWENV DrawEnv"
    },
    {
     "name": "DispEnv",
@@ -16037,7 +16037,7 @@
     "type": 8,
     "tag": "DISPENV",
     "dims": [],
-    "decl": "struct DISPENV DispEnv"
+    "decl": "DISPENV DispEnv"
    },
    {
     "name": "BackSprites",
@@ -16049,7 +16049,7 @@
     "dims": [
      3
     ],
-    "decl": "struct SPRT BackSprites[3]"
+    "decl": "SPRT BackSprites[3]"
    },
    {
     "name": "Test",
@@ -16059,7 +16059,7 @@
     "type": 8,
     "tag": "TILE",
     "dims": [],
-    "decl": "struct TILE Test"
+    "decl": "TILE Test"
    }
   ],
   "obj": "dbuffer.obj"
@@ -24330,7 +24330,7 @@
     "dims": [
      22
     ],
-    "decl": "struct SVECTOR Points[22]"
+    "decl": "SVECTOR Points[22]"
    },
    {
     "name": "Polys",
@@ -24342,7 +24342,7 @@
     "dims": [
      2
     ],
-    "decl": "struct POLY_GT4 *Polys[2]"
+    "decl": "POLY_GT4 *Polys[2]"
    },
    {
     "name": "Source",
@@ -24354,7 +24354,7 @@
     "dims": [
      2
     ],
-    "decl": "struct POLY_GT4 *Source[2]"
+    "decl": "POLY_GT4 *Source[2]"
    },
    {
     "name": "rotpnt",
@@ -24902,7 +24902,7 @@
     "type": 8,
     "tag": "SpuVolume",
     "dims": [],
-    "decl": "struct SpuVolume mvol"
+    "decl": "SpuVolume mvol"
    },
    {
     "name": "mvolmode",
@@ -24912,7 +24912,7 @@
     "type": 8,
     "tag": "SpuVolume",
     "dims": [],
-    "decl": "struct SpuVolume mvolmode"
+    "decl": "SpuVolume mvolmode"
    },
    {
     "name": "mvolx",
@@ -24922,7 +24922,7 @@
     "type": 8,
     "tag": "SpuVolume",
     "dims": [],
-    "decl": "struct SpuVolume mvolx"
+    "decl": "SpuVolume mvolx"
    },
    {
     "name": "cd",
@@ -24932,7 +24932,7 @@
     "type": 8,
     "tag": "SpuExtAttr",
     "dims": [],
-    "decl": "struct SpuExtAttr cd"
+    "decl": "SpuExtAttr cd"
    },
    {
     "name": "ext",
@@ -24942,7 +24942,7 @@
     "type": 8,
     "tag": "SpuExtAttr",
     "dims": [],
-    "decl": "struct SpuExtAttr ext"
+    "decl": "SpuExtAttr ext"
    }
   ],
   "obj": "cdaudio.obj"
@@ -25467,7 +25467,7 @@
     "type": 8,
     "tag": "CVECTOR",
     "dims": [],
-    "decl": "struct CVECTOR rgbc"
+    "decl": "CVECTOR rgbc"
    },
    {
     "name": "ot",
@@ -25487,7 +25487,7 @@
     "type": 8,
     "tag": "RVECTOR",
     "dims": [],
-    "decl": "struct RVECTOR r0"
+    "decl": "RVECTOR r0"
    },
    {
     "name": "r1",
@@ -25497,7 +25497,7 @@
     "type": 8,
     "tag": "RVECTOR",
     "dims": [],
-    "decl": "struct RVECTOR r1"
+    "decl": "RVECTOR r1"
    },
    {
     "name": "r2",
@@ -25507,7 +25507,7 @@
     "type": 8,
     "tag": "RVECTOR",
     "dims": [],
-    "decl": "struct RVECTOR r2"
+    "decl": "RVECTOR r2"
    },
    {
     "name": "r3",
@@ -25517,7 +25517,7 @@
     "type": 8,
     "tag": "RVECTOR",
     "dims": [],
-    "decl": "struct RVECTOR r3"
+    "decl": "RVECTOR r3"
    },
    {
     "name": "cr",
@@ -25529,7 +25529,7 @@
     "dims": [
      5
     ],
-    "decl": "struct CRVECTOR4 cr[5]"
+    "decl": "CRVECTOR4 cr[5]"
    }
   ],
   "obj": "draw.obj"

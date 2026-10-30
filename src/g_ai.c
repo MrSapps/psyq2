@@ -1,5 +1,6 @@
 #include "types.h"
 #include "bss.h"
+#include <rand.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void AI_SetSightClient(void);
@@ -8,7 +9,7 @@ void ai_walk(struct edict_s *self, long dist);
 void ai_charge(struct edict_s *self, long dist);
 int range(struct edict_s *self, struct edict_s *other);
 void HuntTarget(struct edict_s *self);
-int rand(void); int infront(struct edict_s *self, struct edict_s *other);
+int infront(struct edict_s *self, struct edict_s *other);
 void ai_stand(struct edict_s *self, long dist);
 void FoundTarget(struct edict_s *self);
 int FindTarget(struct edict_s *self);
@@ -256,7 +257,6 @@ int range(struct edict_s *self, struct edict_s *other)
     return 3;
 }
 
-int rand(void);
 
 int infront(struct edict_s *self, struct edict_s *other)
 {

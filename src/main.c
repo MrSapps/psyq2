@@ -1,5 +1,10 @@
 #include "types.h"
 #include "bss.h"
+#include <libapi.h>
+#include <libetc.h>
+#include <libmcrd.h>
+#include <libpad.h>
+#include <rand.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void GameInterMission(void);
@@ -48,7 +53,6 @@ extern int PalNtscRate;
 extern int Paused;
 extern int LevelIsMultiPlayer;
 extern int VBLevelTicks;
-long GetRCnt();
 void ReadPaddHardware(void);
 void DualShockStuff(void);
 
@@ -86,11 +90,6 @@ void CdCheckMusic(void);
 void NewPadRead(void);
 void SwapAllButtons(void);
 void DrawTimeBar(void);
-void ClearOTag(unsigned long *ot, int n);
-void DrawOTag(unsigned long *p);
-int DrawSync(int mode);
-int VSync(int mode);
-struct DISPENV *PutDispEnv(struct DISPENV *env);
 void SetFrontEndStartScreen(int StartScreen);
 void GameInterMission(void);
 extern struct WINDOW GameWindows[];
@@ -113,7 +112,6 @@ void RestartLevel(int a);
 void GameQuitGame(void);
 void killallsounds(void);
 void freeallmallocs(void);
-int CdControlB(unsigned char com, unsigned char *param, unsigned char *result);
 
 #define IDNAME(s) ((struct IDENTITYNAME){s})
 
@@ -135,11 +133,6 @@ char PadEndInterMission(void);
 void DBInterMission(void);
 void QuakeInterMissionLoop(void);
 void DrawTimeBar(void);
-void ClearOTag(unsigned long *ot, int n);
-void DrawOTag(unsigned long *p);
-int DrawSync(int mode);
-int VSync(int mode);
-struct DISPENV *PutDispEnv(struct DISPENV *env);
 
 /* The original reads "__SN_GP_BASE" here, the symbol psylink (/gp .sdata) puts at the start of
    .sdata: that is _ramsize, which is used instead (an extern __SN_GP_BASE would lose $gp). */
@@ -158,28 +151,16 @@ extern int DoExtro;
 extern int PalNtsc;
 extern struct ControllerPacket padbuffer1;
 extern struct ControllerPacket padbuffer2;
-void EnterCriticalSection(void);
-void ExitCriticalSection(void);
 void QuakeFillInLevelEngineSideInterface(void);
 void FrontEndResetVideoDefaults(void);
 void Config_InstallVideo(void);
 void InitialiseAfterReset(void);
 void StoreGP_(void);
 void initMYmalloc2(void);
-void ResetCallback(void);
-void SetDispMask(int mask);
-void MemCardInit(long val);
-void MemCardStart(void);
-void PadInitMtap(void *p1, void *p2);
-void PadStartCom(void);
-void ResetGraph(int mode);
-void SetGraphDebug(int level);
 void SfxInit(unsigned char bMode);
 void MYPCinit(void);
 void InitialiseDrawNewGame(void);
 void InitSoundNewGame(void);
-void VSyncCallback(void (*f)());
-void DrawSyncCallback(void (*f)());
 void dprintf(struct WINDOW *Window, char *_format);
 extern int GameRunningMode;
 extern int DoIntro;
@@ -194,7 +175,6 @@ void GameIntro(void);
 void GameExtro(void);
 void GameTitle(void);
 void GameNewMission(void);
-void srand(unsigned int seed);
 int GetLevelData(struct IDENTITYNAME NewLevelName);
 void TestIt(char *Name);
 void LoadLevel(void);

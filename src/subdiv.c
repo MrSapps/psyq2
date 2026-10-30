@@ -4,8 +4,8 @@
 /* defined below; gcc defers these to the end of the file in this order */
 void UpdateSubdivisionLighting(void);
 int PolyHasZeroZ(struct GLOBSMODGT4 *Mod);
-void FreeSubDivFromPoly(struct POLY_GT4 *Poly);
-struct SUBPACK *NewSubGt4(struct GLOBSMODGT4 *Mod, struct POLY_GT4 *Poly, unsigned long *ot);
+void FreeSubDivFromPoly(POLY_GT4 *Poly);
+struct SUBPACK *NewSubGt4(struct GLOBSMODGT4 *Mod, POLY_GT4 *Poly, unsigned long *ot);
 void FreeSubDivs(void);
 void InitSubdivision(void);
 /* data */
@@ -31,13 +31,11 @@ extern struct DB db[];
 extern unsigned char DbFrame[];
 extern struct WINDOW GameWindows[];
 void dprintf(struct WINDOW *Window, char *_format, ...);
-void SetSemiTrans(void *p, int abe);
-void SetShadeTex(void *p, int tge);
 #define setlen(p, _len) (*(((unsigned char *)(p)) + 3) = (unsigned char)(_len))
 #define setcode(p, _code) (*(((unsigned char *)(p)) + 7) = (unsigned char)(_code))
 #define setPolyGT4(p) setlen(p, 12), setcode(p, 0x3c)
 
-void FreeSubDivFromPoly(struct POLY_GT4 *Poly)
+void FreeSubDivFromPoly(POLY_GT4 *Poly)
 {
     char *temp;
 
@@ -118,8 +116,8 @@ void InitSubdivision(void)
 {
     int a;
     int c;
-    struct POLY_GT4 *Gt40;
-    struct POLY_GT4 *Gt41;
+    POLY_GT4 *Gt40;
+    POLY_GT4 *Gt41;
 
     Gt40 = db[0].subpolsg4;
     Gt41 = db[1].subpolsg4;
@@ -150,18 +148,18 @@ void InitSubdivision(void)
     }
 }
 
-struct SUBPACK *NewSubGt4(struct GLOBSMODGT4 *Mod, struct POLY_GT4 *Poly, unsigned long *ot)
+struct SUBPACK *NewSubGt4(struct GLOBSMODGT4 *Mod, POLY_GT4 *Poly, unsigned long *ot)
 {
     char *temp;
-    struct POLY_GT4 *PolyA;
-    struct POLY_GT4 *PolyB;
+    POLY_GT4 *PolyA;
+    POLY_GT4 *PolyB;
 
     if (Poly >= db[1].modpolsg4) {
         PolyB = Poly;
-        PolyA = (struct POLY_GT4 *)((char *)Poly + (int)db[0].modpolsg4 - (int)db[1].modpolsg4);
+        PolyA = (POLY_GT4 *)((char *)Poly + (int)db[0].modpolsg4 - (int)db[1].modpolsg4);
     } else {
         PolyA = Poly;
-        PolyB = (struct POLY_GT4 *)((char *)Poly + (int)db[1].modpolsg4 - (int)db[0].modpolsg4);
+        PolyB = (POLY_GT4 *)((char *)Poly + (int)db[1].modpolsg4 - (int)db[0].modpolsg4);
     }
     PolyB->pad3 = PolyA->pad3 = *SubPackFreePntr++;
     temp = (char *)SubPackBase;
@@ -178,8 +176,8 @@ void UpdateSubdivisionLighting(void)
 {
     struct SUBPACK *SubP;
     int Frame;
-    struct POLY_GT4 *Poly;
-    struct POLY_GT4 *Dest;
+    POLY_GT4 *Poly;
+    POLY_GT4 *Dest;
 
     Frame = DbFrame[0];
     for (SubP = SubPack; SubP < &SubPack[MaxSubPols]; SubP++) {

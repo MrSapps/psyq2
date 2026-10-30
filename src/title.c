@@ -26,8 +26,6 @@ extern struct WINDOW GameWindows[];
 void QuakeLoadingSpecific(void);
 void QuakeCameraLoading(int Win);
 void VBlankLoading(void);
-struct DRAWENV *SetDefDrawEnv(struct DRAWENV *env, int x, int y, int w, int h);
-struct DISPENV *SetDefDispEnv(struct DISPENV *env, int x, int y, int w, int h);
 
 void VBlankLoading(void)
 {

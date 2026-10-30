@@ -1,5 +1,8 @@
 #include "types.h"
 #include "bss.h"
+#include <memory.h>
+#include <stdio.h>
+#include <strings.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void ResetGlobalSecretsKills(char *CurrentMapTitle);
@@ -29,7 +32,7 @@ struct MISSIONEND MissionEnd[6] = {
 static char MissionTitle[32] = "";
 static char MissionName_Line1[42] = "";
 static char MissionName_Line2[42] = "";
-static struct RECT MissionRect = { 84, 30, 344, 124 };
+static RECT MissionRect = { 84, 30, 344, 124 };
 
 
 extern struct MISSIONEND MissionEnd[];
@@ -40,16 +43,13 @@ extern int GlobalSecretsFound;
 extern struct PLAYER Players[];
 extern struct WINDOW GameWindows[];
 
-int strcmp();
-int strlen();
 void MoveQuakeCameraInterMission(int Win);
 void GetMissionName(void);
 short PreProcessInterMission(void);
 
 extern unsigned int LevelTicks;
-void DrawDarkenedBox(struct RECT Rect);
+void DrawDarkenedBox(RECT Rect);
 void SpriText(struct WINDOW *Window, char *String);
-int sprintf();
 short CentreText(char *String, short X1, short X2);
 short CentreSecretsKills(char *String, short XOffset);
 
@@ -58,15 +58,10 @@ extern int LevelIsMultiPlayer;
 extern int NewMission;
 extern int Mission;
 int MapPadInputToFire(int Player);
-char *strcpy();
-void *memset();
-int sprintf();
 struct SAVEFILEHDR *OpenSaveMemory(struct IDENTITYNAME Name, int Writeable);
 char *GetStringFromStringtable(struct IDENTITYNAME StringName);
 void SplitMissionName(char *MissionName);
 
-char *strrchr();
-char *strncpy();
 
 char AddLevelInterMission(char *CurrentMapTitle)
 {

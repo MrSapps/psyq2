@@ -5,13 +5,14 @@
  * results screen lists the players without team scores. */
 /* ovl-libs: libc2/MEMSET libgpu/P00 libgpu/P33 libpress/LIBPRESS libpress/VLC_C libpress/BUILD libpress/DCT002 */
 #include "ovl.h"
+#include <libetc.h>
 #include "bss.h"
 
 /* the older types (only what this module touches is laid out) */
 struct DB_OLD {  /* size 0x7e24 */
     char Unknown0[0x2a50];
-    struct DISPENV DispEnv;  /* 0x2a50 */
-    struct DR_MOVE WaterMove;  /* 0x2a64 */
+    DISPENV DispEnv;  /* 0x2a50 */
+    DR_MOVE WaterMove;  /* 0x2a64 */
     unsigned long Ot[4][51];  /* 0x2a7c */
     unsigned long BigOt[11];  /* 0x2dac */
     char Unknown2dd8[0x7e24 - 0x2dd8];
@@ -38,14 +39,13 @@ struct QLEVELINTERFACE_OLD LevelInterface OVL_HEADER = { InitLevel, 0 };
 
 #include "level_qend_common.h"
 
-int ResetCallback(void);
 void DummyUpdate(void);
 void IntroUpdate(void);
 void ExtroUpdate(void);
 void MagazineIntrUpdate(void);
 void MagazineExtrUpdate(void);
 void SetClutSemiTrans(short *clut, int n);
-void LoadClut(unsigned short *clut, short slot, int is256);
+void LoadSlotClut(unsigned short *clut, short slot, int is256);
 int DMACallback(int dma, void (*func)());
 void strKickCD(void);
 void strInit(unsigned long *ring, void (*callback)(), int endframe);
@@ -70,9 +70,9 @@ static int LogosFade[3] BSS;
 static int UnusedBss2 BSS;
 static int PictureTime BSS;
 static int VlcSize BSS;
-static struct CdlLOC Loc BSS;
+static CdlLOC Loc BSS;
 static int UnusedBss3 BSS;
-static struct CdlFILE File BSS;
+static CdlFILE File BSS;
 static int FileSize BSS;
 static int EndFrame BSS;
 static int isEndOfFlag BSS;
@@ -84,14 +84,14 @@ static unsigned short *VlcTable BSS;
 static short ScreenX BSS;
 static short ScreenY __attribute__((section(".bss")));
 static int UnusedBss5 BSS;
-static struct DR_TPAGE TPages[2][5] BSS;
-static struct DR_TPAGE *TPageEnd BSS;
+static DR_TPAGE TPages[2][5] BSS;
+static DR_TPAGE *TPageEnd BSS;
 static int UnusedBss6 BSS;
-static struct SPRT Sprites[2][5] BSS;
-static struct DR_TPAGE *TPagePtr BSS;
+static SPRT Sprites[2][5] BSS;
+static DR_TPAGE *TPagePtr BSS;
 static int UnusedBss7 BSS;
-static struct SPRT *SprtEnd BSS;
-static struct SPRT *SprtPtr BSS;
+static SPRT *SprtEnd BSS;
+static SPRT *SprtPtr BSS;
 
 /* .data defined before InitLevel's users */
 extern unsigned short Cluts[7][16];
@@ -120,32 +120,32 @@ void InitLevel(void)
         *ENGINE->LevelSpecific = EndMissionUpdate;
         ENGINE->palette[0] = 0x4000;
         ENGINE->palette[1] = 0x4040;
-        LoadClut(Cluts[2], 0, 0);
-        LoadClut(Cluts[1], 1, 0);
+        LoadSlotClut(Cluts[2], 0, 0);
+        LoadSlotClut(Cluts[1], 1, 0);
     } else if (ENGINE->ModNameCmp(ENGINE->ThisLevelName, &(struct IDENTITYNAME){"EndMission 2"}) == 1) {
         *ENGINE->LevelSpecific = EndMissionUpdate;
         ENGINE->palette[0] = 0x4000;
         ENGINE->palette[1] = 0x4040;
-        LoadClut(Cluts[3], 0, 0);
-        LoadClut(Cluts[1], 1, 0);
+        LoadSlotClut(Cluts[3], 0, 0);
+        LoadSlotClut(Cluts[1], 1, 0);
     } else if (ENGINE->ModNameCmp(ENGINE->ThisLevelName, &(struct IDENTITYNAME){"EndMission 3"}) == 1) {
         *ENGINE->LevelSpecific = EndMissionUpdate;
         ENGINE->palette[0] = 0x4000;
         ENGINE->palette[1] = 0x4040;
-        LoadClut(Cluts[4], 0, 0);
-        LoadClut(Cluts[1], 1, 0);
+        LoadSlotClut(Cluts[4], 0, 0);
+        LoadSlotClut(Cluts[1], 1, 0);
     } else if (ENGINE->ModNameCmp(ENGINE->ThisLevelName, &(struct IDENTITYNAME){"EndMission 4"}) == 1) {
         *ENGINE->LevelSpecific = EndMissionUpdate;
         ENGINE->palette[0] = 0x4000;
         ENGINE->palette[1] = 0x4040;
-        LoadClut(Cluts[5], 0, 0);
-        LoadClut(Cluts[1], 1, 0);
+        LoadSlotClut(Cluts[5], 0, 0);
+        LoadSlotClut(Cluts[1], 1, 0);
     } else if (ENGINE->ModNameCmp(ENGINE->ThisLevelName, &(struct IDENTITYNAME){"EndMission 5"}) == 1) {
         *ENGINE->LevelSpecific = EndMissionUpdate;
         ENGINE->palette[0] = 0x4000;
         ENGINE->palette[1] = 0x4040;
-        LoadClut(Cluts[6], 0, 0);
-        LoadClut(Cluts[1], 1, 0);
+        LoadSlotClut(Cluts[6], 0, 0);
+        LoadSlotClut(Cluts[1], 1, 0);
     } else if (ENGINE->ModNameCmp(ENGINE->ThisLevelName, &(struct IDENTITYNAME){"Intro FMV"}) == 1) {
         ENGINE->PrintF("Do Intro\n");
         PlayMovie("TAKE1B.STX", 1539, 0x10000, 1, 255);
@@ -162,30 +162,30 @@ void InitLevel(void)
         ENGINE->palette[1] = 0x3fd0;
         ENGINE->palette[2] = 0x3fe0;
         SetClutSemiTrans((short *)Clut256[0], 768);
-        LoadClut(Clut256[0], 0, 1);
-        LoadClut(Clut256[1], 1, 1);
-        LoadClut(Clut256[2], 2, 1);
+        LoadSlotClut(Clut256[0], 0, 1);
+        LoadSlotClut(Clut256[1], 1, 1);
+        LoadSlotClut(Clut256[2], 2, 1);
     } else if (ENGINE->ModNameCmp(ENGINE->ThisLevelName, &(struct IDENTITYNAME){"Dummy"}) == 1) {
         *ENGINE->LevelSpecific = DummyUpdate;
     } else if (ENGINE->ModNameCmp(ENGINE->ThisLevelName, &(struct IDENTITYNAME){"MagazineIntr"}) == 1) {
         *ENGINE->LevelSpecific = MagazineIntrUpdate;
         ENGINE->palette[0] = 0x3fc0;
         SetClutSemiTrans((short *)Clut256[3], 256);
-        LoadClut(Clut256[3], 0, 1);
+        LoadSlotClut(Clut256[3], 0, 1);
     } else if (ENGINE->ModNameCmp(ENGINE->ThisLevelName, &(struct IDENTITYNAME){"MagazineExtr"}) == 1) {
         *ENGINE->LevelSpecific = MagazineExtrUpdate;
         ENGINE->palette[0] = 0x3fc0;
         SetClutSemiTrans((short *)Clut256[4], 256);
-        LoadClut(Clut256[4], 0, 1);
+        LoadSlotClut(Clut256[4], 0, 1);
     } else if (ENGINE->ModNameCmp(ENGINE->ThisLevelName, &(struct IDENTITYNAME){"MPResults"}) == 1) {
         *ENGINE->LevelSpecific = MPResultsUpdate;
         ENGINE->palette[0] = 0x3fc0;
         ENGINE->palette[1] = 0x3fd0;
         ENGINE->palette[2] = 0x3fe0;
         SetClutSemiTrans((short *)Clut256[0], 768);
-        LoadClut(Clut256[0], 0, 1);
-        LoadClut(Clut256[1], 1, 1);
-        LoadClut(Clut256[2], 2, 1);
+        LoadSlotClut(Clut256[0], 0, 1);
+        LoadSlotClut(Clut256[1], 1, 1);
+        LoadSlotClut(Clut256[2], 2, 1);
         InitScoreScreen();
     }
     ENGINE->PrintF("Done Initialise\n");
@@ -242,7 +242,7 @@ static void InitScoreScreen(void)
     ENGINE->FrontEndCreateMenu(ScoreMenu, 16);
 }
 
-static void DrawSprite(struct DVECTOR xy, struct DVECTOR wh, short clut, short tpage, struct COLOUR col, int abr);
+static void DrawSprite(DVECTOR xy, DVECTOR wh, short clut, short tpage, struct COLOUR col, int abr);
 static void DrawPicture(short y, short clut, short tpage, int is24, struct COLOUR col, int semitrans);
 
 static void MPResultsUpdate(void)
@@ -263,7 +263,7 @@ static void EndMissionUpdate(void)
     SprtEnd = SprtPtr + 5;
     TPagePtr = TPages[*ENGINE->DbFrame];
     TPageEnd = TPagePtr + 5;
-    DrawSprite((struct DVECTOR){40, 20}, (struct DVECTOR){192, 128}, 1, 4, (struct COLOUR){128, 128, 128}, *ENGINE->ChrisCount & 0xf);
+    DrawSprite((DVECTOR){40, 20}, (DVECTOR){192, 128}, 1, 4, (struct COLOUR){128, 128, 128}, *ENGINE->ChrisCount & 0xf);
     DrawPicture(ScrollY, 0, 0, 0, (struct COLOUR){128, 128, 128}, 0);
     if (++ScrollY >= 240) {
         ENGINE->PrintF("Mission completed %d\n", *ENGINE->Mission);

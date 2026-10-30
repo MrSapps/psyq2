@@ -39,7 +39,6 @@ static void ClearDependancies(int *Dependancies, int NumElements)
 extern struct WINDOW GameWindows[];
 extern struct DB *currdb;
 extern struct VECT *CurrCamPos;
-void AddPrims(unsigned long *Ot, void *First, void *Last);
 void SortObjectsClever(struct SORT *Sort, struct SORT *QSort, struct SORT **NewSort);
 extern struct AREA AreaData[];
 extern unsigned long *CurrOt;
@@ -49,7 +48,6 @@ extern int MaxWindows;
 extern struct DB *currdb;
 extern char *GetNextGlobalMemory(int Size);
 extern void DrawSortedObjects(int Win);
-extern void AddPrims(unsigned long *Ot, void *First, void *Last);
 
 extern short DrawSortObjectsOn;
 void AddCross(struct VECT *Pos, int Radius, struct COLOUR Colour);

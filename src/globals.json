@@ -3232,7 +3232,7 @@
  },
  {
   "name": "MissionRect",
-  "decl": "struct RECT MissionRect",
+  "decl": "RECT MissionRect",
   "addr": 2148198864,
   "offset": null,
   "size": 8,
@@ -3709,7 +3709,7 @@
  },
  {
   "name": "ObjTranVect",
-  "decl": "struct VECTOR *ObjTranVect",
+  "decl": "VECTOR *ObjTranVect",
   "addr": 2148199992,
   "offset": null,
   "size": 16,
@@ -4096,7 +4096,7 @@
  },
  {
   "name": "NextLineF2",
-  "decl": "struct LINE_F2 *NextLineF2",
+  "decl": "LINE_F2 *NextLineF2",
   "addr": 2148215192,
   "offset": null,
   "size": 16,
@@ -4150,7 +4150,7 @@
  },
  {
   "name": "LastGeneralG4",
-  "decl": "struct POLY_G4 *LastGeneralG4",
+  "decl": "POLY_G4 *LastGeneralG4",
   "addr": 2148215216,
   "offset": null,
   "size": 36,
@@ -4159,7 +4159,7 @@
  },
  {
   "name": "NextGeneralG4",
-  "decl": "struct POLY_G4 *NextGeneralG4",
+  "decl": "POLY_G4 *NextGeneralG4",
   "addr": 2148215220,
   "offset": null,
   "size": 36,
@@ -4177,7 +4177,7 @@
  },
  {
   "name": "LastTpChange",
-  "decl": "struct POLY_FT3 *LastTpChange",
+  "decl": "POLY_FT3 *LastTpChange",
   "addr": 2148215228,
   "offset": null,
   "size": 32,
@@ -4186,7 +4186,7 @@
  },
  {
   "name": "NextTpChange",
-  "decl": "struct POLY_FT3 *NextTpChange",
+  "decl": "POLY_FT3 *NextTpChange",
   "addr": 2148215232,
   "offset": null,
   "size": 32,
@@ -4222,7 +4222,7 @@
  },
  {
   "name": "LensFlarePoly",
-  "decl": "struct POLY_G4 *LensFlarePoly",
+  "decl": "POLY_G4 *LensFlarePoly",
   "addr": 2148215248,
   "offset": null,
   "size": 36,
@@ -4231,7 +4231,7 @@
  },
  {
   "name": "LastLensFlarePoly",
-  "decl": "struct POLY_G4 *LastLensFlarePoly",
+  "decl": "POLY_G4 *LastLensFlarePoly",
   "addr": 2148215252,
   "offset": null,
   "size": 36,
@@ -4240,7 +4240,7 @@
  },
  {
   "name": "LastChangeDrawEnv",
-  "decl": "struct DRAWENV *LastChangeDrawEnv",
+  "decl": "DRAWENV *LastChangeDrawEnv",
   "addr": 2148215256,
   "offset": null,
   "size": 92,
@@ -4249,7 +4249,7 @@
  },
  {
   "name": "ChangeDrawEnv",
-  "decl": "struct DRAWENV *ChangeDrawEnv",
+  "decl": "DRAWENV *ChangeDrawEnv",
   "addr": 2148215260,
   "offset": null,
   "size": 92,
@@ -4258,7 +4258,7 @@
  },
  {
   "name": "LastLineF2",
-  "decl": "struct LINE_F2 *LastLineF2",
+  "decl": "LINE_F2 *LastLineF2",
   "addr": 2148215264,
   "offset": null,
   "size": 16,
@@ -4267,7 +4267,7 @@
  },
  {
   "name": "LastPolyFt4",
-  "decl": "struct POLY_FT4 *LastPolyFt4",
+  "decl": "POLY_FT4 *LastPolyFt4",
   "addr": 2148215268,
   "offset": null,
   "size": 40,
@@ -4276,7 +4276,7 @@
  },
  {
   "name": "NextPolyFt4",
-  "decl": "struct POLY_FT4 *NextPolyFt4",
+  "decl": "POLY_FT4 *NextPolyFt4",
   "addr": 2148215272,
   "offset": null,
   "size": 40,
@@ -4744,7 +4744,7 @@
  },
  {
   "name": "ParticleFt4",
-  "decl": "struct POLY_FT4 *ParticleFt4",
+  "decl": "POLY_FT4 *ParticleFt4",
   "addr": 2148215492,
   "offset": null,
   "size": 40,
@@ -4951,7 +4951,7 @@
  },
  {
   "name": "CurrCamMat",
-  "decl": "struct MATRIX *CurrCamMat",
+  "decl": "MATRIX *CurrCamMat",
   "addr": 2148215592,
   "offset": null,
   "size": 32,
@@ -5536,7 +5536,7 @@
  },
  {
   "name": "gDarkBoxRect",
-  "decl": "struct RECT gDarkBoxRect",
+  "decl": "RECT gDarkBoxRect",
   "addr": 2148215880,
   "offset": null,
   "size": 8,
@@ -5581,7 +5581,7 @@
  },
  {
   "name": "LastQuakeLine",
-  "decl": "struct LINE_F2 *LastQuakeLine",
+  "decl": "LINE_F2 *LastQuakeLine",
   "addr": 2148215904,
   "offset": null,
   "size": 16,
@@ -5590,7 +5590,7 @@
  },
  {
   "name": "NextQuakeLine",
-  "decl": "struct LINE_F2 *NextQuakeLine",
+  "decl": "LINE_F2 *NextQuakeLine",
   "addr": 2148215908,
   "offset": null,
   "size": 16,
@@ -6067,7 +6067,7 @@
  },
  {
   "name": "SpriteAnySize",
-  "decl": "struct SPRT *SpriteAnySize",
+  "decl": "SPRT *SpriteAnySize",
   "addr": 2148216128,
   "offset": null,
   "size": 20,
@@ -6076,7 +6076,7 @@
  },
  {
   "name": "LastSpriteAnySize",
-  "decl": "struct SPRT *LastSpriteAnySize",
+  "decl": "SPRT *LastSpriteAnySize",
   "addr": 2148216132,
   "offset": null,
   "size": 20,
@@ -6085,7 +6085,7 @@
  },
  {
   "name": "LastFMenuPoly",
-  "decl": "struct POLY_GT4 *LastFMenuPoly",
+  "decl": "POLY_GT4 *LastFMenuPoly",
   "addr": 2148216136,
   "offset": null,
   "size": 52,
@@ -6094,7 +6094,7 @@
  },
  {
   "name": "MenuPoly",
-  "decl": "struct POLY_FT4 *MenuPoly",
+  "decl": "POLY_FT4 *MenuPoly",
   "addr": 2148216140,
   "offset": null,
   "size": 40,
@@ -6103,7 +6103,7 @@
  },
  {
   "name": "FMenuPoly",
-  "decl": "struct POLY_GT4 *FMenuPoly",
+  "decl": "POLY_GT4 *FMenuPoly",
   "addr": 2148216144,
   "offset": null,
   "size": 52,
@@ -6112,7 +6112,7 @@
  },
  {
   "name": "LastMenuPoly",
-  "decl": "struct POLY_FT4 *LastMenuPoly",
+  "decl": "POLY_FT4 *LastMenuPoly",
   "addr": 2148216148,
   "offset": null,
   "size": 40,
@@ -6121,7 +6121,7 @@
  },
  {
   "name": "Sprite816",
-  "decl": "struct SPRT_16 *Sprite816",
+  "decl": "SPRT_16 *Sprite816",
   "addr": 2148216152,
   "offset": null,
   "size": 16,
@@ -6130,7 +6130,7 @@
  },
  {
   "name": "LastSprite816",
-  "decl": "struct SPRT_16 *LastSprite816",
+  "decl": "SPRT_16 *LastSprite816",
   "addr": 2148216156,
   "offset": null,
   "size": 16,
@@ -6679,7 +6679,7 @@
  },
  {
   "name": "WaterMoves",
-  "decl": "struct DR_MOVE *WaterMoves[2]",
+  "decl": "DR_MOVE *WaterMoves[2]",
   "addr": 2148216416,
   "offset": null,
   "size": 8,
@@ -6697,7 +6697,7 @@
  },
  {
   "name": "LastWaterMove",
-  "decl": "struct DR_MOVE *LastWaterMove",
+  "decl": "DR_MOVE *LastWaterMove",
   "addr": 2148216428,
   "offset": null,
   "size": 24,
@@ -6706,7 +6706,7 @@
  },
  {
   "name": "WaterMove",
-  "decl": "struct DR_MOVE *WaterMove",
+  "decl": "DR_MOVE *WaterMove",
   "addr": 2148216432,
   "offset": null,
   "size": 24,
@@ -6742,7 +6742,7 @@
  },
  {
   "name": "ShieldEffPoints",
-  "decl": "struct SVECTOR *ShieldEffPoints",
+  "decl": "SVECTOR *ShieldEffPoints",
   "addr": 2148216448,
   "offset": null,
   "size": 8,
@@ -7381,7 +7381,7 @@
  },
  {
   "name": "OtherPolys",
-  "decl": "struct POLY_GT4 *OtherPolys",
+  "decl": "POLY_GT4 *OtherPolys",
   "addr": 2148216732,
   "offset": null,
   "size": 52,
@@ -7651,7 +7651,7 @@
  },
  {
   "name": "NextLine",
-  "decl": "struct LINE_G2 *NextLine",
+  "decl": "LINE_G2 *NextLine",
   "addr": 2148216860,
   "offset": null,
   "size": 20,
@@ -7759,7 +7759,7 @@
  },
  {
   "name": "desrect",
-  "decl": "struct RECT desrect",
+  "decl": "RECT desrect",
   "addr": 2148216908,
   "offset": null,
   "size": 8,
@@ -7777,7 +7777,7 @@
  },
  {
   "name": "currsp",
-  "decl": "struct SPRT *currsp",
+  "decl": "SPRT *currsp",
   "addr": 2148216920,
   "offset": null,
   "size": 20,
@@ -7849,7 +7849,7 @@
  },
  {
   "name": "LastLine",
-  "decl": "struct LINE_G2 *LastLine",
+  "decl": "LINE_G2 *LastLine",
   "addr": 2148216952,
   "offset": null,
   "size": 20,
@@ -8515,7 +8515,7 @@
  },
  {
   "name": "ShadowPolys",
-  "decl": "struct POLY_FT4 *ShadowPolys",
+  "decl": "POLY_FT4 *ShadowPolys",
   "addr": 2148217260,
   "offset": null,
   "size": 40,
@@ -8524,7 +8524,7 @@
  },
  {
   "name": "EndShadowPolys",
-  "decl": "struct POLY_FT4 *EndShadowPolys",
+  "decl": "POLY_FT4 *EndShadowPolys",
   "addr": 2148217264,
   "offset": null,
   "size": 40,
@@ -8560,7 +8560,7 @@
  },
  {
   "name": "tempdisprect",
-  "decl": "struct RECT tempdisprect",
+  "decl": "RECT tempdisprect",
   "addr": 2148217280,
   "offset": null,
   "size": 8,
@@ -8722,7 +8722,7 @@
  },
  {
   "name": "tempdisprect2",
-  "decl": "struct RECT tempdisprect2",
+  "decl": "RECT tempdisprect2",
   "addr": 2148217356,
   "offset": null,
   "size": 8,
@@ -8947,7 +8947,7 @@
  },
  {
   "name": "actualStack0",
-  "decl": "struct POLY_FT4 actualStack0[130]",
+  "decl": "POLY_FT4 actualStack0[130]",
   "addr": 2148287088,
   "offset": null,
   "size": 5200,
@@ -8956,7 +8956,7 @@
  },
  {
   "name": "actualStack1",
-  "decl": "struct POLY_FT4 actualStack1[130]",
+  "decl": "POLY_FT4 actualStack1[130]",
   "addr": 2148292288,
   "offset": null,
   "size": 5200,
@@ -8974,7 +8974,7 @@
  },
  {
   "name": "LoadDoClipDrawEnvs",
-  "decl": "struct DRAWENV LoadDoClipDrawEnvs[2]",
+  "decl": "DRAWENV LoadDoClipDrawEnvs[2]",
   "addr": 2148297584,
   "offset": null,
   "size": 184,
@@ -8983,7 +8983,7 @@
  },
  {
   "name": "LoadUnClipDrawEnvs",
-  "decl": "struct DRAWENV LoadUnClipDrawEnvs[2]",
+  "decl": "DRAWENV LoadUnClipDrawEnvs[2]",
   "addr": 2148297768,
   "offset": null,
   "size": 184,
@@ -9577,7 +9577,7 @@
  },
  {
   "name": "LightVec",
-  "decl": "struct SVECTOR LightVec[3]",
+  "decl": "SVECTOR LightVec[3]",
   "addr": 2148392720,
   "offset": null,
   "size": 24,
@@ -9586,7 +9586,7 @@
  },
  {
   "name": "movedisp",
-  "decl": "struct DISPENV movedisp",
+  "decl": "DISPENV movedisp",
   "addr": 2148392760,
   "offset": null,
   "size": 20,
@@ -9604,7 +9604,7 @@
  },
  {
   "name": "rgbmatrix",
-  "decl": "struct MATRIX rgbmatrix",
+  "decl": "MATRIX rgbmatrix",
   "addr": 2148392844,
   "offset": null,
   "size": 32,
@@ -9631,7 +9631,7 @@
  },
  {
   "name": "lightmatrix",
-  "decl": "struct MATRIX lightmatrix",
+  "decl": "MATRIX lightmatrix",
   "addr": 2148392952,
   "offset": null,
   "size": 32,
@@ -9685,7 +9685,7 @@
  },
  {
   "name": "loc",
-  "decl": "struct CdlLOC loc[16]",
+  "decl": "CdlLOC loc[16]",
   "addr": 2148398012,
   "offset": null,
   "size": 64,
@@ -9694,7 +9694,7 @@
  },
  {
   "name": "xailoc",
-  "decl": "struct CdlLOC xailoc[20]",
+  "decl": "CdlLOC xailoc[20]",
   "addr": 2148398076,
   "offset": null,
   "size": 80,
@@ -9775,7 +9775,7 @@
  },
  {
   "name": "SFXRotCoord",
-  "decl": "struct VECTOR SFXRotCoord",
+  "decl": "VECTOR SFXRotCoord",
   "addr": 2148405880,
   "offset": null,
   "size": 16,
@@ -9865,7 +9865,7 @@
  },
  {
   "name": "divp",
-  "decl": "struct DIVPOLYGON4 divp",
+  "decl": "DIVPOLYGON4 divp",
   "addr": 2148418108,
   "offset": null,
   "size": 820,
@@ -9874,7 +9874,7 @@
  },
  {
   "name": "divp2",
-  "decl": "struct DIVPOLYGON4 divp2",
+  "decl": "DIVPOLYGON4 divp2",
   "addr": 2148418928,
   "offset": null,
   "size": 820,

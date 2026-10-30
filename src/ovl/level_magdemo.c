@@ -8,8 +8,8 @@ struct QENGINELEVINTERFACE_MAGDEMO {
     int SizeOf;
     int (*PrintF)();
     struct IDENTITYNAME *ThisLevelName;
-    struct POLY_FT4 *PolyStack0;
-    struct POLY_FT4 *PolyStack1;
+    POLY_FT4 *PolyStack0;
+    POLY_FT4 *PolyStack1;
     void *MissionData;
     unsigned int *usp;
     struct CREATURE *(*InitialiseQuakePlayer)();
@@ -73,7 +73,7 @@ struct QENGINELEVINTERFACE_MAGDEMO {
     void ***OnZoneLoadTable;
     int (*rand)();
     int (*sprintf)();
-    struct MATRIX *(*RotMatrixYXZ)();
+    MATRIX *(*RotMatrixYXZ)();
     char *(*PrintIdentityName)();
     void (*centreprintf)();
     void (*dprintf)();

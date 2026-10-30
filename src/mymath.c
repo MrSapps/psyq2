@@ -1,9 +1,10 @@
 #include "types.h"
+#include <abs.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void GenTangentialAxis(struct VECT *R, struct VECT *A, struct VECT *B);
 void FractionDist(struct SVECT *R, struct SVECT *T, struct FRACTION *F);
-int abs(int); struct PAIR QuadraticSolutionsR12(int a, int b, int c);
+struct PAIR QuadraticSolutionsR12(int a, int b, int c);
 void OnePixel(struct SVECT *A, struct SVECT *B);
 void LongIntMult_(struct LONGINT *L, int a, int b);
 int LongIntAccDiv24_(struct LONGINT *L, int d);
@@ -42,7 +43,6 @@ void FractionDist(struct SVECT *R, struct SVECT *T, struct FRACTION *F)
     R->vz = LongIntAccDiv24_(&L, F->Denominator);
 }
 
-int abs(int);
 
 struct PAIR QuadraticSolutionsR12(int a, int b, int c)
 {

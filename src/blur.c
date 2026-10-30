@@ -1,5 +1,6 @@
 #include "types.h"
 #include "bss.h"
+#include <memory.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void InitBlurPoints(void);
@@ -20,7 +21,6 @@ extern short DrawCollisionOn;
 void dprintf(struct WINDOW *Window, char *_format, ...);
 void GetAbsoluteModelVert(struct CREATURE *Cre, short VertexNum, struct VECT *Pos);
 void AddCross(struct VECT *Pos, int Radius, struct COLOUR Colour);
-void *memset();
 
 static struct BLURHDR *FindBlurHdr(struct SHORTPAIR Unique)
 {
@@ -54,20 +54,15 @@ extern int MaxWindows;
 extern int CurrWinIndx;
 extern struct WINDOW *CurrWin;
 extern struct VECT *CurrCamPos;
-extern struct MATRIX *CurrCamMat;
+extern MATRIX *CurrCamMat;
 extern struct SCRPNT CurrScreenSize;
 extern struct SCRPNT CurrScreenMin;
 extern unsigned long *CurrOt;
 extern struct DB *currdb;
-extern struct POLY_G4 *LastGeneralG4;
-extern struct POLY_G4 *NextGeneralG4;
+extern POLY_G4 *LastGeneralG4;
+extern POLY_G4 *NextGeneralG4;
 void AddCross(struct VECT *Pos, int Radius, struct COLOUR Colour);
-void *memset();
-void SetGeomScreen(long h);
-void SetRotMatrix(struct MATRIX *m);
 void SetupScreenGivenArea(int Win, int Area);
-void SetPolyG4(void *p);
-void SetSemiTrans(void *p, int abe);
 void AddPrim_(void *ot, void *p);
 void AddPrimInsert_(void *ot, void *p);
 
@@ -225,7 +220,7 @@ void ProcessBlurs(void)
             gte_ldv0_s(&Rel);
             gte_rtv0_s();
             gte_stlvnl_s(&Tran);
-            gte_SetTransMatrix_s((struct MATRIX *)((char *)&Tran - 20));
+            gte_SetTransMatrix_s((MATRIX *)((char *)&Tran - 20));
             while (Indx) {
                 CurrentScrPnt = StripScrPnts[StripIndx];
                 while (Indx > 0) {

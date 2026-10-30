@@ -1,11 +1,12 @@
 #include "types.h"
 #include "bss.h"
+#include <rand.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 int Q2CreDropItemOnDeath(struct CREATURE *Cre);
 void ProcessFlyingPickups(void);
 int SelectAmmoTypeInUse(int Gun, int GunBits);
-int rand(void); void InitFlyingPickup(struct FLYPICK *FlyPick);
+void InitFlyingPickup(struct FLYPICK *FlyPick);
 int GenerateQuakeFlyingPickup(int PickupType, int Angle, struct SVECT *Force, struct VECT *Location, short MoveSpace);
 void PrimaryQuakePickupMoving(struct CREATURE *Cre);
 /* data */
@@ -33,7 +34,6 @@ struct CREATURE *GetNextCre(int UseExpendable);
 struct GLOBMODHDR *GetModelHdr(struct IDENTITYNAME Name);
 void KillModel(struct CREATURE *Cre);
 int GetFloorOffset(struct CREATURE *Cre);
-void RotMatrixYXZ(struct SVECT *r, struct MATRIX *m);
 
 extern int LevelIsMultiPlayer;
 
@@ -106,7 +106,6 @@ int SelectAmmoTypeInUse(int Gun, int GunBits)
     return PickupType;
 }
 
-int rand(void);
 
 void InitFlyingPickup(struct FLYPICK *FlyPick)
 {

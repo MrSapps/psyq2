@@ -1,6 +1,7 @@
 /* BigGun: the Big Gun level (mission 4). The gun fires lightning beams at its emitters and
  * cracks the glass around it once the reactor is destroyed. */
 #include "ovl.h"
+#include <rand.h>
 #include "bss.h"
 void InitLevel(void);
 struct QLEVELINTERFACE LevelInterface OVL_HEADER = { InitLevel, 0, 0 };
@@ -41,7 +42,6 @@ void SetGlassHidden(int n, int Hidden);
 int InSweep(int n);
 struct CREATURE *FindGun(void);
 static void DrawExtra(void);
-int rand(void);
 void LinkedLibraries(void);
 
 static void DrawBeam(struct BEAM *Beam);
@@ -83,7 +83,7 @@ static struct SVECT BoltAngles[7] = {
 /* bss: definition order, word aligned (the BSS attribute; .lcomm would 16-align the arrays) */
 static int Unused1 BSS;
 static struct CREATURE *GunCre BSS;
-static struct POLY_FT4 *BeamPolys BSS;
+static POLY_FT4 *BeamPolys BSS;
 static int BeamArea BSS;
 static int Unused2 BSS;
 static struct BEAM *BeamsEnd BSS;
@@ -97,9 +97,9 @@ static short PowerSourceIdx BSS;
 static int Unused4b BSS;
 static struct BEAM Beams[8] BSS;
 static struct BEAMWAVE Waves[8] BSS;
-static struct POLY_FT4 *BeamPolysEnd BSS;
+static POLY_FT4 *BeamPolysEnd BSS;
 static int Unused5 BSS;
-static struct POLY_FT4 BeamPolyBuf[2][32] BSS;
+static POLY_FT4 BeamPolyBuf[2][32] BSS;
 
 void ResetBeams(void)
 {
@@ -180,17 +180,17 @@ static void DrawBeams(void)
 
 static void DrawBeam(struct BEAM *Beam)
 {
-    struct SVECTOR Scr[36];
+    SVECTOR Scr[36];
     int DX[34];
     int DY[34];
     struct VECT *Points;
-    struct SVECTOR *Rel;
+    SVECTOR *Rel;
     struct BEAMEDGE *Edges;
     struct UVPAIR *UV;
     short Clut;
     short TPage;
     int Len;
-    struct POLY_FT4 *First;
+    POLY_FT4 *First;
     int Segs;
     int i;
     int dx, dy, dz;
@@ -202,7 +202,7 @@ static void DrawBeam(struct BEAM *Beam)
 
     Points = (struct VECT *)LevelInterface.Engine->DummyMemory;
     Edges = (struct BEAMEDGE *)&Points[33];
-    Rel = (struct SVECTOR *)&Edges[33];
+    Rel = (SVECTOR *)&Edges[33];
     if (!LevelInterface.Engine->AreaValid(0, Beam->Area))
         return;
     LevelInterface.Engine->SetupScreenGivenArea(0, Beam->Area);
@@ -352,7 +352,7 @@ static void DrawBeam(struct BEAM *Beam)
     }
 Done:
     if (First != BeamPolys) {
-        Beam->Sort.FirstLast[1] = (struct POLY_GT4 *)First;
+        Beam->Sort.FirstLast[1] = (POLY_GT4 *)First;
         Beam->Sort.VectBox = &Beam->VectBox;
         LevelInterface.Engine->GenVectBox(&Beam->VectBox, &Beam->Start, &Beam->End);
         Beam->Sort.Flags = 0;
@@ -447,7 +447,7 @@ static int PowerSourceOn(void)
 static void BigGunProcess(void)
 {
     struct SVECT Radius;
-    struct MATRIX S;
+    MATRIX S;
     struct VECT Pos;
     struct CREATURE *Cre;
     int i;

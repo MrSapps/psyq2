@@ -1,5 +1,6 @@
 #include "types.h"
 #include "bss.h"
+#include <memory.h>
 
 /* defined below; gcc defers these to the end of the file in this order */
 void ClearSaveMemory(void);
@@ -52,11 +53,9 @@ static struct SAVEFILEHDR *FindSaveFile(struct IDENTITYNAME Name)
 }
 
 int BytesBetween(void *a, void *b);
-void *memmove(void *dst, const void *src, unsigned int n);
 
 
 
-void *memcpy(void *dst, const void *src, unsigned int n);
 
 void StoreLevelStartState(void)
 {

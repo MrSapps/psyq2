@@ -1,7 +1,7 @@
 #include "types.h"
 
 /* defined below; gcc defers these to the end of the file in this order */
-int T2GlobSubdivideGt4(struct GLOBSMODGT4 *Mod, struct POLY_GT4 *Poly, unsigned long *ot, int ScreenZ);
+int T2GlobSubdivideGt4(struct GLOBSMODGT4 *Mod, POLY_GT4 *Poly, unsigned long *ot, int ScreenZ);
 extern unsigned char DbFrame[];
 extern short SubDivFails;
 extern int ProtectedSubdivideDistance;
@@ -11,10 +11,10 @@ extern short *LastUnprotectedSubPackFree;
 extern short *LastSubPackFree;
 extern short *LastSemiProtectedSubPackFree;
 int PolyHasZeroZ(struct GLOBSMODGT4 *Mod);
-struct SUBPACK *NewSubGt4(struct GLOBSMODGT4 *Mod, struct POLY_GT4 *Poly, unsigned long *ot);
-void GlobDrawSubGt4_(struct POLY_GT4 *Dest, struct SUBPACK *Sub, unsigned long *ot, struct POLY_GT4 *Poly);
+struct SUBPACK *NewSubGt4(struct GLOBSMODGT4 *Mod, POLY_GT4 *Poly, unsigned long *ot);
+void GlobDrawSubGt4_(POLY_GT4 *Dest, struct SUBPACK *Sub, unsigned long *ot, POLY_GT4 *Poly);
 
-int T2GlobSubdivideGt4(struct GLOBSMODGT4 *Mod, struct POLY_GT4 *Poly, unsigned long *ot, int ScreenZ)
+int T2GlobSubdivideGt4(struct GLOBSMODGT4 *Mod, POLY_GT4 *Poly, unsigned long *ot, int ScreenZ)
 {
     struct SUBPACK *Sub;
     char *temp;

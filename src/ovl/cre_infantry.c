@@ -175,7 +175,8 @@ static struct VECT aimangles[] = {
     { 0x400, 0, 0x18e },
 };
 
-/* the original linker started .bss on an 8-byte boundary; tools/ovllink.py uses 4 */
+/* the original's .bss starts 4 bytes further on, 8-aligned (not a rule of its linker: most
+ * modules' .bss is only word-aligned); this .data word fills the gap */
 static int BssAlign = 0;
 
 /* the Unused* are space the original has that no code uses */

@@ -27,6 +27,11 @@ import sys
 R = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PSYQ = os.environ.get('PSYQ', os.path.join(os.path.dirname(R), 'psyq_sdk', 'psyq_4.4'))
 PSYQ_LIB = os.environ.get('PSYQ_LIB', os.path.join(os.path.dirname(R), 'psyq_sdk', 'psyq_4.5'))
+# CPPPSX with the predefines CCPSX gives it for C (_LANGUAGE_C keeps asm.h's register macros
+# out, __psx__ etc.); it sees only our headers and the SDK's (types.h includes libgpu.h etc.)
+CPP = ['wine', f'{PSYQ}/bin/cpppsx.exe', '-undef', '-D__GNUC__=2', '-D__OPTIMIZE__', '-lang-c',
+       '-DLANGUAGE_C', '-D_LANGUAGE_C', '-D__psx', '-D__psx__', '-Dpsx', '-P', '-nostdinc',
+       '-I', f'{R}/src/include', '-I', f'{PSYQ}/include']
 ASPSX = os.environ.get('ASPSX', os.path.join(os.path.dirname(R), 'psyq_sdk', 'aspsx', '2.81', 'ASPSX.EXE'))
 B = os.path.join(R, 'build')
 OBJ = os.path.join(B, 'obj')
@@ -69,7 +74,7 @@ def compile_c(name):
     m = re.search(r'calib-flags: *([^*]*[^ *]) *\*/', text)
     flags = m.group(1).split() if m else FLAGS
     i, s = f'{OBJ}/{name}.i', f'{OBJ}/{name}.s'
-    rc, out = run(['gcc', '-E', '-P', '-I', f'{R}/src/include', src, '-o', i])
+    rc, out = run(CPP + [src, '-o', i])
     if rc:
         return name, rc, out
     rc, out = run(['wine', f'{PSYQ}/bin/cc1psx.exe', '-quiet'] + flags + [i, '-o', s])
