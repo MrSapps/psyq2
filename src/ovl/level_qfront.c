@@ -1875,9 +1875,91 @@ void GOTO_GAME_VARIABLES(void)
     LevelInterface.Engine->cursorpos = LevelInterface.Engine->FrontEndRestoreCursor();
 }
 
-ASM_FUNC(GOTO_MULTIPLAYER_SETUP)
+void GOTO_MULTIPLAYER_SETUP(void)
+{
+    char *name;
+    char *dst;
+    short j;
+    short i;
+    char c;
 
-ASM_FUNC(func_4d78)
+    LevelInterface.Engine->SetupScreen1by1(0);
+    for (i = 0; i < *LevelInterface.Engine->MaxWindows; i++)
+        LevelInterface.Engine->AlterFocalSubDiv(i, 160, 4000);
+    switch (LevelInterface.Engine->GameConfig.sMultiMode) {
+    case 0:
+        FrontEndInitScreen("DEATHMATCH", 13);
+        break;
+    case 1:
+        FrontEndInitScreen("TEAM DEATHMATCH", 13);
+        break;
+    case 2:
+        FrontEndInitScreen("CAPTURE THE FLAG", 13);
+        break;
+    case 3:
+        FrontEndInitScreen("TAG", 13);
+        break;
+    case 4:
+        FrontEndInitScreen("TEAM TAG", 13);
+        break;
+    case 5:
+        FrontEndInitScreen("VERSUS", 13);
+        break;
+    }
+    if (LevelInterface.Engine->GameConfig.sMultiMode != 5)
+        LevelInterface.Engine->FrontEndCreateMenu(FET_2_3_4_PLAYERS, 16);
+    else
+        LevelInterface.Engine->FrontEndCreateMenu(FET_2_3_4_PLAYERS_2, 16);
+    dst = (char *)D_12db8;
+    name = ((struct LEVELDATA *)LevelInterface.Engine->GetLevelDataFromIdentityName("COLD STORAGE"))[LevelInterface.Engine->GameConfig.bArena].Name.Name;
+    for (j = 0; (c = *name) != 0 && j < 12; name++) {
+        if (c == ' ' || (unsigned char)(c - '0') < 10)
+            dst[j++] = c;
+        else
+            dst[j++] = c & ~0x20;
+    }
+    dst[j] = 0;
+    func_4d78();
+    LevelInterface.Engine->Backfunc = GOTO_MULTIPLAYER;
+    LevelInterface.Engine->Specialfunc = func_50e4;
+    LevelInterface.Engine->cursorpos = LevelInterface.Engine->cursorlower;
+}
+
+void func_4d78(void)
+{
+    char buf[32];
+    short line;
+
+    line = LevelInterface.Engine->cursorlower;
+    if (line == LevelInterface.Engine->cursorpos) {
+        LevelInterface.Engine->sprintf(buf, "%c2 %c3 %c4 bPLAYERS",
+            LevelInterface.Engine->GameConfig.sNumPlayers == 2 ? 'b' : 'd',
+            *LevelInterface.Engine->NumPadds >= 3 ? (LevelInterface.Engine->GameConfig.sNumPlayers == 3 ? 'b' : 'd') : 'g',
+            *LevelInterface.Engine->NumPadds >= 4 ? (LevelInterface.Engine->GameConfig.sNumPlayers == 4 ? 'b' : 'd') : 'g');
+    } else {
+        LevelInterface.Engine->sprintf(buf, "%d PLAYERS", LevelInterface.Engine->GameConfig.sNumPlayers);
+    }
+    LevelInterface.Engine->FrontEndModifyText(&LevelInterface.Engine->MyStringTable[line], buf);
+    LevelInterface.Engine->sprintf(buf, D_12db8);
+    line++;
+    LevelInterface.Engine->FrontEndModifyText(&LevelInterface.Engine->MyStringTable[line], buf);
+    line++;
+    if (LevelInterface.Engine->GameConfig.sMultiMode == 5) {
+        LevelInterface.Engine->sprintf(buf, "ROUNDS %2d", ScoreLimits[ScoreLimitIndex]);
+    } else {
+        LevelInterface.Engine->sprintf(buf, "FRAG LIMIT %2d", FragLimits[FragLimitIndex]);
+        if (FragLimits[FragLimitIndex] == -1)
+            LevelInterface.Engine->sprintf(buf, "FRAG LIMIT  i");
+    }
+    LevelInterface.Engine->FrontEndModifyText(&LevelInterface.Engine->MyStringTable[line], buf);
+    line++;
+    if (LevelInterface.Engine->GameConfig.sMultiMode != 5) {
+        LevelInterface.Engine->sprintf(buf, "TIME LIMIT %2d", TimeLimits[TimeLimitIndex]);
+        if (TimeLimits[TimeLimitIndex] == -1)
+            LevelInterface.Engine->sprintf(buf, "TIME LIMIT  i");
+        LevelInterface.Engine->FrontEndModifyText(&LevelInterface.Engine->MyStringTable[line], buf);
+    }
+}
 
 void func_50e4(void)
 {
@@ -2014,7 +2096,50 @@ int D_11ab8[2] = {
 
 int D_11ac0 = 0;
 
-ASM_FUNC(func_59e0)
+void func_59e0(void)
+{
+    short i, j;
+
+    FrontEndInitScreen(0, 11);
+    for (i = 0; i < 4; i++) {
+        if (i >= LevelInterface.Engine->GameConfig.sNumPlayers) {
+            for (j = 0; j < 4; j++)
+                Pickups[j + 1]->WinData[i].NoDraw = 1;
+        }
+    }
+    Pickups[1]->Primary = PickupSpinTitle;
+    Pickups[2]->Primary = PickupSpinTitle;
+    Pickups[3]->Primary = PickupSpinTitle;
+    Pickups[4]->Primary = PickupSpinTitle;
+    switch (LevelInterface.Engine->GameConfig.sNumPlayers) {
+    case 2:
+        LevelInterface.Engine->SetupScreen1by2(0);
+        for (i = 0; i < *LevelInterface.Engine->MaxWindows; i++)
+            LevelInterface.Engine->AlterFocalSubDiv(i, 210, 4000);
+        break;
+    case 3:
+        LevelInterface.Engine->SetupScreen2by2(0);
+        for (i = 0; i < *LevelInterface.Engine->MaxWindows; i++)
+            LevelInterface.Engine->AlterFocalSubDiv(i, 160, 4000);
+        break;
+    case 4:
+        LevelInterface.Engine->SetupScreen2by2(0);
+        for (i = 0; i < *LevelInterface.Engine->MaxWindows; i++)
+            LevelInterface.Engine->AlterFocalSubDiv(i, 160, 4000);
+        break;
+    }
+    for (i = 0; i < LevelInterface.Engine->GameConfig.sNumPlayers; i++) {
+        LevelInterface.Engine->maxcursor += 7;
+        LevelInterface.Engine->GameConfig.MultiPlayerParams[i].waitingMode = 0;
+        LevelInterface.Engine->GameConfig.MultiPlayerParams[i].cursorpos = 1;
+        LevelInterface.Engine->GameConfig.MultiPlayerParams[i].currentLetter = 0;
+        D_12c20[i] = 0;
+        D_12ce8[i] = 2;
+        LevelInterface.Engine->gFrontEndOPad[i] = LevelInterface.Engine->gFrontEndPad[i];
+    }
+    LevelInterface.Engine->Specialfunc = func_5da8;
+    *LevelInterface.Engine->DoSnapShot = 1;
+}
 
 #define ITM_PKUP (struct IDENTITYNAME){"itm_pkup"}
 
