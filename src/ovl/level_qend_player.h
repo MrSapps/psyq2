@@ -3,6 +3,7 @@
  * The including module defines the .data/.bss these use and the prototype block that sets
  * the order of the small (deferred) functions. */
 
+/* next is an int: a short parameter's entry copy is scheduled late and keeps t out of $a2 */
 static void PictureUpdate(int len, short clut, int next)
 {
     int fade[3];
@@ -94,9 +95,9 @@ static void DrawPicture(short y, short clut, short tpage, int is24, struct COLOU
             }
             if (i == 1) {
                 h -= w;
+                x += 256 - y;
                 w = 256;
                 v = 0;
-                x = x + 256 - y;
             }
             if (TPagePtr < TPageEnd) {
                 SetDrawTPage(TPagePtr, 1, 0, GetTPage(mode, 1, ENGINE->tpscreenx[tpage], ENGINE->tpscreeny[tpage]));
@@ -114,7 +115,7 @@ int printf(char *fmt, ...)
 static void strCallback(void)
 {
     struct RECT snap_rect;
-    int rest;
+    int rest;   /* an int: a short would be extended after the IsRGB24Start test */
 
     if (*ENGINE->StCdIntrFlagAddr) {
         ENGINE->StCdInterrupt();
@@ -325,7 +326,7 @@ static short PlayMovie(char *name, int endframe, int vlcsize, int clear, int vol
     dec.slice.y = dec.rect[dec.rectid].y + YOffset;
     while (!isEndOfFlag && !Done) {
         frame++;
-        if (frame <= 16)
+        if (frame <= 16)    /* loop.c strength-reduces frame * volume */
             ENGINE->SetCDVolume(frame * volume / 16);
         DecDCTin(dec.vlcbuf[dec.vlcid], 3);
         DecDCTout((unsigned long *)dec.imgbuf, bound24(dec.slice.w) * bound16(dec.slice.h) >> 1);
@@ -388,23 +389,27 @@ static short PlayMovie(char *name, int endframe, int vlcsize, int clear, int vol
 /* copies the last frame (24-bit) into a 15-bit picture in the display area and fades it out */
 static void MovieFreeze(void)
 {
-    struct RECT src;
-    struct RECT dst;
+    struct RECT srcrect;
+    struct RECT dstrect;
+    struct RECT *src;
+    struct RECT *dst;
     struct TILE tile;
+    struct TILE *t;
     struct DR_MODE mode;
+    struct DR_MODE *m;
     struct DISPENV disp;
     struct DRAWENV draw;
     unsigned char *buf;
     int yoff;
+    int id;
     int x, y;
     int i;
     unsigned char *s;
     unsigned short *d;
 
     yoff = YOffset;
+    id = dec.rectid ? 0 : 1;
     if (dec.rectid) {
-        int id = dec.rectid ? 0 : 1;
-
         dec.rect[id].y += yoff;
         ENGINE->MoveImage(&dec.rect[id], dec.rect[1].x, dec.rect[1].y + yoff);
         dec.rect[id].y -= yoff;
@@ -412,54 +417,58 @@ static void MovieFreeze(void)
     }
     dec.rectid = 0;
     strSetDispEnv(&disp, &draw);
-    setRECT(&src, dec.rect[1].x, dec.rect[1].y + YOffset, dec.rect[1].w, dec.rect[1].h);
-    setRECT(&dst, dec.rect[0].x, dec.rect[0].y, dec.rect[0].w * 2 / 3, dec.rect[0].h);
-    buf = ENGINE->My_malloc_name(src.w * src.h * 2, "source buf");
-    ENGINE->StoreImage(&src, buf);
+    src = &srcrect;
+    dst = &dstrect;
+    setRECT(src, dec.rect[1].x, dec.rect[1].y + YOffset, dec.rect[1].w, dec.rect[1].h);
+    setRECT(dst, dec.rect[0].x, dec.rect[0].y, dec.rect[0].w * 2 / 3, dec.rect[0].h);
+    buf = ENGINE->My_malloc_name(src->w * src->h * 2, "source buf");
+    ENGINE->StoreImage(src, buf);
     ENGINE->DrawSync(0);
     s = buf;
     d = (unsigned short *)buf;
-    for (y = 0; y < src.h; y++) {
-        for (x = 0; x < src.w; x += 3) {
-            d[0] = (s[0] >> 3) + ((s[2] & 0xf8) << 7) + ((s[1] & 0xf8) << 2);
-            d[1] = (s[3] >> 3) + ((s[5] & 0xf8) << 7) + ((s[4] & 0xf8) << 2);
+    for (y = 0; y < src->h; y++) {
+        for (x = 0; x < src->w; x += 3) {
+            d[0] = (s[0] >> 3) + (((s[2] & 0xf8) << 7) + ((s[1] & 0xf8) << 2));
+            d[1] = ((s[5] & 0xf8) << 7) + ((s[4] & 0xf8) << 2) + (s[3] >> 3);
             s += 6;
             d += 2;
         }
     }
-    i = dst.h;
-    dst.h = 240;
-    ENGINE->ClearImage(&dst, 0, 0, 0);
-    dst.h = i;
-    dst.y += yoff;
-    ENGINE->LoadImage(&dst, buf);
-    dst.h = 240;
-    dst.y -= yoff;
+    i = dst->h;
+    dst->h = 240;
+    ENGINE->ClearImage(dst, 0, 0, 0);
+    dst->h = i;
+    dst->y += yoff;
+    ENGINE->LoadImage(dst, buf);
+    dst->h = 240;
+    dst->y -= yoff;
     ENGINE->DrawSync(0);
-    ENGINE->SetDefDispEnv(&disp, dst.x, dst.y, dst.w, dst.h);
-    ENGINE->SetDefDrawEnv(&draw, dst.x, dst.y, dst.w, dst.h);
-    disp.isrgb24 = 1;
-    disp.isinter = 0;
+    ENGINE->SetDefDispEnv(&disp, dst->x, dst->y, dst->w, dst->h);
+    ENGINE->SetDefDrawEnv(&draw, dst->x, dst->y, dst->w, dst->h);
+    draw.dtd = 1;
+    draw.isbg = 0;
     disp.screen.x = ScreenX;
     disp.screen.y = ScreenY + 8;
     ENGINE->VSync(0);
     ENGINE->PutDispEnv(&disp);
     ENGINE->PutDrawEnv(&draw);
-    tile.x0 = 0;
-    tile.y0 = 0;
-    tile.w = dst.w;
-    tile.r0 = 8;
-    tile.g0 = 8;
-    tile.b0 = 8;
-    tile.h = dst.h;
-    ENGINE->SetTile(&tile);
-    tile.code = (tile.code & 0xfe) | 2;
-    ENGINE->SetDrawMode(&mode, 1, 0, GetTPage(0, 2, 512, 256), 0);
+    t = &tile;
+    t->x0 = 0;
+    t->y0 = 0;
+    t->w = dst->w;
+    t->h = dst->h;
+    t->r0 = 8;
+    t->g0 = 8;
+    t->b0 = 8;
+    ENGINE->SetTile(t);
+    t->code = (t->code & 0xfe) | 2;
+    m = &mode;
+    ENGINE->SetDrawMode(m, 1, 0, ENGINE->GetTPage(0, 2, 512, 256), 0);
     for (i = 32; i > 0; i--) {
         ENGINE->DrawSync(0);
         ENGINE->ClearOTag(ENGINE->Db->BigOt, 11);
-        ENGINE->AddPrim_(ENGINE->Db->BigOt, &tile);
-        ENGINE->AddPrim_(ENGINE->Db->BigOt, &mode);
+        ENGINE->AddPrim_(ENGINE->Db->BigOt, t);
+        ENGINE->AddPrim_(ENGINE->Db->BigOt, m);
         ENGINE->VSync(0);
         ENGINE->DrawOTag(ENGINE->Db->BigOt);
     }

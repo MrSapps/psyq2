@@ -1,0 +1,6 @@
+#!/bin/sh
+# Native CC1PSX equivalent (tools/build-cc1.sh): cc1n [flags] X.i -o X.s
+# Default flags are the overlays' (-O3 -G0 -g); pass -G8 etc. to override.
+C=${CC1N:-$(dirname "$0")/../build/cc1/cc1}
+case " $* " in *" -O"*) exec "$C" -quiet -mgas -msplit-addresses -msoft-float -funsigned-char "$@";; esac
+exec "$C" -quiet -O3 -G0 -g -mgas -msplit-addresses -msoft-float -funsigned-char "$@"

@@ -4,14 +4,12 @@
  * libcd/libgpu pointers; libpress and three small libc/libgpu functions were linked into
  * the module after this object.
  *
- * TODO, not matching yet (same size or within a few instructions; the rest of the module,
- * .rdata, .data and .bss match): SetupScoreLines and FormatScoreLine (FormatScoreLine's name
- * loop: the original keeps the jump to the loop test instead of copying the test, and
- * strength-reduces the fill loop), Logos2Update, LogosUpdate and PictureUpdate (the original
- * loads the frame counter after the SprtPtr/SprtEnd stores; here sched1 hoists it), DrawSprite
- * and DrawPicture (the original reloads SprtPtr after more of the stores), strCallback
- * (scheduling of IsRGB24Start), PlayMovie (ret lives in the frame as a short) and MovieFreeze
- * (the original addresses src/dst through registers). */
+ * TODO, not matching yet (the rest of the module, .rdata, .data and .bss match; the shared code
+ * is in level_qend_common.h/level_qend_player.h): DrawSprite and DrawPicture (which SprtPtr
+ * reloads survive: the original keeps the reload after the first struct copy in DrawPicture and
+ * after the second in DrawSprite, here reload_cse turns both into copies; plus a register
+ * permutation in DrawPicture) and PlayMovie (the frame is 8 bytes short, and global alloc gives
+ * &LevelInterface, the Done/dec address pseudos and frame different callee-saved registers). */
 /* ovl-libs: libc2/MEMSET libgpu/P00 libgpu/P33 libpress/LIBPRESS libpress/VLC_C libpress/BUILD libpress/DCT002 */
 #include "ovl.h"
 #include "bss.h"
@@ -69,7 +67,10 @@ static void InitScoreScreen(void);
 static short PlayMovie(char *name, int endframe, int vlcsize, int clear, int volume);
 
 /* .bss, in the original's order */
-static int UnusedBss0[3] BSS;
+/* the word after LIBPRESS's .data: the original image holds 4 junk bytes there (the start of
+ * this object's .bss, left over from the build machine's memory); a .sdata word lands there */
+static int BssJunk __attribute__((section(".sdata"))) = 0x6e69202c;   /* ", in" */
+static int UnusedBss0[2] BSS;
 static int Logos2Time BSS;
 static int UnusedBss1 BSS;
 static int Logos2Fade[3] BSS;
@@ -288,11 +289,11 @@ void FormatScoreLine(struct SCORELINE *line, char *name, short score)
     p = buf;
     while (*p++)
         scorelen++;
-    p = name;
+    p = name;   /* one pointer for every loop: cse keeps p, not name, in the copied loop test */
     namelen = 0;
     while (*p++)
         namelen++;
-    for (i = 0; i < 31; i++)
+    for (i = 0; i < 31; i++)    /* loop.c reverses this loop */
         line->message[i] = ' ';
     line->message[i] = 0;
     p = &line->message[12];

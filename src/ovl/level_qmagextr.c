@@ -9,7 +9,7 @@
 void InitLevel(void);
 struct QLEVELINTERFACE LevelInterface OVL_HEADER = { InitLevel, 0, 0 };
 
-/* the struct DB of this interface: its DispEnv..BigOt 16 bytes earlier, 32 bytes shorter */
+/* the struct DB of this interface: its DispEnv..BigOt 16 bytes earlier, size 0x7e88 */
 struct DBOLD {
     char Unknown0[0x2aac];
     struct DISPENV DispEnv;     /* 0x2aac */
@@ -17,7 +17,7 @@ struct DBOLD {
     unsigned long InitOt[2];    /* 0x2ad8 */
     unsigned long Ot[4][51];    /* 0x2ae0 */
     unsigned long BigOt[11];    /* 0x2e10 */
-    char Unknown1[0xa934 - 0x2e3c];
+    char Unknown1[0x7e88 - 0x2e3c];
 };
 
 /* QENGINELEVINTERFACE as this module was built: one of the pointers 0x94-0xb8 missing, one more
