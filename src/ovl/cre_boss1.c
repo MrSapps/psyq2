@@ -56,7 +56,8 @@ struct QCREINTERFACE Iface OVL_HEADER = { SP_monster_supertank, Supertank_EveryF
    puts the sound_search2 lui pseudo in $8 instead of $2 (sched2 then hoists the lui to just
    after the last use of $8, where the original has it). Either alone leaves 2-4 lines. No
    spelling found gives the load a load-latency predecessor (the only way to a 7 in this
-   block: anti/output deps cost 1 on MIPS) without an extra insn. No other module passes a
+   block: anti/output deps cost 1 on MIPS) without an extra insn; decomp-permuter (~78k
+   random rewrites scored against that forced build) found nothing. No other module passes a
    stray argument to copy the shape from.
    This block also holds PreInit's string literals, in their .rdata order. It sits right after
    Iface, where gcc is in a named section and so re-emits a section directive before its next
