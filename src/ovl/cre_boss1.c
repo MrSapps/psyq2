@@ -58,7 +58,11 @@ struct QCREINTERFACE Iface OVL_HEADER = { SP_monster_supertank, Supertank_EveryF
    spelling found gives the load a load-latency predecessor (the only way to a 7 in this
    block: anti/output deps cost 1 on MIPS) without an extra insn; decomp-permuter (~78k
    random rewrites scored against that forced build) found nothing. No other module passes a
-   stray argument to copy the shape from.
+   stray argument to copy the shape from. Other flags (-O2, -fno-*) only make it worse. Hacks
+   don't reach it either: register asm("$7"/"$8") locals get folded away by cse, and
+   asm("" : "+r") chains (which drop the birthing boost) still leave the load hoisted. Even the
+   lui/lw written as inline asm gets moved to the top of the block, and making it volatile pins
+   it ahead of the struct bytes, which are only unpacked inside the call.
    This block also holds PreInit's string literals, in their .rdata order. It sits right after
    Iface, where gcc is in a named section and so re-emits a section directive before its next
    output. */
